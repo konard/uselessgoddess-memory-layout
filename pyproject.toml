@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cs2-helper"
+version = "0.1.0"
+description = "Шаблон приложения PyQt6 с конфигом, плагинами и тестами"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Your Name" }]
+dependencies = [
+  "PyQt6>=6.6",
+  "typing-extensions>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-qt>=4.2.0",
+  "mypy>=1.8.0",
+  "black>=23.11",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '\\.(py)$'
+exclude = "^$"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+exclude = ["tests/.*"]
+
+

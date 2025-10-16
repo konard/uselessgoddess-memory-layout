@@ -1,0 +1,2 @@
+# Namespace for available plugins
+

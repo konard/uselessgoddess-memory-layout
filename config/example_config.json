@@ -1,0 +1,10 @@
+{
+    "config_version": 1,
+    "steam_path": "C:/Program Files (x86)/Steam",
+    "cs2_path": "C:/Program Files (x86)/Steam/steamapps/common/Counter-Strike Global Offensive",
+    "plugins": {
+        "enabled": [
+            "example_plugin"
+        ]
+    }
+}
