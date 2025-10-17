@@ -5,7 +5,7 @@ from typing import Optional
 
 from PyQt6 import uic
 from PyQt6.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable
-from PyQt6.QtWidgets import QMainWindow, QListWidgetItem
+from PyQt6.QtWidgets import QMainWindow
 
 from src.core.config_manager import ConfigManager
 from src.core.event_bus import EventBus

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from .config_manager import ConfigManager
 from .event_bus import EventBus
 from .gui_executor import GuiExecutor
-from .logger import get_logger
+from .logging import get_logger
 from .accounts.model import Account
 from .root_fs import root_fs
 

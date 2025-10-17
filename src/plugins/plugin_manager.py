@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-from src.core.logger import get_logger
+from src.core.logging import get_logger
 from . import PluginBase
 
 

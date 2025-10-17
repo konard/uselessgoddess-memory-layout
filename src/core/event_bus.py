@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Callable, DefaultDict, Dict, List
+from typing import Any, Callable, DefaultDict, List
 from collections import defaultdict
 
-from .logger import get_logger
+from core.logging import get_logger
 
 Callback = Callable[..., None]
 

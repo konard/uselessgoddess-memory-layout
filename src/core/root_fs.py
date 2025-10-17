@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import os
-import io
 import json
 import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, TextIO
 
-from .logger import get_logger
+from core.logging import get_logger
 
 
 _ROOT_LOGGER = get_logger("RootFS")

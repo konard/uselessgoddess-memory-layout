@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from .logger import get_logger
+from core.logging import get_logger
 
 
 logger = get_logger("ConfigManager")

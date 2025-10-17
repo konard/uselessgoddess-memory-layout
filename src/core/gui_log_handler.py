@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from typing import Callable
 
 from PyQt6.QtCore import QObject, pyqtSignal
-import logging
 
 
 class QtLogEmitter(QObject):

@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from .logger import get_logger
+from core.logging import get_logger
 
 
 logger = get_logger("GuiExecutor")
