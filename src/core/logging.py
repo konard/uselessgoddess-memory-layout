@@ -14,6 +14,9 @@ TRACE = 5
 
 
 class Logger(logging.Logger):
+  def warn(self, message, *args, **kwargs):
+    self.warning(self, message, args, **kwargs)
+  
   def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
       self._log(TRACE, message, args, **kwargs)
