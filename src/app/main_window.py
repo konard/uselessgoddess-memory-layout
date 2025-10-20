@@ -1,134 +1,127 @@
-from __future__ import annotations
+from PyQt6.QtWidgets import (
+  QMainWindow,
+  QWidget,
+  QHBoxLayout,
+  QVBoxLayout,
+  QLabel,
+  QTableWidget,
+  QTableWidgetItem,
+  QPushButton,
+  QPlainTextEdit,
+  QComboBox,
+  QLineEdit,
+  QSplitter,
+  QHeaderView,
+)
+from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt
 
-from pathlib import Path
-from typing import Optional
+from core.logging import get_logger
+from core.context import Context
+from .log_view import LogHandler
 
-from PyQt6 import uic
-from PyQt6.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable
-from PyQt6.QtWidgets import QMainWindow
-
-from src.core.config_manager import ConfigManager
-from src.core.event_bus import EventBus
-from src.app.settings_window import SettingsWindow
-from src.app.log_view import LogView
-from src.app.accounts_tree_view import AccountsTreeView
-from src.core.app_state import get_app_state
-
-
-class LongTaskSignals(QObject):
-    progress = pyqtSignal(str)
-    finished = pyqtSignal(str)
-
-
-class LongTask(QRunnable):
-    """Пример длительной задачи, безопасно обновляющей GUI через сигналы."""
-
-    def __init__(self, message: str) -> None:
-        super().__init__()
-        self.signals = LongTaskSignals()
-        self._message = message
-
-    def run(self) -> None:  # type: ignore[override]
-        # Имитация долгой операции
-        import time
-
-        for step in range(3):
-            time.sleep(0.7)
-            self.signals.progress.emit(f"Шаг {step + 1}/3: {self._message}")
-        self.signals.finished.emit("Готово")
+logger = get_logger("yacs.ui.main")
 
 
 class MainWindow(QMainWindow):
-    """Главное окно приложения."""
+  def __init__(self, context: Context, parent=None):
+    super().__init__(parent)
+    self.context = context
 
-    def __init__(self, config: ConfigManager, event_bus: EventBus, logger, parent: Optional[QMainWindow] = None) -> None:
-        super().__init__(parent)
-        self.config = config
-        self.event_bus = event_bus
-        self.logger = logger
-        self.thread_pool = QThreadPool.globalInstance()
+    self.setWindowTitle("CS2 Panel")
+    self.resize(1000, 700)
 
-        ui_path = Path(__file__).resolve().parents[1] / "ui" / "main_window.ui"
-        uic.loadUi(str(ui_path), self)
+    left_panel = self._create_accounts_panel()
+    right_panel = self._create_logs_panel()
 
-        # Инициализация вьюшек
-        self.log_view = LogView(self.txtLogs, self.cbLogLevel, self.leLogFilter)
-        self.accounts_view = AccountsTreeView(self.treeAccounts)
+    splitter = QSplitter(Qt.Orientation.Horizontal)
+    splitter.addWidget(left_panel)
+    splitter.addWidget(right_panel)
+    splitter.setStretchFactor(0, 1)
+    splitter.setStretchFactor(1, 2)
 
-        # Подключение сигналов кнопок
-        self.btnStartFarm.clicked.connect(self.start_farm)
-        self.btnStartBattle.clicked.connect(self.start_battle)
-        self.btnSettings.clicked.connect(self.open_settings)
-        self.btnClearLogs.clicked.connect(self._clear_logs)
+    self.setCentralWidget(splitter)
 
-        # Динамическая фильтрация логов
-        self.cbLogLevel.currentTextChanged.connect(self._render_logs)
-        self.leLogFilter.textChanged.connect(self._render_logs)
+    self._populate_accounts_table()
 
-        # Заполним список аккаунтов из AppState
-        try:
-            state = get_app_state()
-            self.accounts_view.set_accounts(state.accounts)
-        except Exception:
-            pass
+  def _create_accounts_panel(self) -> QWidget:
+    layout = QVBoxLayout()
 
+    title = QLabel("Accounts")
+    title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
-    def _run_long_task(self, label: str) -> None:
-        task = LongTask(label)
-        task.signals.progress.connect(self._on_task_progress)
-        task.signals.finished.connect(self._on_task_finished)
-        self.thread_pool.start(task)
+    self.accounts_table = QTableWidget()
+    self.accounts_table.setColumnCount(2)
+    self.accounts_table.setHorizontalHeaderLabels(["Login", "Status"])
+    self.accounts_table.setSelectionBehavior(
+      QTableWidget.SelectionBehavior.SelectRows
+    )
+    self.accounts_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+    header = self.accounts_table.horizontalHeader()
+    header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+    header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
 
-    def _on_task_progress(self, text: str) -> None:
-        self.lblStatus.setText(text)
-        self.event_bus.emit("task_progress", text=text)
+    self.start_button = QPushButton("Start Farming Selected")
+    self.start_button.clicked.connect(self._start_farming)
 
-    def _on_task_finished(self, text: str) -> None:
-        self.lblStatus.setText(text)
-        self.event_bus.emit("task_finished", text=text)
+    layout.addWidget(title)
+    layout.addWidget(self.accounts_table)
+    layout.addWidget(self.start_button)
 
-    def start_farm(self) -> None:
-        """Заглушка старта фарма: логирует и меняет статус."""
-        self.logger.trace("Запуск заглушки фарма")
-        self.lblStatus.setText("Фарм: запускается...")
-        self.event_bus.emit("start_farm")
-        self._run_long_task("Фарм")
+    container = QWidget()
+    container.setLayout(layout)
+    return container
 
-    def start_battle(self) -> None:
-        """Заглушка старта боя: логирует и меняет статус."""
-        self.logger.trace("Запуск заглушки боя")
-        self.lblStatus.setText("Бой: запускается...")
-        self.event_bus.emit("start_battle")
-        self._run_long_task("Бой")
+  def _create_logs_panel(self) -> QWidget:
+    layout = QVBoxLayout()
+    filter_layout = QHBoxLayout()
 
-    def open_settings(self) -> None:
-        """Открывает окно настроек и сохраняет результат через ConfigManager."""
-        self.logger.debug("Открываю окно настроек")
-        dialog = SettingsWindow(config=self.config, parent=self)
-        if dialog.exec():  # OK
-            self.logger.trace("Настройки сохранены")
-            self.lblStatus.setText("Настройки сохранены")
-        else:
-            self.logger.debug("Настройки отменены пользователем")
+    log_level_combo = QComboBox()
+    log_filter_edit = QLineEdit()
+    log_filter_edit.setPlaceholderText("Filter logs...")
 
-    # ----- Плагины UI (панель слева) -----
-    def add_plugin_button(self, text: str, on_clicked) -> None:
-        """Публичный метод для плагинов: добавить кнопку на левую панель."""
-        from PyQt6.QtWidgets import QPushButton
+    filter_layout.addWidget(QLabel("Min Level:"))
+    filter_layout.addWidget(log_level_combo)
+    filter_layout.addWidget(log_filter_edit)
 
-        btn = QPushButton(text)
-        btn.clicked.connect(on_clicked)
-        self.layoutPlugins.insertWidget(self.layoutPlugins.count() - 1, btn)
+    logs_text_edit = QPlainTextEdit()
 
-    # ----- Логи -----
-    def append_log(self, message: str, level: str) -> None:
-        # Всегда добавляем в буфер, отображаем согласно текущему фильтру
-        self.log_view.append(message, level)
+    self.log_handler = LogHandler(
+      logs_text_edit, log_level_combo, log_filter_edit
+    )
 
-    def _render_logs(self) -> None:
-        self.log_view.render()
+    clear_logs_button = QPushButton("Clear Logs")
+    clear_logs_button.clicked.connect(self.log_handler.clear)
 
-    def _clear_logs(self) -> None:
-        self.log_view.clear()
+    layout.addWidget(QLabel("Logs"))
+    layout.addLayout(filter_layout)
+    layout.addWidget(logs_text_edit)
+    layout.addWidget(clear_logs_button)
 
+    container = QWidget()
+    container.setLayout(layout)
+    return container
 
+  def _populate_accounts_table(self):
+    accounts = self.context.accounts()
+    self.accounts_table.setRowCount(len(accounts))
+
+    for row, acc in enumerate(accounts):
+      self.accounts_table.setItem(row, 0, QTableWidgetItem(acc.login))
+      self.accounts_table.setItem(row, 1, QTableWidgetItem("Idle"))
+
+  def _start_farming(self):
+    selected_rows = self.accounts_table.selectionModel().selectedRows()
+    if not selected_rows:
+      logger.warn("No accounts selected to start farming.")
+      return
+
+    logins = []
+    for index in selected_rows:
+      login_item = self.accounts_table.item(index.row(), 0)
+      logins.append(login_item.text())
+
+      status_item = QTableWidgetItem("Farming...")
+      self.accounts_table.setItem(index.row(), 1, status_item)
+
+    logger.info(f"Starting farm for: {', '.join(logins)}")

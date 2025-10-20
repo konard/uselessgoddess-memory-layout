@@ -1,52 +1,68 @@
-from __future__ import annotations
+from PyQt6.QtWidgets import QPlainTextEdit, QComboBox, QLineEdit
 
 from typing import List, Tuple
+import core.logging as logging
 
-from PyQt6.QtWidgets import QComboBox, QLineEdit, QPlainTextEdit
+class LogHandler:
+    def __init__(self, text_edit: QPlainTextEdit, level_combo: QComboBox, filter_edit: QLineEdit):
+        self.text_edit = text_edit
+        self.level_combo = level_combo
+        self.filter_edit = filter_edit
+        
+        self.buffer: List[Tuple[int, str]] = [] 
+
+        self.text_edit.setReadOnly(True)
+        self.level_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+        self.level_combo.setCurrentText("INFO")
+
+        self.level_combo.currentTextChanged.connect(self.render)
+        self.filter_edit.textChanged.connect(self.render)
+
+    def append(self, level: int, message: str):
+        level_int = self._level_to_int(level) if isinstance(level, str) else level
+        
+        self.buffer.append((level_int, message))
+        
+        if self._passes_filter(level_int, message):
+            self.text_edit.appendPlainText(message)
+
+    def render(self):
+        self.text_edit.clear()
+        for level, message in self.buffer:
+            if self._passes_filter(level, message):
+                self.text_edit.appendPlainText(message)
+
+    def clear(self):
+        self.buffer.clear()
+        self.text_edit.clear()
+
+    def _level_to_int(self, level: str | int) -> int:
+        if isinstance(level, int):
+            return level
+        
+        mapping = {
+            "TRACE": logging.TRACE,
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARN": logging.WARN,
+            "ERROR": logging.ERROR,
+            "FATAL": logging.FATAL
+        }
+        # Если используется Python < 3.12, TRACE не определен
+        if "TRACE" not in logging.__dict__:
+             mapping.pop("TRACE", None)
+             
+        return mapping.get(level.upper(), logging.INFO) # По умолчанию INFO
 
 
-class LogView:
-    """Инкапсулирует буфер и динамическую фильтрацию логов."""
-
-    def __init__(self, txt_logs: QPlainTextEdit, cb_level: QComboBox, le_filter: QLineEdit) -> None:
-        self._txt = txt_logs
-        self._cb = cb_level
-        self._le = le_filter
-        self._buffer: List[Tuple[str, str]] = []
-
-        self._cb.addItems(["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-        self._cb.setCurrentText("INFO")
-        self._cb.currentTextChanged.connect(self.render)
-        self._le.textChanged.connect(self.render)
-
-    def append(self, message: str, level: str) -> None:
-        self._buffer.append((message, level))
-        if self._passes(message, level):
-            self._txt.appendPlainText(message)
-
-    def clear(self) -> None:
-        self._buffer.clear()
-        self._txt.clear()
-
-    def render(self) -> None:
-        self._txt.setPlainText("")
-        for message, level in self._buffer:
-            if self._passes(message, level):
-                self._txt.appendPlainText(message)
-
-    # --- helpers ---
-    @staticmethod
-    def _level_to_int(level: str) -> int:
-        mapping = {"TRACE": 5, "DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
-        return mapping.get(level.upper(), 100)
-
-    def _passes(self, message: str, level: str) -> bool:
-        level_filter = self._cb.currentText()
-        if self._level_to_int(level) < self._level_to_int(level_filter):
+    def _passes_filter(self, level_int: int, message: str) -> bool:
+        min_level_str = self.level_combo.currentText()
+        min_level_int = self._level_to_int(min_level_str)
+        if level_int < min_level_int:
             return False
-        text = self._le.text().strip()
-        if text and text.lower() not in message.lower():
+        
+        filter_text = self.filter_edit.text().strip()
+        if filter_text and filter_text.lower() not in message.lower():
             return False
+            
         return True
-
-
