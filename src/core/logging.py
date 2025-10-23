@@ -15,7 +15,8 @@ TRACE = 5
 
 class Logger(logging.Logger):
   def warn(self, message, *args, **kwargs):
-    self.warning(self, message, args, **kwargs)
+    if self.isEnabledFor(WARN):
+      self._log(WARN, message, args, **kwargs)
   
   def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
@@ -33,7 +34,7 @@ def setup_logger(name: str) -> logging.Logger:
   has_file_handler = any(
     isinstance(h, RotatingFileHandler) for h in logger.handlers
   )
-  if not has_file_handler:
+  if not has_file_handler and not logger.hasHandlers():
     try:
       file_handler = RotatingFileHandler(
         filename=os.path.abspath("yacs.log"),
@@ -54,7 +55,7 @@ def setup_logger(name: str) -> logging.Logger:
       logger.addHandler(console_handler)
 
     except Exception as e:
-      print(f"Ошибка настройки логгера: {e}")
+      print(f"Logger setup error: {e}")
       logging.basicConfig(level=TRACE)
       logger = logging.getLogger(name)
   else:
@@ -62,5 +63,5 @@ def setup_logger(name: str) -> logging.Logger:
   return logger
 
 
-def get_logger(name: str = "yacs") -> Logger:
+def get_logger(name: str) -> Logger:
   return cast(Logger, setup_logger(name))

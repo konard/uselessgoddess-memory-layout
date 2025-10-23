@@ -13,6 +13,7 @@ authors = [
     { name = "uselessgoddes" },
 ]
 dependencies = [
+  "qasync>=0.28",
   "PyQt6>=6.6",
   "typing-extensions>=4.8",
 ]

@@ -4,7 +4,7 @@ from core.logging import get_logger
 from .accounts import Accounts, Account
 
 
-logger = get_logger("yacs.ctx")
+logger = get_logger("ctx")
 
 
 class Context:

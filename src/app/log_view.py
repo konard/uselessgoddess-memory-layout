@@ -12,7 +12,7 @@ class LogHandler:
         self.buffer: List[Tuple[int, str]] = [] 
 
         self.text_edit.setReadOnly(True)
-        self.level_combo.addItems(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+        self.level_combo.addItems(["DEBUG", "INFO", "WARN", "ERROR", "FATAL"])
         self.level_combo.setCurrentText("INFO")
 
         self.level_combo.currentTextChanged.connect(self.render)
@@ -47,12 +47,8 @@ class LogHandler:
             "WARN": logging.WARN,
             "ERROR": logging.ERROR,
             "FATAL": logging.FATAL
-        }
-        # Если используется Python < 3.12, TRACE не определен
-        if "TRACE" not in logging.__dict__:
-             mapping.pop("TRACE", None)
-             
-        return mapping.get(level.upper(), logging.INFO) # По умолчанию INFO
+        }             
+        return mapping.get(level.upper(), logging.INFO)
 
 
     def _passes_filter(self, level_int: int, message: str) -> bool:

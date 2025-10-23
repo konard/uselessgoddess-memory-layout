@@ -1,24 +1,31 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
-from typing import NoReturn
+import asyncio
+import qasync
 
 from PyQt6.QtWidgets import QApplication
 
 from src.core.context import Context
 from src.app.main_window import MainWindow
+from src.states import Idle
 
-
-def main() -> NoReturn:
-  app = QApplication(sys.argv)
-
+async def main():
+  _app = QApplication.instance() or QApplication(sys.argv)
+    
   context = Context()
+
   window = MainWindow(context)
   window.show()
+  
+  await window.manager.into_state(Idle())
 
-  sys.exit(app.exec())
+  await asyncio.get_event_loop().create_future()
+  
 
 
 if __name__ == "__main__":
-  main()
+    try:
+        qasync.run(main())
+    except asyncio.CancelledError:
+        pass
