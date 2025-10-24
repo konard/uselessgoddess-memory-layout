@@ -9,18 +9,19 @@ from PyQt6.QtWidgets import (
   QVBoxLayout,
   QLabel,
   QGridLayout,
-  QScrollArea,
-  QTabWidget,
+  QHeaderView,
+  QTableWidget,
+  QTableWidgetItem,
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
 from core.context import Context
 
 from src.ui import CURRENT_THEME, ButtonType, Align
-from src.ui.widgets import Button, TitledPanel, AccountItem, Switch, VStack
+from src.ui.widgets import Button, TitledPanel, AccountsTable, Switch, VStack
 
 from .log_view import LogHandler
 from .settings import SettingsDialog
@@ -43,7 +44,7 @@ class MainWindow(QMainWindow):
   def __init__(self, context: Context, parent=None):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
-    self.resize(1200, 750)
+    self.resize(1000, 600)
     self.setFont(
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
@@ -53,7 +54,7 @@ class MainWindow(QMainWindow):
 
     self.setup_ui()
     self.setup_logging()
-    self.populate_accounts_list()
+    self.accounts_table.populate(self.context.accounts())
 
     logger.debug("main window initialized.")
 
@@ -75,15 +76,14 @@ class MainWindow(QMainWindow):
     main_grid_layout = QGridLayout(main_content_container)
     main_grid_layout.setSpacing(10)
 
-    self.state_panel = TitledPanel("Main Menu")
+    self.state_panel = TitledPanel("Actions")
     config_panel = self._create_config_panel()
     accounts_panel = self._create_accounts_panel()
-    controls_panel = self._create_controls_panel()
 
-    main_grid_layout.addWidget(controls_panel, 0, 0)
+    main_grid_layout.addWidget(self.state_panel, 0, 0)
     main_grid_layout.addWidget(config_panel, 0, 1)
-    main_grid_layout.addWidget(accounts_panel, 1, 0)
-    main_grid_layout.addWidget(self.state_panel, 1, 1)
+
+    main_grid_layout.addWidget(accounts_panel, 1, 0, 1, 2)
 
     main_grid_layout.setColumnStretch(0, 1)
     main_grid_layout.setColumnStretch(1, 1)
@@ -91,12 +91,11 @@ class MainWindow(QMainWindow):
     main_grid_layout.setRowStretch(1, 2)
 
     main_hbox_layout.addWidget(main_content_container)
-
     main_hbox_layout.setStretch(0, 1)
     main_hbox_layout.setStretch(1, 2)
 
   def _create_status_panel(self) -> QWidget:
-    panel = TitledPanel("YACS Panel [0.0.0]")
+    panel = TitledPanel("YACS Panel")
     layout = QVBoxLayout(panel.container)
     layout.addWidget(QLabel("Farmed this week: 0"))
     layout.addWidget(QLabel("Drop received: 0 [0/0]"))
@@ -150,22 +149,17 @@ class MainWindow(QMainWindow):
     return panel
 
   def _create_accounts_panel(self) -> QWidget:
-    panel = TitledPanel("Accs: 20 | Selected: 0 | Launched: 0")
+    self.accounts_panel = TitledPanel("Accounts | Selected: 0")
 
-    scroll_area = QScrollArea()
-    scroll_area.setWidgetResizable(True)
-    scroll_area.setStyleSheet("QScrollArea { border: none; }")
+    self.accounts_table = AccountsTable()
 
-    self.accounts_list_container = QWidget()
-    self.accounts_list_layout = QVBoxLayout(self.accounts_list_container)
-    self.accounts_list_layout.setSpacing(2)
-    self.accounts_list_layout.addStretch()
+    self.accounts_table.account_selected.connect(self._on_selection)
 
-    scroll_area.setWidget(self.accounts_list_container)
+    layout = QVBoxLayout(self.accounts_panel.container)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addWidget(self.accounts_table)
 
-    main_layout = QVBoxLayout(panel.container)
-    main_layout.addWidget(scroll_area)
-    return panel
+    return self.accounts_panel
 
   def _create_controls_panel(self) -> QWidget:
     panel = TitledPanel("Accounts Control")
@@ -275,38 +269,60 @@ class MainWindow(QMainWindow):
     return panel
 
   def populate_accounts_list(self):
-    while self.accounts_list_layout.count() > 1:
-      item = self.accounts_list_layout.takeAt(0)
-      if item.widget():
-        item.widget().deleteLater()
+    self.accounts_table.setRowCount(0)
 
     accounts = self.context.accounts()
-    mock_data = [
-      "10 LVL | 127 XP | -",
-      "8 LVL | 814 XP | -",
-      "9 LVL | 567 XP | -",
+    self.accounts_table.setRowCount(len(accounts))
+
+    mock_statuses = [
+      "Farming (2v2)",
+      "Idle",
+      "Searching game...",
+      "Connecting...",
     ]
 
-    for i, acc in enumerate(accounts):
-      status = mock_data[i % len(mock_data)]
-      display_text = f"{i + 1}. {acc.login} - [{status}]"
-
-      item_widget = AccountItem(
-        display_text,
-        on_toggle=lambda checked, login=acc.login: self._on_selection(
-          checked, login
-        ),
-      )
-      self.accounts_list_layout.insertWidget(
-        self.accounts_list_layout.count() - 1, item_widget
+    for row, acc in enumerate(accounts):
+      switch = Switch()
+      switch.toggled.connect(
+        lambda checked, login=acc.login: self._on_selection(checked, login)
       )
 
-  def _on_selection(self, is_checked: bool, login: str):
+      cell_widget = QWidget()
+      cell_layout = QHBoxLayout(cell_widget)
+      cell_layout.setContentsMargins(4, 4, 4, 4)
+      cell_layout.addWidget(switch)
+      cell_layout.addWidget(QLabel(acc.login))
+      cell_layout.addStretch()
+
+      self.accounts_table.setCellWidget(row, 0, cell_widget)
+
+      xp_item = QTableWidgetItem(f"{row * 1250} XP")
+      xp_item.setForeground(QColor(CURRENT_THEME.SECONDARY_TEXT))
+      self.accounts_table.setItem(row, 1, xp_item)
+
+      status_text = mock_statuses[row % len(mock_statuses)]
+      status_item = QTableWidgetItem(status_text)
+
+      detailed_tooltip = (
+        f"Account: {acc.login}\n"
+        f"Status: {status_text}\n"
+        f"Session Time: 00:45:12\n"
+        f"Last Drop: 2 days ago"
+      )
+      status_item.setToolTip(detailed_tooltip)
+
+      self.accounts_table.setItem(row, 2, status_item)
+
+  def _on_selection(self, login: str, is_checked: bool):
     if is_checked:
       self.context.account.select(login)
     else:
       self.context.account.deselect(login)
-    # TODO: Add "Selected: X" to accounts panel
+
+    selected_count = len(self.context.account.selected())
+    self.accounts_panel.title_label.setText(
+      f"Accounts | Selected: {selected_count}"
+    )
 
   def dispatch_message(self, message: Message):
     asyncio.create_task(self.manager.dispatch(message))
@@ -330,20 +346,25 @@ class MainWindow(QMainWindow):
       self.context.account.deselect(login)
 
   def reload_layout(self):
-    layout = self.manager.acquire_state().layout(
-      self.context, self.dispatch_message
-    )
-    if isinstance(layout, list):
-      layout = VStack(*layout, align=Align.Top)
+    current_state = self.manager.acquire_state()
+    if not current_state:
+      return
 
-    old_panel = self.state_panel.findChild(QWidget)
-    if old_panel:
-      old_panel.deleteLater()
+    widgets = current_state.layout(self.context, self.dispatch_message)
 
-    if not self.state_panel.layout():
-      self.state_panel.setLayout(QVBoxLayout())
+    container = self.state_panel.container
+    old_content = container.findChild(QWidget)
+    if old_content:
+      old_content.deleteLater()
 
-    self.state_panel.layout().addWidget(layout)
+    new_content = VStack(*widgets, align=Align.Top)
+
+    if not container.layout():
+      container.setLayout(QVBoxLayout())
+      container.layout().setContentsMargins(
+        0, 0, 0, 0
+      )
+    container.layout().addWidget(new_content)
 
   def open_settings(self):
     dialog = SettingsDialog(self)
