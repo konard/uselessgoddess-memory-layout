@@ -1,26 +1,27 @@
 import asyncio
 from PyQt6.QtWidgets import (
   QMainWindow,
+  QComboBox,
+  QPlainTextEdit,
+  QLineEdit,
   QWidget,
-  QCheckBox,
   QHBoxLayout,
   QVBoxLayout,
   QLabel,
-  QTableWidget,
-  QTableWidgetItem,
-  QPushButton,
-  QPlainTextEdit,
-  QComboBox,
-  QLineEdit,
-  QSplitter,
-  QHeaderView,
+  QGridLayout,
+  QScrollArea,
+  QTabWidget,
 )
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont
 
-from src.ui import Component, VStack, Align
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
 from core.context import Context
+
+from src.ui import CURRENT_THEME, ButtonType, Align
+from src.ui.widgets import Button, TitledPanel, AccountItem, Switch, VStack
+
 from .log_view import LogHandler
 from .settings import SettingsDialog
 
@@ -41,86 +42,274 @@ class QtLogHandler(logging.Handler):
 class MainWindow(QMainWindow):
   def __init__(self, context: Context, parent=None):
     super().__init__(parent)
-    self.setWindowTitle("CS2 Panel")
-    self.resize(1000, 700)
+    self.setWindowTitle("YACS Panel")
+    self.resize(1200, 750)
+    self.setFont(
+      QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
+    )
 
     self.context = context
     self.manager = StateManager(self.context, callback=self.reload_layout)
+
     self.setup_ui()
     self.setup_logging()
-    self.populate_accounts_table()
+    self.populate_accounts_list()
+
     logger.debug("main window initialized.")
 
   def setup_ui(self):
-    main_widget = QWidget()
-    self.setCentralWidget(main_widget)
-    main_layout = QVBoxLayout(main_widget)
-
-    top_bar_layout = QHBoxLayout()
-    self.settings_button = QPushButton("Settings")
-    self.settings_button.clicked.connect(self.open_settings)
-    top_bar_layout.addWidget(self.settings_button)
-    top_bar_layout.addStretch()
-
-    v_splitter = QSplitter(Qt.Orientation.Vertical)
-    h_splitter = QSplitter(Qt.Orientation.Horizontal)
-
-    accounts_container = self._create_accounts_panel()
-    logs_container = self._create_logs_panel()
-    self.state_panel = QWidget()
-
-    h_splitter.addWidget(self.state_panel)
-    h_splitter.addWidget(logs_container)
-    h_splitter.setStretchFactor(0, 1)
-    h_splitter.setStretchFactor(1, 2)
-
-    v_splitter.addWidget(accounts_container)
-    v_splitter.addWidget(h_splitter)
-    v_splitter.setStretchFactor(0, 1)
-    v_splitter.setStretchFactor(1, 1)
-
-    main_layout.addLayout(top_bar_layout)
-    main_layout.addWidget(v_splitter)
-
-  def _create_accounts_panel(self) -> QWidget:
-    container = QWidget()
-    layout = QVBoxLayout(container)
-    layout.setContentsMargins(0, 0, 0, 0)
-    self.accounts_table = QTableWidget()
-    self.accounts_table.setColumnCount(3)
-    self.accounts_table.setHorizontalHeaderLabels(["", "Login", "Status"])
-    self.accounts_table.horizontalHeader().setSectionResizeMode(
-      0, QHeaderView.ResizeMode.ResizeToContents
+    self.setStyleSheet(
+      f"background-color: {CURRENT_THEME.BACKGROUND}; color: {CURRENT_THEME.PRIMARY_TEXT};"
     )
-    self.accounts_table.horizontalHeader().setSectionResizeMode(
-      1, QHeaderView.ResizeMode.Stretch
-    )
-    self.accounts_table.horizontalHeader().setSectionResizeMode(
-      2, QHeaderView.ResizeMode.Stretch
-    )
-    self.accounts_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-    layout.addWidget(QLabel("Accounts"))
-    layout.addWidget(self.accounts_table)
-    return container
+    central_widget = QWidget()
+    self.setCentralWidget(central_widget)
+
+    main_hbox_layout = QHBoxLayout(central_widget)
+    main_hbox_layout.setSpacing(10)
+    main_hbox_layout.setContentsMargins(10, 10, 10, 10)
+
+    logs_panel = self._create_logs_panel()
+    main_hbox_layout.addWidget(logs_panel)
+
+    main_content_container = QWidget()
+    main_grid_layout = QGridLayout(main_content_container)
+    main_grid_layout.setSpacing(10)
+
+    self.state_panel = TitledPanel("Main Menu")
+    config_panel = self._create_config_panel()
+    accounts_panel = self._create_accounts_panel()
+    controls_panel = self._create_controls_panel()
+
+    main_grid_layout.addWidget(controls_panel, 0, 0)
+    main_grid_layout.addWidget(config_panel, 0, 1)
+    main_grid_layout.addWidget(accounts_panel, 1, 0)
+    main_grid_layout.addWidget(self.state_panel, 1, 1)
+
+    main_grid_layout.setColumnStretch(0, 1)
+    main_grid_layout.setColumnStretch(1, 1)
+    main_grid_layout.setRowStretch(0, 1)
+    main_grid_layout.setRowStretch(1, 2)
+
+    main_hbox_layout.addWidget(main_content_container)
+
+    main_hbox_layout.setStretch(0, 1)
+    main_hbox_layout.setStretch(1, 2)
+
+  def _create_status_panel(self) -> QWidget:
+    panel = TitledPanel("YACS Panel [0.0.0]")
+    layout = QVBoxLayout(panel.container)
+    layout.addWidget(QLabel("Farmed this week: 0"))
+    layout.addWidget(QLabel("Drop received: 0 [0/0]"))
+    layout.addStretch()
+    return panel
 
   def _create_logs_panel(self) -> QWidget:
-    container = QWidget()
-    layout = QVBoxLayout(container)
-    filter_layout = QHBoxLayout()
+    panel = TitledPanel("Logs")
+    container = panel.container
 
     self.log_level_combo = QComboBox()
     self.log_filter_edit = QLineEdit()
     self.log_filter_edit.setPlaceholderText("Filter logs...")
+    self.log_text_edit = QPlainTextEdit()
 
-    filter_layout.addWidget(QLabel("Level:"))
+    filter_layout = QVBoxLayout()
     filter_layout.addWidget(self.log_level_combo)
     filter_layout.addWidget(self.log_filter_edit)
 
-    self.log_text_edit = QPlainTextEdit()
-    layout.addWidget(QLabel("Logs"))
-    layout.addLayout(filter_layout)
-    layout.addWidget(self.log_text_edit)
-    return container
+    main_layout = QVBoxLayout(container)
+    main_layout.addLayout(filter_layout)
+    main_layout.addWidget(self.log_text_edit)
+    return panel
+
+  def _create_config_panel(self) -> QWidget:
+    panel = TitledPanel("Config")
+
+    content_widget = VStack(
+      Switch("Shuffle lobbies after game"),
+      Button(
+        "Set steam.exe path",
+        on_click=lambda: logger.info("Set Steam Path clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      Button(
+        "Set CS2 path",
+        on_click=lambda: logger.info("Set CS2 Path clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      Switch("Auto collect and send drop"),
+      Switch("Start farm when launched"),
+      Button(
+        "Advanced Settings",
+        on_click=self.open_settings,
+        button_type=ButtonType.DEFAULT,
+      ),
+    )
+
+    layout = QVBoxLayout(panel.container)
+    layout.addWidget(content_widget)
+    return panel
+
+  def _create_accounts_panel(self) -> QWidget:
+    panel = TitledPanel("Accs: 20 | Selected: 0 | Launched: 0")
+
+    scroll_area = QScrollArea()
+    scroll_area.setWidgetResizable(True)
+    scroll_area.setStyleSheet("QScrollArea { border: none; }")
+
+    self.accounts_list_container = QWidget()
+    self.accounts_list_layout = QVBoxLayout(self.accounts_list_container)
+    self.accounts_list_layout.setSpacing(2)
+    self.accounts_list_layout.addStretch()
+
+    scroll_area.setWidget(self.accounts_list_container)
+
+    main_layout = QVBoxLayout(panel.container)
+    main_layout.addWidget(scroll_area)
+    return panel
+
+  def _create_controls_panel(self) -> QWidget:
+    panel = TitledPanel("Accounts Control")
+    layout = QGridLayout(panel.container)
+
+    layout.addWidget(
+      Button(
+        "Start selected accounts",
+        on_click=lambda: logger.info("'Start selected' clicked"),
+        button_type=ButtonType.SUCCESS,
+      ),
+      0,
+      0,
+    )
+    layout.addWidget(
+      Button(
+        "Kill selected accounts",
+        on_click=lambda: logger.info("'Kill selected' clicked"),
+        button_type=ButtonType.DANGER,
+      ),
+      1,
+      0,
+    )
+    layout.addWidget(
+      Button(
+        "Select first 4 unfarmed",
+        on_click=lambda: logger.info("'Select 4' clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      2,
+      0,
+    )
+    layout.addWidget(
+      Button(
+        "Select first 15 unfarmed",
+        on_click=lambda: logger.info("'Select 15' clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      3,
+      0,
+    )
+    layout.addWidget(
+      Button(
+        "Get LVL of launched accs",
+        on_click=lambda: logger.info("'Get LVL' clicked"),
+        button_type=ButtonType.SUCCESS,
+      ),
+      4,
+      0,
+    )
+
+    layout.addWidget(
+      Button(
+        "Move all CS windows",
+        on_click=lambda: logger.info("'Move all CS' clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      0,
+      1,
+    )
+    layout.addWidget(
+      Button(
+        "Kill ALL CS & Steam processes",
+        on_click=lambda: logger.info("'Kill ALL' clicked"),
+        button_type=ButtonType.DANGER,
+      ),
+      1,
+      1,
+    )
+    layout.addWidget(
+      Button(
+        "Launch BES",
+        on_click=lambda: logger.info("'Launch BES' clicked"),
+        button_type=ButtonType.SUCCESS,
+      ),
+      2,
+      1,
+    )
+    layout.addWidget(
+      Button(
+        "Drop stats",
+        on_click=lambda: logger.info("'Drop stats' clicked"),
+        button_type=ButtonType.SUCCESS,
+      ),
+      3,
+      1,
+    )
+    layout.addWidget(
+      Button(
+        "Ban checker",
+        on_click=lambda: logger.info("'Ban checker' clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      4,
+      1,
+    )
+    layout.addWidget(
+      Button(
+        "Activity booster",
+        on_click=lambda: logger.info("'Activity booster' clicked"),
+        button_type=ButtonType.PRIMARY,
+      ),
+      5,
+      1,
+    )
+
+    return panel
+
+  def populate_accounts_list(self):
+    while self.accounts_list_layout.count() > 1:
+      item = self.accounts_list_layout.takeAt(0)
+      if item.widget():
+        item.widget().deleteLater()
+
+    accounts = self.context.accounts()
+    mock_data = [
+      "10 LVL | 127 XP | -",
+      "8 LVL | 814 XP | -",
+      "9 LVL | 567 XP | -",
+    ]
+
+    for i, acc in enumerate(accounts):
+      status = mock_data[i % len(mock_data)]
+      display_text = f"{i + 1}. {acc.login} - [{status}]"
+
+      item_widget = AccountItem(
+        display_text,
+        on_toggle=lambda checked, login=acc.login: self._on_selection(
+          checked, login
+        ),
+      )
+      self.accounts_list_layout.insertWidget(
+        self.accounts_list_layout.count() - 1, item_widget
+      )
+
+  def _on_selection(self, is_checked: bool, login: str):
+    if is_checked:
+      self.context.account.select(login)
+    else:
+      self.context.account.deselect(login)
+    # TODO: Add "Selected: X" to accounts panel
+
+  def dispatch_message(self, message: Message):
+    asyncio.create_task(self.manager.dispatch(message))
 
   def setup_logging(self):
     self.log_handler = LogHandler(
@@ -134,52 +323,18 @@ class MainWindow(QMainWindow):
     root_logger.addHandler(qt_log_handler)
     root_logger.setLevel(logging.DEBUG)
 
-  def populate_accounts_table(self):
-    accounts = self.context.accounts()
-    self.accounts_table.setRowCount(len(accounts))
-    for row, acc in enumerate(accounts):
-      checkbox = QCheckBox()
-      checkbox.stateChanged.connect(
-        lambda state, login=acc.login: self._on_selection(state, login)
-      )
-
-      cell_widget = QWidget()
-      layout = QHBoxLayout(cell_widget)
-      layout.addWidget(checkbox)
-      layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-      layout.setContentsMargins(0, 0, 0, 0)
-
-      self.accounts_table.setCellWidget(row, 0, cell_widget)
-      self.accounts_table.setItem(row, 1, QTableWidgetItem(acc.login))
-      self.accounts_table.setItem(row, 2, QTableWidgetItem("Idle"))
-
-  def get_selected_logins(self) -> list[str]:
-    selected = []
-    for row in range(self.accounts_table.rowCount()):
-      cell_widget = self.accounts_table.cellWidget(row, 0)
-      checkbox = cell_widget.findChild(QCheckBox)
-      if checkbox and checkbox.isChecked():
-        selected.append(self.accounts_table.item(row, 1).text())
-    return selected
-
-  def _on_selection(self, state: int, login: str):
-    if state == Qt.CheckState.Checked.value:
+  def _on_selection(self, is_checked: bool, login: str):
+    if is_checked:
       self.context.account.select(login)
     else:
       self.context.account.deselect(login)
 
   def reload_layout(self):
-    layout_content = self.manager.acquire_state().layout(
+    layout = self.manager.acquire_state().layout(
       self.context, self.dispatch_message
     )
-
-    panel_component: Component
-    if isinstance(layout_content, list):
-      panel_component = VStack(*layout_content, align=Align.Top)
-    else:
-      panel_component = layout_content
-
-    new_panel_widget = panel_component.into_widget()
+    if isinstance(layout, list):
+      layout = VStack(*layout, align=Align.Top)
 
     old_panel = self.state_panel.findChild(QWidget)
     if old_panel:
@@ -188,7 +343,7 @@ class MainWindow(QMainWindow):
     if not self.state_panel.layout():
       self.state_panel.setLayout(QVBoxLayout())
 
-    self.state_panel.layout().addWidget(new_panel_widget)
+    self.state_panel.layout().addWidget(layout)
 
   def open_settings(self):
     dialog = SettingsDialog(self)

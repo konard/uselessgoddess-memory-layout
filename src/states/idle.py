@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from src.ui import Button
+from src.ui.widgets import Button
 from src.core.panel import Message, State, StateManager, handles
 from src.core.context import Context
 from src.core.accounts import Account
