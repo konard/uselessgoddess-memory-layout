@@ -4,8 +4,7 @@ from typing import Dict, List, Set
 
 from core.account import Account, RunningAccount
 from core.logging import get_logger
-
-from .window import WindowService
+\
 
 logger = get_logger("sv.accounts")
 
@@ -57,11 +56,6 @@ class AccountsService:
     logger.trace(f"acquire selected accounts: {accounts}")
     self._selected.clear()
     return accounts
-
-  async def get_running_accounts(self) -> Dict[str, RunningAccount]:
-    return await asyncio.to_thread(
-      WindowService.scan_cs2_windows, self.accounts
-    )
 
   async def stop_account_processes(self, logins: List[str]):
     logger.warn(
