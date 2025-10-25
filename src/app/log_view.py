@@ -94,6 +94,10 @@ class LogHandler:
     return level_map.get(self.level_combo.currentText(), logging.INFO)
 
   def _passes_filter(self, record: logging.LogRecord) -> bool:
+    if not record.name.startswith("yacs"):
+      return False
+    # record.name = record.name[len("yacs"):]
+
     if record.levelno < self._get_current_min_level():
       return False
 
