@@ -29,12 +29,12 @@ class Account:
     }
 
 
+@dataclass(slots=True)
 class RunningAccount(Account):
   posX: int = 0
   posY: int = 0
   runner_pid: int = 0
   win_cs_title: str = field(init=False)
-  status: str = "OFF"
 
   def __post_init__(self) -> None:
     self.win_cs_title = f"[{self.login}] # CS"

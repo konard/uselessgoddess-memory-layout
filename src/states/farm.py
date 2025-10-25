@@ -3,7 +3,7 @@ from typing import List
 from dataclasses import dataclass, field
 from src.core.panel import Message, State
 from src.core.context import Context
-from src.core.accounts import Account
+from src.core.account import Account
 from src.core.logging import get_logger
 
 logger = get_logger("state.farm")

@@ -1,23 +1,22 @@
 import json
+import asyncio
 from typing import Dict, List, Set
-from .model import Account, RunningAccount
 
-from src.core.logging import get_logger
+from core.account import Account, RunningAccount
+from core.logging import get_logger
 
-logger = get_logger("accounts")
+from .window import WindowService
+
+logger = get_logger("sv.accounts")
 
 ACCOUNTS_FILE = "accounts.json"
 
 
-class Accounts:
+class AccountsService:
   accounts: Dict[str, Account] = {}
-  running: List[RunningAccount] = []
 
-  def __init__(
-    self, accounts: Dict[str, Account], running: List[RunningAccount]
-  ):
+  def __init__(self, accounts: Dict[str, Account]):
     self.accounts = accounts
-    self.running = running
     self._selected: Set[str] = set()
 
   @staticmethod
@@ -34,9 +33,10 @@ class Accounts:
     except json.JSONDecodeError:
       logger.error(f"Invalid accountsfile: {file}")
 
-    return Accounts(accounts, [])
+    return AccountsService(accounts)
 
   def select(self, login: str):
+    logger.info(f"select {login}")
     if login in self.accounts:
       self._selected.add(login)
       logger.trace(f"account selected: {login}")
@@ -45,7 +45,7 @@ class Accounts:
     self._selected.discard(login)
     logger.trace(f"account deselected: {login}")
 
-  # TODO!: maybe use `class Select` to manage selection 
+  # TODO!: maybe use `class Select` to manage selection
   def selected(self) -> List[Account]:
     accounts = [
       self.accounts[login] for login in self._selected if login in self.accounts
@@ -57,3 +57,14 @@ class Accounts:
     logger.trace(f"acquire selected accounts: {accounts}")
     self._selected.clear()
     return accounts
+
+  async def get_running_accounts(self) -> Dict[str, RunningAccount]:
+    return await asyncio.to_thread(
+      WindowService.scan_cs2_windows, self.accounts
+    )
+
+  async def stop_account_processes(self, logins: List[str]):
+    logger.warn(
+      f"Process stopping is not yet implemented. Requested for: {logins}"
+    )
+    await asyncio.sleep(1)

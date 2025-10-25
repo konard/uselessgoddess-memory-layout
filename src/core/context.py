@@ -1,17 +1,18 @@
 from typing import List
 from core.logging import get_logger
 
-from .accounts import Accounts, Account
+from .account import Account
+from .services import AccountsService
 
 
 logger = get_logger("ctx")
 
 
 class Context:
-  account: Accounts
+  account: AccountsService
 
   def __init__(self):
-    self.account = Accounts.load()
+    self.account = AccountsService.load()
 
   def accounts(self) -> List[Account]:
     return list(self.account.accounts.values())

@@ -16,6 +16,11 @@ dependencies = [
   "qasync>=0.28",
   "PyQt6>=6.6",
   "typing-extensions>=4.8",
+  # --
+  "PyAutoIt>=0.6",
+  "pyautogui>=0.9",
+  "pywin32>=311",
+  "steamio",
 ]
 
 [dependency-groups]
@@ -41,3 +46,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.uv.sources]
+steamio = { git = "https://github.com/PONYAWKA/gc-handler", rev = "main" }
