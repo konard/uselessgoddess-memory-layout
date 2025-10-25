@@ -39,5 +39,8 @@ class Idle(State):
   async def _on_start_farming(
     self, manager: StateManager, message: StartFarming
   ):
-    logger.debug(f"start farming with {message.accounts}")
-    await manager.into_state(LaunchAccounts(message.accounts))
+    if not message.accounts:
+      logger.info("Please select at least one account")
+    else:
+      logger.debug(f"start farming with {message.accounts}")
+      await manager.into_state(LaunchAccounts(message.accounts))

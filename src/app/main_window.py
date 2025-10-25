@@ -2,19 +2,16 @@ import asyncio
 from PyQt6.QtWidgets import (
   QMainWindow,
   QComboBox,
-  QPlainTextEdit,
   QLineEdit,
   QWidget,
   QHBoxLayout,
   QVBoxLayout,
   QLabel,
   QGridLayout,
-  QHeaderView,
-  QTableWidget,
-  QTableWidgetItem,
+  QTextEdit,
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QFont, QTextOption
 
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
@@ -35,26 +32,24 @@ class QtLogHandler(logging.Handler):
     self.widget = widget
 
   def emit(self, record):
-    QTimer.singleShot(
-      0, lambda: self.widget.append(record.levelno, self.format(record))
-    )
+    QTimer.singleShot(0, lambda: self.widget.append(record))
 
 
 class MainWindow(QMainWindow):
-  def __init__(self, context: Context, parent=None):
+  def __init__(self, ctx: Context, parent=None):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
-    self.resize(1000, 600)
+    self.resize(1000, 800)
     self.setFont(
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
 
-    self.context = context
-    self.manager = StateManager(self.context, callback=self.reload_layout)
+    self.ctx = ctx
+    self.manager = StateManager(self.ctx, callback=self.reload_layout)
 
     self.setup_ui()
     self.setup_logging()
-    self.accounts_table.populate(self.context.accounts())
+    self.accounts_table.populate(self.ctx.accounts())
 
     logger.debug("main window initialized.")
 
@@ -66,15 +61,15 @@ class MainWindow(QMainWindow):
     self.setCentralWidget(central_widget)
 
     main_hbox_layout = QHBoxLayout(central_widget)
-    main_hbox_layout.setSpacing(10)
-    main_hbox_layout.setContentsMargins(10, 10, 10, 10)
+    main_hbox_layout.setSpacing(5)
+    main_hbox_layout.setContentsMargins(5, 5, 5, 5)
 
     logs_panel = self._create_logs_panel()
     main_hbox_layout.addWidget(logs_panel)
 
     main_content_container = QWidget()
     main_grid_layout = QGridLayout(main_content_container)
-    main_grid_layout.setSpacing(10)
+    main_grid_layout.setSpacing(5)
 
     self.state_panel = TitledPanel("Actions")
     config_panel = self._create_config_panel()
@@ -91,8 +86,8 @@ class MainWindow(QMainWindow):
     main_grid_layout.setRowStretch(1, 2)
 
     main_hbox_layout.addWidget(main_content_container)
-    main_hbox_layout.setStretch(0, 1)
-    main_hbox_layout.setStretch(1, 2)
+    main_hbox_layout.setStretch(0, 2)
+    main_hbox_layout.setStretch(1, 3)
 
   def _create_status_panel(self) -> QWidget:
     panel = TitledPanel("YACS Panel")
@@ -109,7 +104,11 @@ class MainWindow(QMainWindow):
     self.log_level_combo = QComboBox()
     self.log_filter_edit = QLineEdit()
     self.log_filter_edit.setPlaceholderText("Filter logs...")
-    self.log_text_edit = QPlainTextEdit()
+
+    self.log_text_edit = QTextEdit()
+    self.log_text_edit.setWordWrapMode(
+      QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere
+    )
 
     filter_layout = QVBoxLayout()
     filter_layout.addWidget(self.log_level_combo)
@@ -153,7 +152,7 @@ class MainWindow(QMainWindow):
 
     self.accounts_table = AccountsTable()
 
-    self.accounts_table.account_selected.connect(self._on_selection)
+    self.accounts_table.selected.connect(self._on_selection)
 
     layout = QVBoxLayout(self.accounts_panel.container)
     layout.setContentsMargins(0, 0, 0, 0)
@@ -268,89 +267,34 @@ class MainWindow(QMainWindow):
 
     return panel
 
-  def populate_accounts_list(self):
-    self.accounts_table.setRowCount(0)
-
-    accounts = self.context.accounts()
-    self.accounts_table.setRowCount(len(accounts))
-
-    mock_statuses = [
-      "Farming (2v2)",
-      "Idle",
-      "Searching game...",
-      "Connecting...",
-    ]
-
-    for row, acc in enumerate(accounts):
-      switch = Switch()
-      switch.toggled.connect(
-        lambda checked, login=acc.login: self._on_selection(checked, login)
-      )
-
-      cell_widget = QWidget()
-      cell_layout = QHBoxLayout(cell_widget)
-      cell_layout.setContentsMargins(4, 4, 4, 4)
-      cell_layout.addWidget(switch)
-      cell_layout.addWidget(QLabel(acc.login))
-      cell_layout.addStretch()
-
-      self.accounts_table.setCellWidget(row, 0, cell_widget)
-
-      xp_item = QTableWidgetItem(f"{row * 1250} XP")
-      xp_item.setForeground(QColor(CURRENT_THEME.SECONDARY_TEXT))
-      self.accounts_table.setItem(row, 1, xp_item)
-
-      status_text = mock_statuses[row % len(mock_statuses)]
-      status_item = QTableWidgetItem(status_text)
-
-      detailed_tooltip = (
-        f"Account: {acc.login}\n"
-        f"Status: {status_text}\n"
-        f"Session Time: 00:45:12\n"
-        f"Last Drop: 2 days ago"
-      )
-      status_item.setToolTip(detailed_tooltip)
-
-      self.accounts_table.setItem(row, 2, status_item)
-
-  def _on_selection(self, login: str, is_checked: bool):
+  def _on_selection(self, is_checked: bool, login: str):
     if is_checked:
-      self.context.account.select(login)
+      self.ctx.account.select(login)
     else:
-      self.context.account.deselect(login)
+      self.ctx.account.deselect(login)
 
-    selected_count = len(self.context.account.selected())
+    selected_count = len(self.ctx.account.selected())
     self.accounts_panel.title_label.setText(
       f"Accounts | Selected: {selected_count}"
     )
-
-  def dispatch_message(self, message: Message):
-    asyncio.create_task(self.manager.dispatch(message))
 
   def setup_logging(self):
     self.log_handler = LogHandler(
       self.log_text_edit, self.log_level_combo, self.log_filter_edit
     )
     qt_log_handler = QtLogHandler(self.log_handler)
-    formatter = logging.Formatter("[%(levelname)s]: %(message)s")
-    qt_log_handler.setFormatter(formatter)
 
-    root_logger = logging.getLogger()
+    root_logger = logging.getLogger("")
     root_logger.addHandler(qt_log_handler)
     root_logger.setLevel(logging.DEBUG)
-
-  def _on_selection(self, is_checked: bool, login: str):
-    if is_checked:
-      self.context.account.select(login)
-    else:
-      self.context.account.deselect(login)
+    logger.debug("UI log handler configured.")
 
   def reload_layout(self):
     current_state = self.manager.acquire_state()
     if not current_state:
       return
 
-    widgets = current_state.layout(self.context, self.dispatch_message)
+    widgets = current_state.layout(self.ctx, self.dispatch_message)
 
     container = self.state_panel.container
     old_content = container.findChild(QWidget)
@@ -361,9 +305,7 @@ class MainWindow(QMainWindow):
 
     if not container.layout():
       container.setLayout(QVBoxLayout())
-      container.layout().setContentsMargins(
-        0, 0, 0, 0
-      )
+      container.layout().setContentsMargins(0, 0, 0, 0)
     container.layout().addWidget(new_content)
 
   def open_settings(self):

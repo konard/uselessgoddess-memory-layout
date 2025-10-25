@@ -50,10 +50,10 @@ class Accounts:
     accounts = [
       self.accounts[login] for login in self._selected if login in self.accounts
     ]
-    logger.trace(f"acquired selected: {accounts}")
     return accounts
 
   def capture_selected(self) -> List[Account]:
     accounts = self.selected()
+    logger.trace(f"acquire selected accounts: {accounts}")
     self._selected.clear()
     return accounts

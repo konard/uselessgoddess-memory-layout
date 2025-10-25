@@ -16,7 +16,7 @@ from .tooltip import Tooltip
 
 
 class AccountsTable(QTableWidget):
-  account_selected = pyqtSignal(str, bool)
+  selected = pyqtSignal(bool, str)
 
   def __init__(self, parent=None):
     super().__init__(parent)
@@ -28,15 +28,14 @@ class AccountsTable(QTableWidget):
     self.setColumnCount(3)
     self.setHorizontalHeaderLabels(["Account", "Experience", "Status"])
     self.verticalHeader().setVisible(False)
-    self.setShowGrid(False)
+    self.setShowGrid(True)
     self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
     self.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
 
-    self.setShowGrid(True) 
     header = self.horizontalHeader()
-    header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+    header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
     header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-    header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+    header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
     self.setStyleSheet(f"""
             QTableWidget {{ 
@@ -70,9 +69,7 @@ class AccountsTable(QTableWidget):
     for row, acc in enumerate(accounts):
       switch = Switch()
       switch.toggled.connect(
-        lambda checked, login=acc.login: self.account_selected.emit(
-          login, checked
-        )
+        lambda checked, login=acc.login: self.selected.emit(checked, login)
       )
       cell_widget = QWidget()
       layout = QHBoxLayout(cell_widget)
