@@ -8,6 +8,7 @@ class Account:
   login: str
   password: str
   shared_secret: str
+  identity_secret: str | None
   steam_id: str
 
   @staticmethod
@@ -17,6 +18,7 @@ class Account:
       login=data["login"],
       password=data["password"],
       shared_secret=data["shared_secret"],
+      identity_secret=data.get("identity_secret", None),
       steam_id=data["steam_id"],
     )
 
@@ -25,6 +27,7 @@ class Account:
       "login": self.login,
       "password": self.password,
       "shared_secret": self.shared_secret,
+      "identity_secret": self.identity_secret,
       "steam_id": self.steam_id,
     }
 

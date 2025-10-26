@@ -51,6 +51,7 @@ Thumbs.db
 
 # Local runtime config
 config/config.json
-data/accounts.json
+accounts.json
+data/maFiles/*
 yacs.log
 
