@@ -50,7 +50,6 @@ class MainWindow(QMainWindow):
     self.ctx = Context()
     self.manager = StateManager(self.ctx, callback=self.reload_layout)
     self.accounts_table.populate(self.ctx.accounts())
-
     logger.debug("main window initialized.")
 
   def setup_ui(self):
@@ -289,7 +288,22 @@ class MainWindow(QMainWindow):
     root_logger.setLevel(logging.DEBUG)
     logger.debug("UI log handler configured.")
 
+  def clear_selection(self):
+    _ = self.ctx.account.capture_selected()
+    logger.trace("clear selection on gui")
+
+    for row in range(self.accounts_table.rowCount()):
+      cell_widget = self.accounts_table.cellWidget(row, 0)
+      if cell_widget:
+        switch = cell_widget.findChild(Switch)
+        if switch and switch.isChecked():
+          switch.blockSignals(True)
+          switch.setChecked(False)
+          switch.blockSignals(False)
+
   def reload_layout(self):
+    self.clear_selection()
+
     current_state = self.manager.acquire_state()
     if not current_state:
       return

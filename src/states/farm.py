@@ -1,29 +1,37 @@
 import asyncio
 from typing import List
-from dataclasses import dataclass, field
-from src.core.panel import Message, State
-from src.core.context import Context
-from src.core.account import Account
-from src.core.logging import get_logger
+
+import states
+from core.panel import State
+from core.context import Context
+from core.account import Account
+from core.logging import get_logger
+from ui.widgets import Progress
 
 logger = get_logger("state.farm")
-
-@dataclass
-class StopFarming(Message):
-  pass
 
 
 class LaunchAccounts(State):
   def __init__(self, accounts: List[Account]):
     self.accounts = accounts
+    self.launched = 0
+
+  def layout(self, ctx: Context, dispatch):
+    self.progress = Progress()
+
+    return [self.progress]
 
   async def execute(self, ctx: Context) -> State:
+    launched = 0
+
     for account in self.accounts:
       logger.info(f"launching account +{account.login}")
       await asyncio.sleep(1)
       logger.info(f"{account.login} launched")
 
+      launched += 1
+      self.progress.setValue(int(launched / len(self.accounts) * 100))
+
     logger.info("all accounts launched")
 
-    while True:
-      await asyncio.sleep(1)
+    return states.Idle()

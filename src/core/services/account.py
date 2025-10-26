@@ -1,10 +1,10 @@
 import json
 import asyncio
 from typing import Dict, List, Set
+from PyQt6.QtCore import pyqtSignal
 
-from core.account import Account, RunningAccount
+from core.account import Account
 from core.logging import get_logger
-\
 
 logger = get_logger("sv.accounts")
 
