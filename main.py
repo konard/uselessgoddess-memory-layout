@@ -13,9 +13,7 @@ from src.states import Idle
 async def main():
   _app = QApplication.instance() or QApplication(sys.argv)
     
-  context = Context()
-
-  window = MainWindow(context)
+  window = MainWindow()
   window.show()
   
   await window.manager.into_state(Idle())
