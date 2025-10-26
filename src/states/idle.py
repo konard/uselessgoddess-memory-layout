@@ -6,8 +6,8 @@ from src.core.panel import Message, State, StateManager, handles
 from src.core.context import Context
 from src.core.account import Account
 from src.core.logging import get_logger
-
-from states import LaunchAccounts, LootAccounts
+from states import LaunchAccounts
+from states.send_trade import TradeAccounts
 
 logger = get_logger("state.idle")
 
@@ -46,6 +46,11 @@ class Idle(State):
         on_click=acquire_accounts(StartLoot),
         tooltip="Background loot of selected accounts.",
       ),
+      Button(
+        "Send Trade Selected",
+        on_click=acquire_accounts(TradeAccounts),
+        tooltip="Send trade to selected accounts.",
+      ),
     ]
 
   async def execute(self, ctx: Context):
@@ -60,4 +65,11 @@ class Idle(State):
   @handles(StartLoot)
   async def _on_start_looting(self, manager: StateManager, message: StartFarm):
     logger.debug(f"start looting with {message.accounts}")
+    from .loot import LootAccounts
     await manager.into_state(LootAccounts(message.accounts))
+
+  @handles(TradeAccounts)
+  async def _on_start_sending_trade(self, manager: StateManager, message: TradeAccounts):
+    logger.debug(f"start sending trade with {message.accounts}")
+    from .send_trade import TradeAccounts
+    await manager.into_state(TradeAccounts(message.accounts))
