@@ -36,7 +36,7 @@ class QtLogHandler(logging.Handler):
 
 
 class MainWindow(QMainWindow):
-  def __init__(self, ctx: Context, parent=None):
+  def __init__(self, parent=None):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
     self.resize(1000, 800)
@@ -44,11 +44,11 @@ class MainWindow(QMainWindow):
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
 
-    self.ctx = ctx
-    self.manager = StateManager(self.ctx, callback=self.reload_layout)
-
     self.setup_ui()
     self.setup_logging()
+
+    self.ctx = Context()
+    self.manager = StateManager(self.ctx, callback=self.reload_layout)
     self.accounts_table.populate(self.ctx.accounts())
 
     logger.debug("main window initialized.")

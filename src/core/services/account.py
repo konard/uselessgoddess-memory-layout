@@ -35,7 +35,6 @@ class AccountsService:
     return AccountsService(accounts)
 
   def select(self, login: str):
-    logger.info(f"select {login}")
     if login in self.accounts:
       self._selected.add(login)
       logger.trace(f"account selected: {login}")

@@ -1,10 +1,11 @@
 import asyncio
 from typing import List
 
-from src.core.panel import State
-from src.core.context import Context
-from src.core.account import Account
-from src.core.logging import get_logger
+import states
+from core.panel import State
+from core.context import Context
+from core.account import Account
+from core.logging import get_logger
 
 from steam.ext.csgo import ClaimDrop as BaseClaim
 from steam.ext.csgo import BaseItem
@@ -73,6 +74,4 @@ class LootAccounts(State):
           await client.close()
         await asyncio.sleep(2)
 
-    while True:
-      await asyncio.sleep(1)
-      logger.info("looter loop")
+    return states.Idle()
