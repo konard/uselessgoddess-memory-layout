@@ -1,61 +1,55 @@
-import json
 from PyQt6.QtWidgets import (
   QDialog,
   QVBoxLayout,
-  QLabel,
+  QFormLayout,
   QLineEdit,
   QDialogButtonBox,
 )
-from core.logging import get_logger
-
-logger = get_logger("ui.settings")
-
-SETTINGS_FILE = "settings.json"
+from core.services.settings import SettingsService, UserSettings
 
 
 class SettingsDialog(QDialog):
-  def __init__(self, parent=None):
+  def __init__(self, settings: SettingsService, parent=None):
     super().__init__(parent)
+    self.settings = settings
     self.setWindowTitle("Settings")
-    self.setMinimumWidth(300)
+    self.setMinimumWidth(400)
 
-    self.layout = QVBoxLayout(self)
+    layout = QVBoxLayout(self)
+    form_layout = QFormLayout()
 
-    self.api_key_label = QLabel("Steam API Key:")
-    self.api_key_input = QLineEdit()
-    self.layout.addWidget(self.api_key_label)
-    self.layout.addWidget(self.api_key_input)
+    self.trade_url_edit = QLineEdit()
+    self.steam_path_edit = QLineEdit()
+    self.cs_path_edit = QLineEdit()
 
-    self.button_box = QDialogButtonBox(
+    form_layout.addRow("Trade URL:", self.trade_url_edit)
+    form_layout.addRow("Steam Path:", self.steam_path_edit)
+    form_layout.addRow("CS2 Path:", self.cs_path_edit)
+
+    layout.addLayout(form_layout)
+
+    button_box = QDialogButtonBox(
       QDialogButtonBox.StandardButton.Save
       | QDialogButtonBox.StandardButton.Cancel
     )
-    self.button_box.accepted.connect(self.accept)
-    self.button_box.rejected.connect(self.reject)
-    self.layout.addWidget(self.button_box)
+    button_box.accepted.connect(self.accept)
+    button_box.rejected.connect(self.reject)
+    layout.addWidget(button_box)
 
-    self.load()
+    self._load_settings()
 
-  def load(self):
-    try:
-      with open(SETTINGS_FILE, "r") as f:
-        settings = json.load(f)
-        self.api_key_input.setText(settings.get("steam_api_key", ""))
-      logger.info("Settings loaded.")
-    except FileNotFoundError:
-      logger.info("settings.json not found, using default settings.")
-    except json.JSONDecodeError:
-      logger.error(f"Failed to decode {SETTINGS_FILE}.")
+  def _load_settings(self):
+    settings = self.settings.user
+    self.trade_url_edit.setText(settings.trade_url)
+    self.steam_path_edit.setText(settings.steam_path)
+    self.cs_path_edit.setText(settings.cs_path)
 
   def accept(self):
-    self.save()
-    super().accept()
+    settings = self.settings.user
+    settings.trade_url = self.trade_url_edit.text()
+    settings.steam_path = self.steam_path_edit.text()
+    settings.cs_path = self.cs_path_edit.text()
 
-  def save(self):
-    settings = {"steam_api_key": self.api_key_input.text()}
-    try:
-      with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=4)
-      logger.info("Settings saved.")
-    except Exception as e:
-      logger.error(f"Failed to save settings: {e}")
+    self.settings.set_user(settings)
+
+    super().accept()

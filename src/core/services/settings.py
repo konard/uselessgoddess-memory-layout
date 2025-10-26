@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Callable
 from dataclasses import asdict, dataclass
 from core.logging import get_logger
 from core.utils import name_of
@@ -9,20 +10,81 @@ logger = get_logger("settings")
 SETTINGS_FILE = "settings.json"
 
 
+def _load_settings(path, ty, label="settings"):
+  try:
+    if os.path.exists(path):
+      with open(path, "r") as f:
+        data = json.load(f)
+        logger.info(f"{label} loaded successfully.")
+        return ty(**data)
+  except Exception as e:
+    logger.error(f"Failed to load '{path}': {e}.")
+    pass
+  logger.debug(f"Using default {label}.")
+  return ty()
+
+
+def _save_settings(path, settings, label="settings"):
+  try:
+    with open(path, "w") as f:
+      json.dump(asdict(settings), f, indent=2)
+    logger.debug(f"{label} saved to '{path}'.")
+  except Exception as e:
+    logger.error(f"Failed to save '{path}': {e}")
+
+
+class Settings:
+  def path_of(self, settings: "SettingsService"):
+    pass
+
+  def state_updater(
+    self, settings: "SettingsService", key: str
+  ) -> Callable[[bool], None]:
+    def updater(value: bool):
+      if hasattr(self, key):
+        setattr(self, key, value)
+        logger.trace(f"{name_of(self)} '{key}' updated to {value} -> saving...")
+        self.save(self.path_of(settings))
+      else:
+        logger.warn(f"Settings has no attribute '{key}' to update.")
+
+    return updater
+
+
 @dataclass
-class UserSettings:
+class UserSettings(Settings):
   trade_url: str = ""
   steam_path: str = ""
   cs_path: str = ""
   win_w: int = 360
   win_h: int = 270
 
+  def path_of(self, settings: "SettingsService"):
+    return settings.user_file
+
+  @staticmethod
+  def load(path) -> "UserSettings":
+    return _load_settings(path, UserSettings, "user settings")
+
+  def save(self, path):
+    _save_settings(path, self, "user settings")
+
 
 @dataclass
-class SystemState:
+class SystemState(Settings):
   shuffle_lobbies: bool = True
-  auto_collect_drop: bool = False
-  start_farm_on_launch: bool = True
+  collect_drop: bool = False
+  farm_on_launch: bool = True
+
+  def path_of(self, settings: "SettingsService"):
+    return settings.system_file
+
+  @staticmethod
+  def load(path) -> "SystemState":
+    return _load_settings(path, SystemState, "system state")
+
+  def save(self, path):
+    _save_settings(path, self, "system state")
 
 
 class SettingsService:
@@ -31,29 +93,21 @@ class SettingsService:
   ):
     self.user_file = user_file
     self.system_file = system_file
+    self.reload()
 
-    self.user = self._load_settings(self.user_file, UserSettings, "settings")
-    logger.trace(f"User settings loaded: {self.user}")
-    self.system = self._load_settings(self.system_file, SystemState, "system state")
-    logger.trace(f"System state loaded: {self.system}")
+  def reload(self):
+    self.user = UserSettings.load(self.user_file)
+    logger.debug(f"User settings loaded: {self.user}")
+    self.system = SystemState.load(self.system_file)
+    logger.debug(f"System state loaded: {self.system}")
 
-  def _load_settings(self, path, ty, name):
-    try:
-      if os.path.exists(path):
-        with open(path, "r") as f:
-          data = json.load(f)
-          logger.info(f"{name} loaded successfully.")
-          return ty(**data)
-    except Exception as e:
-      logger.error(f"Failed to load '{path}': {e}.")
-      pass
-    logger.debug(f"Using default {name}.")
-    return ty()
+  def set_user(self, user: UserSettings):
+    self.user = user
+    self.save(self.user)
 
-  def save_system_state(self):
-    try:
-      with open(self.system_file, "w") as f:
-        json.dump(asdict(self.system), f, indent=4)
-      logger.info(f"System state saved to '{self.system_file}'.")
-    except Exception as e:
-      logger.error(f"Failed to save system state to '{self.system_file}': {e}")
+  def set_system(self, user: UserSettings):
+    self.system = user
+    self.save(self.system)
+
+  def save(self, settings):
+    settings.save(self.user_file)

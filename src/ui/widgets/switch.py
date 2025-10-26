@@ -1,10 +1,8 @@
-# src/ui/widgets/switch.py
-
+from typing import Callable, Optional
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QCheckBox
 from PyQt6.QtCore import (
   pyqtProperty,
   pyqtSignal,
-  QPoint,
   QEasingCurve,
   QPropertyAnimation,
   Qt,
@@ -18,8 +16,6 @@ class _SwitchSlider(QWidget):
   def __init__(self, parent=None):
     super().__init__(parent)
     self.setFixedSize(32, 16)
-
-    self._checked = False
 
     self._handle_position = 3.0
     self._handle_off_pos = 3
@@ -71,20 +67,30 @@ class _SwitchSlider(QWidget):
 class Switch(QWidget):
   toggled = pyqtSignal(bool)
 
-  def __init__(self, text: str = "", parent=None):
+  def __init__(
+    self,
+    text: str = "",
+    checked: bool = False,
+    on_toggle: Optional[Callable[[], None]] = None,
+    parent=None,
+  ):
     super().__init__(parent)
+
+    if on_toggle:
+      self.toggled.connect(on_toggle)
 
     layout = QHBoxLayout(self)
     layout.setContentsMargins(0, 0, 0, 0)
 
     self._slider = _SwitchSlider()
     self._label = QLabel(text)
+    self.setChecked(checked)
 
     layout.addWidget(self._slider)
     layout.addWidget(self._label)
 
   def mousePressEvent(self, event):
-    event.accept() 
+    event.accept()
     self.toggle()
     return super().mousePressEvent(event)
 

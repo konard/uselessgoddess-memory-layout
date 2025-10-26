@@ -7,7 +7,7 @@ class Button(QPushButton):
   def __init__(
     self,
     text: str,
-    on_click: Optional[Callable[[], None]] = None,
+    on_click: Optional[Callable[[bool], None]] = None,
     button_type: ButtonType = ButtonType.DEFAULT,
     tooltip: Optional[str] = None,
     parent=None,

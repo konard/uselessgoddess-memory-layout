@@ -44,10 +44,12 @@ class MainWindow(QMainWindow):
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
 
+    self.ctx = Context()
+
     self.setup_ui()
+    # TODO! should initialize logs before context
     self.setup_logging()
 
-    self.ctx = Context()
     self.manager = StateManager(self.ctx, callback=self.reload_layout)
     self.accounts_table.populate(self.ctx.accounts())
     logger.debug("main window initialized.")
@@ -63,9 +65,6 @@ class MainWindow(QMainWindow):
     main_hbox_layout.setSpacing(5)
     main_hbox_layout.setContentsMargins(5, 5, 5, 5)
 
-    logs_panel = self._create_logs_panel()
-    main_hbox_layout.addWidget(logs_panel)
-
     main_content_container = QWidget()
     main_grid_layout = QGridLayout(main_content_container)
     main_grid_layout.setSpacing(5)
@@ -73,11 +72,14 @@ class MainWindow(QMainWindow):
     self.state_panel = TitledPanel("Actions")
     config_panel = self._create_config_panel()
     accounts_panel = self._create_accounts_panel()
+    logs_panel = self._create_logs_panel()
+
+    main_hbox_layout.addWidget(accounts_panel)
 
     main_grid_layout.addWidget(self.state_panel, 0, 0)
     main_grid_layout.addWidget(config_panel, 0, 1)
 
-    main_grid_layout.addWidget(accounts_panel, 1, 0, 1, 2)
+    main_grid_layout.addWidget(logs_panel, 1, 0, 1, 2)
 
     main_grid_layout.setColumnStretch(0, 1)
     main_grid_layout.setColumnStretch(1, 1)
@@ -97,7 +99,7 @@ class MainWindow(QMainWindow):
     return panel
 
   def _create_logs_panel(self) -> QWidget:
-    panel = TitledPanel("Logs")
+    panel = TitledPanel("")
     container = panel.container
 
     self.log_level_combo = QComboBox()
@@ -121,20 +123,25 @@ class MainWindow(QMainWindow):
   def _create_config_panel(self) -> QWidget:
     panel = TitledPanel("Config")
 
+    settings = self.ctx.settings
+    system = settings.system
+
     content_widget = VStack(
-      Switch("Shuffle lobbies after game"),
-      Button(
-        "Set steam.exe path",
-        on_click=lambda: logger.info("Set Steam Path clicked"),
-        button_type=ButtonType.PRIMARY,
+      Switch(
+        "Shuffle lobbies after game",
+        checked=system.shuffle_lobbies,
+        on_toggle=system.state_updater(settings, "shuffle_lobbies"),
       ),
-      Button(
-        "Set CS2 path",
-        on_click=lambda: logger.info("Set CS2 Path clicked"),
-        button_type=ButtonType.PRIMARY,
+      Switch(
+        "Auto collect and send drop",
+        checked=system.collect_drop,
+        on_toggle=system.state_updater(settings, "collect_drop"),
       ),
-      Switch("Auto collect and send drop"),
-      Switch("Start farm when launched"),
+      Switch(
+        "Start farm when launched",
+        checked=system.farm_on_launch,
+        on_toggle=system.state_updater(settings, "farm_on_launch"),
+      ),
       Button(
         "Advanced Settings",
         on_click=self.open_settings,
@@ -323,7 +330,7 @@ class MainWindow(QMainWindow):
     container.layout().addWidget(new_content)
 
   def open_settings(self):
-    dialog = SettingsDialog(self)
+    dialog = SettingsDialog(self.ctx.settings, self)
     dialog.exec()
 
   def dispatch_message(self, message: Message):
