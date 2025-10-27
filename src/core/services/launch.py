@@ -4,12 +4,11 @@ import subprocess
 import pyautogui
 from src.core.account import Account, RunningAccount
 from src.core.logging import get_logger
-from src.core.services import WindowService
+from src.core.services import WindowService, UserSettings
 
 logger = get_logger("sv.launch")
 
-
-def build_runner_launch_args(steam_login: str):
+def build_runner_launch_args(settings: UserSettings, steam_login: str):
   # settings = load_settings()
   # win_w = settings.get("win_w", 360)
   # win_h = settings.get("win_h", 270)
@@ -21,10 +20,11 @@ def build_runner_launch_args(steam_login: str):
     # f'cmd /c "title Runner-{steam_login}";',
     "matchid_sender.exe",
     "--cs2path",
-    settings.get("csgo_path"),
+    settings.cs_path,
     "--steamPath",
-    settings.get("steam_path"),
+    settings.steam_path,
     "--host",
+    settings.host if settings.host 
     settings.get("host", "127.0.0.1"),
     "--port",
     settings.get("port", "9009"),

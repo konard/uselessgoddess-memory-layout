@@ -21,7 +21,7 @@ class LaunchAccounts(State):
 
     return [self.progress]
 
-  async def execute(self, ctx: Context) -> State:
+  async def execute(self, ctx: Context):
     launched = 0
 
     for account in self.accounts:
@@ -33,5 +33,3 @@ class LaunchAccounts(State):
       self.progress.setValue(int(launched / len(self.accounts) * 100))
 
     logger.info("all accounts launched")
-
-    return states.Idle()

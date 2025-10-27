@@ -1,24 +1,29 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from src.ui.widgets import Button
-from src.core.panel import Message, State, StateManager, handles
-from src.core.context import Context
-from src.core.account import Account
-from src.core.logging import get_logger
-from states import LaunchAccounts
-from states.send_trade import TradeAccounts
+from ui.widgets import Button
+from core.context import Context
+from core.account import Account
+from core.logging import get_logger
+from core.panel import Message, State, StateManager, handles
+
+import states
 
 logger = get_logger("state.idle")
 
 
 @dataclass
-class StartFarm(Message):
+class Farm(Message):
   accounts: list[Account] = field(default_factory=list)
 
 
 @dataclass
-class StartLoot(Message):
+class Loot(Message):
+  accounts: list[Account] = field(default_factory=list)
+
+
+@dataclass
+class Trade(Message):
   accounts: list[Account] = field(default_factory=list)
 
 
@@ -38,18 +43,18 @@ class Idle(State):
     return [
       Button(
         "Start Farming",
-        on_click=acquire_accounts(StartFarm),
-        tooltip="Starts the farming process for all selected accounts.",
+        on_click=acquire_accounts(Farm),
+        tooltip="Starts farming for all selected accounts.",
       ),
       Button(
         "Loot Selected",
-        on_click=acquire_accounts(StartLoot),
-        tooltip="Background loot of selected accounts.",
+        on_click=acquire_accounts(Loot),
+        tooltip="Loot weakly drop of selected accounts.",
       ),
       Button(
         "Send Trade Selected",
-        on_click=acquire_accounts(TradeAccounts),
-        tooltip="Send trade to selected accounts.",
+        on_click=acquire_accounts(Trade),
+        tooltip="Trade inventory to trade url.",
       ),
     ]
 
@@ -57,19 +62,23 @@ class Idle(State):
     while True:
       await asyncio.sleep(1)
 
-  @handles(StartFarm)
-  async def _on_start_farming(self, manager: StateManager, message: StartFarm):
-    logger.debug(f"start farming with {message.accounts}")
-    await manager.into_state(LaunchAccounts(message.accounts))
+  @handles(Farm)
+  async def _on_start_farm(self, message: Farm, manager: StateManager):
+    logger.debug(f"start farming {message.accounts}")
+    await manager.into_state(
+      states.LaunchAccounts(message.accounts).then(self),
+    )
 
-  @handles(StartLoot)
-  async def _on_start_looting(self, manager: StateManager, message: StartFarm):
-    logger.debug(f"start looting with {message.accounts}")
-    from .loot import LootAccounts
-    await manager.into_state(LootAccounts(message.accounts))
+  @handles(Loot)
+  async def _on_loot(self, message: Loot, manager: StateManager):
+    logger.debug(f"loot {message.accounts}")
+    await manager.into_state(
+      states.LootAccounts(message.accounts).then(self),
+    )
 
-  @handles(TradeAccounts)
-  async def _on_start_sending_trade(self, manager: StateManager, message: TradeAccounts):
-    logger.debug(f"start sending trade with {message.accounts}")
-    from .send_trade import TradeAccounts
-    await manager.into_state(TradeAccounts(message.accounts))
+  @handles(Trade)
+  async def _on_trade(self, message: Trade, manager: StateManager):
+    logger.debug(f"send trades of {message.accounts}")
+    await manager.into_state(
+      states.TradeAccounts(message.accounts).then(self),
+    )

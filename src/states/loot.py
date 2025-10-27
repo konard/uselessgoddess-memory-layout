@@ -1,58 +1,56 @@
 import asyncio
-from typing import List
+from typing import List, Any
 
-import states
 from core.panel import State
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 
-from steam.ext.csgo import ClaimDrop as BaseClaim
-from steam.ext.csgo import BaseItem
-
+from steam.ext import csgo
+from steam.ext.csgo.price_analizator.assembler import SkinAssembler
 
 logger = get_logger("state.loot")
 
-import asyncio
-from typing import Any
-from steam.ext import csgo
-
-from steam.ext.csgo.price_analizator.assembler import SkinAssembler
 
 assembler = SkinAssembler()
 
+
 class ClaimDrop(csgo.Client):
+  def __init__(self):
+    super().__init__()
+    self.completion_future = asyncio.Future()
 
-    def __init__(self):
-        super().__init__()
-        self.completion_future = asyncio.Future()
+  async def on_weekly_reward(self, items: list[csgo.BaseItem]):
+    results: list[dict[str, Any]] = []
 
-    async def on_weekly_reward(self, items: list[csgo.BaseItem]):
-        results: list[dict[str, Any]] = []
-    
-        global_stats = self.user.global_statistics
-        rtime32_cur = self.user.gc_client_msg.rtime32_gc_welcome_timestamp
+    global_stats = self.user.global_statistics
+    rtime32_cur = self.user.gc_client_msg.rtime32_gc_welcome_timestamp
 
-        if rtime32_cur == 0:
-            print("Looting")
-            return
+    if rtime32_cur == 0:
+      print("Looting")
+      return
 
-        if rtime32_cur == -1:
-            print("No weekly reward available")
-            self.completion_future.set_result("No weekly reward available")
-            return
-    
-        if global_stats:
-            print(f"rtime32_cur: {rtime32_cur}")
-            print(f"items: {items}")
-            for item in items:
-                result = assembler.assemble_item(item)
-                results.append(result)
-        
-            sorted_results = sorted(results, key=lambda x: x.get('price', -1), reverse=True)
-            top_results = sorted_results[:2]
-            await self.redeem_weekly_reward([int(item['id']) for item in top_results], time=rtime32_cur)  
-            
+    if rtime32_cur == -1:
+      print("No weekly reward available")
+      self.completion_future.set_result("No weekly reward available")
+      return
+
+    if global_stats:
+      print(f"rtime32_cur: {rtime32_cur}")
+      print(f"items: {items}")
+      for item in items:
+        result = assembler.assemble_item(item)
+        results.append(result)
+
+      sorted_results = sorted(
+        results, key=lambda x: x.get("price", -1), reverse=True
+      )
+      top_results = sorted_results[:2]
+      await self.redeem_weekly_reward(
+        [int(item["id"]) for item in top_results], time=rtime32_cur
+      )
+
+
 class LootAccounts(State):
   def __init__(self, accounts: List[Account]):
     self.accounts = accounts
@@ -103,5 +101,3 @@ class LootAccounts(State):
         if loot_client.is_ready():
           await loot_client.close()
         await asyncio.sleep(2)
-
-    return states.Idle()

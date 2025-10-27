@@ -32,7 +32,7 @@ class State:
 
     handler = self._message_handlers.get(type(message))
     if handler:
-      await handler(manager, message)
+      await handler(message, manager)
     else:
       logger.warn(
         f"`{type_of(message)}` handler is not registred for `{name_of(self)}`"
@@ -40,6 +40,22 @@ class State:
 
   def layout(self, ctx: Context, dispatch: Callable[[Message], None]):
     return []
+
+  # helpers
+
+  def then(self, next: "State") -> "State":
+    _base = self.execute
+
+    async def _execute(ctx: Context):
+      result = await _base(ctx)
+
+      if result is not None:
+        return result
+
+      return next
+
+    self.execute = _execute
+    return self
 
 
 class StateManager:
@@ -64,8 +80,11 @@ class StateManager:
         pass
 
     self._current_state = state
+
     self._update_ui()
-    self._current_task = asyncio.create_task(self._current_state.execute(self.context))
+    self._current_task = asyncio.create_task(
+      self._current_state.execute(self.context),
+    )
     self._current_task.add_done_callback(self._handle_execute_completion)
 
   async def dispatch(self, message: Message):
@@ -88,6 +107,4 @@ class StateManager:
     if next_state:
       asyncio.create_task(self.into_state(next_state))
     else:
-      logger.error(
-        f"there was no `return` from `{name}.execute`"
-      )
+      logger.error(f"there was no `return` from `{name}.execute`")
