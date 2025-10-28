@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QFont, QTextOption
 
+from core.services.gc import start_gc_server
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
 from core.context import Context
@@ -45,6 +46,8 @@ class MainWindow(QMainWindow):
     )
 
     self.ctx = Context()
+
+    asyncio.create_task(start_gc_server(self.ctx.gc))
 
     self.setup_ui()
     # TODO! should initialize logs before context
