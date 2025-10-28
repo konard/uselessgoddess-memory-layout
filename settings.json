@@ -3,5 +3,7 @@
   "steam_path": "",
   "cs_path": "",
   "win_w": 360,
-  "win_h": 270
+  "win_h": 270,
+  "STEAM_LAUNCH_OPTIONS": "",
+  "CS2_LAUNCH_OPTIONS": ""
 }
