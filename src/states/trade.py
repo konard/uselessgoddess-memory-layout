@@ -25,11 +25,11 @@ class SendTrade(csgo.Client):
   async def on_ready(self):
     logger.debug(f"logged in as {self.user.name}")
 
-    target = await self.fetch_user(self.target_trade_url.id.id64)
+    target = await self.fetch_user(self.trade_url.id.id64)
 
     if not target:
       logger.error(
-        f"User with ID {self.target_trade_url.id.id64} not found in client's cache."
+        f"User with ID {self.trade_url.id.id64} not found in client's cache."
       )
       return
 
@@ -56,7 +56,7 @@ class SendTrade(csgo.Client):
       sending=item_to_send,
       receiving=[],
       message="сосал ? Только честно",  # TODO random mesages?
-      token=self.target_trade_url.token,
+      token=self.trade_url.token,
     )
 
     logger.info(f"Sending trade offer to {target.name}...")
