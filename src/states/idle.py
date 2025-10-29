@@ -6,6 +6,7 @@ from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.panel import Message, State, StateManager, handles
+from states.wait_for_game import WaitForGame
 
 import states
 
@@ -56,6 +57,11 @@ class Idle(State):
         on_click=acquire_accounts(Trade),
         tooltip="Trade inventory to trade url.",
       ),
+      Button(
+        "Wait for Game",
+        on_click=acquire_accounts(WaitForGame),
+        tooltip="Wait for game to start.",
+      ),
     ]
 
   async def execute(self, ctx: Context):
@@ -81,4 +87,11 @@ class Idle(State):
     logger.debug(f"send trades of {message.accounts}")
     await manager.into_state(
       states.TradeAccounts(message.accounts).then(self),
+    )
+    
+  @handles(WaitForGame)
+  async def _on_wait_for_game(self, message: WaitForGame, manager: StateManager):
+    logger.debug(f"wait for game {message.accounts}")
+    await manager.into_state(
+      states.WaitForGame(message.accounts).then(self),
     )
