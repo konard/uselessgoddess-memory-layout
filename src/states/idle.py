@@ -84,13 +84,19 @@ class Idle(State):
 
   @handles(Trade)
   async def _on_trade(self, message: Trade, manager: StateManager):
+    if not manager.context.settings.user.trade_url:
+      logger.error("You must set `trade_url` in settings to send loot")
+      return
+
     logger.debug(f"send trades of {message.accounts}")
     await manager.into_state(
       states.TradeAccounts(message.accounts).then(self),
     )
-    
+
   @handles(WaitForGame)
-  async def _on_wait_for_game(self, message: WaitForGame, manager: StateManager):
+  async def _on_wait_for_game(
+    self, message: WaitForGame, manager: StateManager
+  ):
     logger.debug(f"wait for game {message.accounts}")
     await manager.into_state(
       states.WaitForGame(message.accounts).then(self),

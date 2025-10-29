@@ -6,10 +6,10 @@ from steam.ext import csgo
 from steam import TradeOffer
 
 from core.panel.state import State
-from src.core.context import Context
-from src.core.account import Account
-from src.core.logging import get_logger
-
+from core.context import Context
+from core.account import Account
+from core.logging import get_logger
+from ui.widgets import Label, Progress
 
 logger = get_logger("state.trade")
 
@@ -71,6 +71,16 @@ class TradeAccounts(State):
   def __init__(self, accounts: List[Account]):
     self.accounts = accounts
 
+  def layout(self, ctx: Context, dispatch):
+    self.status = Label()
+    self.progress = Progress(len(self.accounts))
+
+    return [
+      Label("Send trades to master account"),
+      self.progress,
+      self.status,
+    ]
+
   async def execute(self, ctx: Context):
     for account in self.accounts:
       send_trade_client = SendTrade(ctx.settings.user.trade_url)
@@ -97,19 +107,20 @@ class TradeAccounts(State):
         if send_trade_client.completion_future in done:
           result = await send_trade_client.completion_future
           logger.info(f"[{account.login}]: {result}")
-          self.current_status = f"{account.login}: {result}"
+          self.status.set(f"{account.login}: {result}")
         elif login_task in done:
           await login_task
           logger.error(
             f"[{account.login}] Login finished unexpectedly without reward event."
           )
-          self.current_status = f"{account.login}: Login error"
+          self.status.set(f"{account.login}: Login error")
         else:
           logger.warning(f"[{account.login}] Operation timed out.")
-          self.current_status = f"{account.login}: Timeout"
+          self.status.set(f"{account.login}: Timeout")
+        self.progress.inc()
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")
-        self.current_status = f"{account.login}: Failure"
+        self.status.set(f"{account.login}: Failure")
 
       finally:
         if send_trade_client.is_ready():

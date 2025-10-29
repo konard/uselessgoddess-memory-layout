@@ -20,7 +20,10 @@ dependencies = [
   "PyAutoIt>=0.6",
   "pyautogui>=0.9",
   "pywin32>=311",
+  # --
   "steamio",
+  "uvicorn",
+  "fastapi",
 ]
 
 [dependency-groups]

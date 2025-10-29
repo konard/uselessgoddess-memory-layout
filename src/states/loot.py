@@ -5,6 +5,7 @@ from core.panel import State
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
+from ui.widgets import Progress, Label
 
 from steam.ext import csgo
 from steam.ext.csgo.price_analizator.assembler import SkinAssembler
@@ -18,7 +19,7 @@ assembler = SkinAssembler()
 class ClaimDrop(csgo.Client):
   def __init__(self):
     super().__init__()
-    self.completion_future = asyncio.Future()
+    self.completion = asyncio.Future()
 
   async def on_weekly_reward(self, items: list[csgo.BaseItem]):
     results: list[dict[str, Any]] = []
@@ -27,17 +28,14 @@ class ClaimDrop(csgo.Client):
     rtime32_cur = self.user.gc_client_msg.rtime32_gc_welcome_timestamp
 
     if rtime32_cur == 0:
-      print("Looting")
+      logger.debug("looting")
       return
 
     if rtime32_cur == -1:
-      print("No weekly reward available")
-      self.completion_future.set_result("No weekly reward available")
+      self.completion.set_result("No weekly reward available")
       return
 
     if global_stats:
-      print(f"rtime32_cur: {rtime32_cur}")
-      print(f"items: {items}")
       for item in items:
         result = assembler.assemble_item(item)
         results.append(result)
@@ -49,11 +47,20 @@ class ClaimDrop(csgo.Client):
       await self.redeem_weekly_reward(
         [int(item["id"]) for item in top_results], time=rtime32_cur
       )
+      report = [
+        f"{result['item_name']} {result['price']}$" for result in results
+      ]
+      self.completion.set_result(report)
 
 
 class LootAccounts(State):
   def __init__(self, accounts: List[Account]):
     self.accounts = accounts
+
+  def layout(self, ctx: Context, dispatch):
+    self.progress = Progress(len(self.accounts))
+
+    return [Label("Looting progress"), self.progress]
 
   async def execute(self, ctx: Context):
     for account in self.accounts:
@@ -70,7 +77,7 @@ class LootAccounts(State):
         )
 
         done, pending = await asyncio.wait(
-          [login_task, loot_client.completion_future],
+          [login_task, loot_client.completion],
           return_when=asyncio.FIRST_COMPLETED,
           timeout=60.0,
         )
@@ -78,24 +85,19 @@ class LootAccounts(State):
         for task in pending:
           task.cancel()
 
-        if loot_client.completion_future in done:
-          result = await loot_client.completion_future
-          logger.info(
-            f"[{account.login}] Operation finished with result: {result}"
-          )
-          self.current_status = f"{account.login}: {result}"
+        if loot_client.completion in done:
+          result = await loot_client.completion
+          logger.info(f"[{account.login}]: {result}")
         elif login_task in done:
           await login_task
           logger.error(
             f"[{account.login}] Login task finished unexpectedly without reward event."
           )
-          self.current_status = f"{account.login}: Login error"
         else:
           logger.warning(f"[{account.login}] Operation timed out.")
-          self.current_status = f"{account.login}: Timeout"
+        self.progress.inc()
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")
-        self.current_status = f"{account.login}: Failure"
 
       finally:
         if loot_client.is_ready():

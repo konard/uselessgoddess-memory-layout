@@ -5,3 +5,4 @@ from .switch import Switch
 from .stack import VStack
 from .tooltip import Tooltip
 from .progress import Progress
+from .label import Label
