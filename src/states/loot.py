@@ -32,7 +32,7 @@ class ClaimDrop(csgo.Client):
       return
 
     if rtime32_cur == -1:
-      self.completion.set_result("No weekly reward available")
+      # self.completion.set_result("No weekly reward available")
       return
 
     if global_stats:
