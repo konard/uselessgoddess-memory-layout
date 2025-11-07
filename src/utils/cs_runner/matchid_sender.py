@@ -1,6 +1,5 @@
 import argparse
 import os
-import re
 import subprocess
 import sys
 import time
@@ -119,9 +118,6 @@ if os.name == "nt":
       pass
 
 
-MATCH_PATTERN = re.compile(r"(?:match_id|matchid)\s*=\s*([0-9]+)")
-
-
 def build_cs2_launch_args(
   steam_path: str,
   appid: str = "730",
@@ -144,7 +140,6 @@ def build_cs2_launch_args(
       "yacs.cfg",
       "+fps_max",
       "30",
-      "-condebug",
       "-window",
       "-w",
       str(win_w),
@@ -156,11 +151,6 @@ def build_cs2_launch_args(
     args.extend(cs2)
 
   return args
-
-
-def resolve_console_log_path(cs2_path: str) -> str:
-  # CS2 default console log path: <cs2_path>\game\csgo\console.log
-  return os.path.join(cs2_path, "game", "csgo", "console.log")
 
 
 def get_child_processes_wmic(parent_pid: int) -> List[tuple]:
@@ -182,6 +172,8 @@ def get_child_processes_wmic(parent_pid: int) -> List[tuple]:
       cmd,
       capture_output=True,
       text=True,
+      encoding='utf-8',
+      errors='replace',
       creationflags=subprocess.CREATE_NO_WINDOW,
     )
 
@@ -285,7 +277,6 @@ def wait_for_child_processes(
         print(f"Найдено {len(found_pids)} дочерних процессов: {found_pids}")
         return found_pids
 
-      # Показываем все дочерние процессы для отладки
       if children:
         child_names = [f"{name}({pid})" for pid, name, ppid in children]
         if child_names:
@@ -308,6 +299,8 @@ def is_process_running(pid: int) -> bool:
       cmd,
       capture_output=True,
       text=True,
+      encoding='utf-8',
+      errors='replace',
       creationflags=subprocess.CREATE_NO_WINDOW,
     )
     return str(pid) in result.stdout
@@ -337,9 +330,6 @@ def main() -> int:
     )
   )
   parser.add_argument(
-    "--cs2path", required=True, help="Путь до папки CS2 (корень игры)"
-  )
-  parser.add_argument(
     "--steamPath",
     required=True,
     help="Путь до Steam (необязателен для логики, но принимается)",
@@ -362,17 +352,17 @@ def main() -> int:
     global _job_handle
     _job_handle = _setup_kill_on_job_close()
 
-  settings = load_settings()
-  steam = settings.get("STEAM_LAUNCH_OPTIONS").split()
-  cs2 = load_settings().get("CS2_LAUNCH_OPTIONS").split()
-
-  opts = build_cs2_launch_args(
-    args.steamPath, win_w=args.w, win_h=args.h, steam=steam, cs2=cs2
-  )
+  opts = build_cs2_launch_args(args.steamPath, win_w=args.w, win_h=args.h)
   if not args.quiet:
     print(opts)
 
-  proc = subprocess.Popen(opts)
+  proc = subprocess.Popen(
+    opts,
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+    encoding='utf-8',
+    errors='replace',
+  )
   print(f"Steam процесс запущен с PID: {proc.pid}")
 
   if os.name == "nt":
@@ -391,17 +381,16 @@ def main() -> int:
     print(f"steamwebhelper найдены: {cs2_pids}")
 
     hook = subprocess.Popen(
-      ["rundll32", "NetHook2.dll,Inject", str(proc.pid), str(args.login)]
+      ["rundll32", "NetHook2.dll,Inject", str(proc.pid), str(args.login)],
+      stdout=subprocess.DEVNULL,
+      stderr=subprocess.DEVNULL,
+      encoding='utf-8',
+      errors='replace',
     )
     print(f"Hook запущен с PID: {hook.pid}")
   else:
     print("CS2 процессы не найдены в течение тайм-аута")
 
-  console_log_path = resolve_console_log_path(args.cs2path)
-  if not args.quiet:
-    print(f"Лог: {console_log_path}")
-
-  print("Мониторинг запущен. Нажмите Ctrl+C для выхода.")
   try:
     while True:
       time.sleep(5)

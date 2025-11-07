@@ -1,37 +1,22 @@
 import time
 import base64
 import subprocess
-import autoit
 import pyautogui
 import struct
 import hmac
 
-from src.core.account import Account, RunningAccount
 from src.core.logging import get_logger
-from src.core.services import WindowService, UserSettings
+from src.core.services import UserSettings
+from src.core.services.windows_service import WindowService
 
 logger = get_logger("sv.launch")
 
 
 def build_runner_launch_args(login: str, settings: UserSettings):
-  # TODO! store in settings.json
-  host = "127.0.0.1"
-  port = "9009"
-
   args = [
-    "matchid_sender.exe",
-    "--cs2path",
-    settings.cs_path,
+    "src\\utils\\cs_runner\\matchid_sender.exe",
     "--steamPath",
     settings.steam_path,
-    "--host",
-    host,
-    "--port",
-    port,
-    "--w",
-    str(settings.win_w),
-    "--h",
-    str(settings.win_h),
     "--login",
     login,
   ]
@@ -39,16 +24,6 @@ def build_runner_launch_args(login: str, settings: UserSettings):
   logger.debug(f"run runner with args: {args}")
 
   return args
-
-
-def detect_state_by_screenshot(
-  screenshot: str, confidence: float = 0.8
-) -> bool:
-  try:
-    return bool(pyautogui.locateOnScreen(screenshot, confidence=confidence))
-  except Exception as e:
-    logger.debug(f"error wh screenshot detection: {e}")
-    return False
 
 
 def generate_2fa_code(shared_secret: str) -> str:
@@ -84,14 +59,12 @@ def steam_login(
     close_fds=True,
   )
 
-  autoit.auto_it_set_option("WinTitleMatchMode", 2)
-  while not autoit.win_exists("Войти в Steam"):
+  while not WindowService.wait_for_window("Войти в Steam", 10):
     logger.debug(f"[{login}] Waiting for Steam window")
     time.sleep(1)
   time.sleep(5)
 
   logger.debug(f"[{login}] Steam launched")
-  # Type credentials
   pyautogui.typewrite(login)
   logger.debug(f"[{login}] Login typed")
   pyautogui.press("tab")
@@ -101,32 +74,13 @@ def steam_login(
   pyautogui.press("enter")
   logger.debug(f"[{login}] Enter pressed")
 
-  while detect_state_by_screenshot("resources/img/log-ru.jpg"):
+  while pyautogui.locateOnScreen("resources/img/log-ru.jpg", confidence=0.9):
     logger.debug(f"[{login}] Waiting for Guard window")
     time.sleep(1)
 
   logger.debug(f"[{login}] Credentials typed")
-  # Type guard code
   code = generate_2fa_code(shared_secret)
   logger.info(f"2FA code: {code}")
   pyautogui.typewrite(code)
   pyautogui.press("enter")
   logger.debug(f"[{login}] Guard code typed")
-
-
-def launch_account(
-  account: Account, settings: UserSettings, accounts: list[RunningAccount]
-) -> bool:
-  login = account.login
-  try:
-    logger.info(f"launching {login}...")
-
-    steam_login(
-      login=login,
-      password=account.password,
-      shared_secret=account.shared_secret,
-      settings=settings,
-    )
-  # TODO
-  finally:
-    return False

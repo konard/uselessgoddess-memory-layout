@@ -20,8 +20,6 @@ class ScanInventory(csgo.Client):
 
   def __init__(self, trade_url: Optional[str]):
     super().__init__()
-    self.trade_url = None
-
     if trade_url:
       self.trade_url = steam.utils.parse_trade_url(trade_url)
     self.complete = asyncio.Future[tuple[str, list]]()
@@ -30,7 +28,6 @@ class ScanInventory(csgo.Client):
     logger.debug(f"logged in as {self.user.name}")
 
     target = None
-
     if self.trade_url:
       id64 = self.trade_url.id.id64
       target = await self.fetch_user(id64)

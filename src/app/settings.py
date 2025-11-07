@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
   QLineEdit,
   QDialogButtonBox,
 )
-from core.services.settings import SettingsService, UserSettings
+from core.services.settings import SettingsService
 
 
 class SettingsDialog(QDialog):
@@ -25,7 +25,6 @@ class SettingsDialog(QDialog):
     form_layout.addRow("Trade URL:", self.trade_url_edit)
     form_layout.addRow("Steam Path:", self.steam_path_edit)
     form_layout.addRow("CS2 Path:", self.cs_path_edit)
-
     layout.addLayout(form_layout)
 
     button_box = QDialogButtonBox(

@@ -1,4 +1,4 @@
-from .farm import LaunchAccounts
+from .launch_accounts import LaunchAccounts
 from .idle import Idle
 from .loot import LootAccounts
 from .trade import ScanAccounts

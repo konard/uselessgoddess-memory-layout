@@ -13,7 +13,6 @@ class Account:
 
   @staticmethod
   def from_json(data: dict) -> "Account":
-    # TODO! handle parsing errors
     return Account(
       login=data["login"],
       password=data["password"],
@@ -41,3 +40,15 @@ class RunningAccount(Account):
 
   def __post_init__(self) -> None:
     self.win_cs_title = f"[{self.login}] # CS"
+
+  @staticmethod
+  def generate_window_title(login: str) -> str:
+    return f"[{login}] # CS"
+
+  def stop_account(self) -> bool:
+    if self.runner_pid > 0:
+      # Ленивый импорт для избежания циклических зависимостей
+      from core.services.process import ProcessService
+      ProcessService.kill_by_pid(self.runner_pid)
+      return True
+    return False

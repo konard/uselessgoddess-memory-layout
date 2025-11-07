@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import List, Any
 
 from core.panel import State
@@ -6,14 +7,14 @@ from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from ui.widgets import Progress, Label
-
+import states
 from steam.ext import csgo
 from steam.ext.csgo.price_analizator.assembler import SkinAssembler
 
 logger = get_logger("state.loot")
 
-
-assembler = SkinAssembler()
+prices = json.load(open("data/price.json", "r", encoding="utf-8"))
+assembler = SkinAssembler(prices)
 
 
 class ClaimDrop(csgo.Client):
@@ -32,7 +33,7 @@ class ClaimDrop(csgo.Client):
       return
 
     if rtime32_cur == -1:
-      # self.completion.set_result("No weekly reward available")
+      self.completion.set_result("No weekly reward available")
       return
 
     if global_stats:
@@ -40,17 +41,24 @@ class ClaimDrop(csgo.Client):
         result = assembler.assemble_item(item)
         results.append(result)
 
+      filtered = filter(
+        lambda x: x.get("price", -1) > 0 and x.get("tradable_after", 1) == 0,
+        results,
+      )
+
       sorted_results = sorted(
-        results, key=lambda x: x.get("price", -1), reverse=True
+        filtered, key=lambda x: x.get("price", -1), reverse=True
       )
       top_results = sorted_results[:2]
+      print(f"top_results: {top_results}")
       await self.redeem_weekly_reward(
         [int(item["id"]) for item in top_results], time=rtime32_cur
       )
-      report = [
-        f"{result['item_name']} {result['price']}$" for result in results
+      report_results = [
+        f"{report['item_name']} {report['price']}$" for report in top_results
       ]
-      self.completion.set_result(report)
+      print(f"report_results: {report_results}")
+      self.completion.set_result(report_results)
 
 
 class LootAccounts(State):
@@ -103,3 +111,5 @@ class LootAccounts(State):
         if loot_client.is_ready():
           await loot_client.close()
         await asyncio.sleep(2)
+
+    return states.ScanAccounts(self.accounts, trade=True)

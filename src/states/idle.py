@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import dataclass, field
 
+from states.launch_accounts import LaunchAccounts
 from ui.widgets import Button, HStack
 from core.context import Context
 from core.account import Account
@@ -74,6 +75,11 @@ class Idle(State):
         on_click=acquire_accounts(WaitForGame),
         tooltip="Wait for game to start.",
       ),
+      Button(
+        "Launch Accounts",
+        on_click=acquire_accounts(LaunchAccounts),
+        tooltip="Launch accounts.",
+      ),
     ]
 
   async def execute(self, ctx: Context):
@@ -115,4 +121,13 @@ class Idle(State):
     logger.debug(f"wait for game {message.accounts}")
     await manager.into_state(
       states.WaitForGame(message.accounts).then(self),
+    )
+
+  @handles(LaunchAccounts)
+  async def _on_launch_accounts(
+    self, message: LaunchAccounts, manager: StateManager
+  ):
+    logger.debug(f"launch accounts {message.accounts_to_launch}")
+    await manager.into_state(
+      states.LaunchAccounts(message.accounts_to_launch).then(self),
     )

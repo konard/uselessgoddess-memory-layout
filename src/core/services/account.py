@@ -1,10 +1,10 @@
 import json
 import asyncio
 from typing import Dict, List, Set
-from PyQt6.QtCore import pyqtSignal
 
 from core.account import Account
 from core.logging import get_logger
+from core.services.mafiles import MafilesService
 
 logger = get_logger("sv.accounts")
 
@@ -24,9 +24,23 @@ class AccountsService:
     try:
       with open(file, "r") as f:
         accounts_data = json.load(f)
-        for login, data in accounts_data.items():
+      for login, data in accounts_data.items():
+        try:
           accounts[login] = Account.from_json(data)
-        logger.info(f"loaded {len(accounts)} accounts.")
+        except Exception:
+          mafiles_data = MafilesService._find_mafile_data(login)
+          accounts[login] = Account.from_json(
+            {
+              **data,
+              **mafiles_data,
+            }
+          )
+          accounts_data[login] = {**data, **mafiles_data}
+
+      with open(file, "w") as fw:
+        json.dump(accounts_data, fw, indent=4)
+
+      logger.info(f"loaded {len(accounts)} accounts.")
     except FileNotFoundError:
       logger.error(f"Accounts file not found: {file}")
     except json.JSONDecodeError:
