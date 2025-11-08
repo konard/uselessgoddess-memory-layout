@@ -43,6 +43,14 @@ class State:
 
   # helpers
 
+  def block(self, func):
+    async def inner(*args, **kwargs):
+      loop = asyncio.get_running_loop()
+      # TODO: !should we use custom pool
+      await loop.run_in_executor(None, func, *args, **kwargs)
+
+    return inner
+
   def then(self, next: "State") -> "State":
     _base = self.execute
 

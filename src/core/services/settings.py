@@ -111,3 +111,11 @@ class SettingsService:
 
   def save(self, settings):
     settings.save(self.user_file)
+
+  @property
+  def u(self):
+    return self.user
+
+  @property
+  def s(self):
+    return self.user

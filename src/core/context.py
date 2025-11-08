@@ -21,3 +21,7 @@ class Context:
 
   def accounts(self) -> List[Account]:
     return list(self.account.accounts.values())
+
+  @property  # shorthand to `settings`
+  def s(self):
+    return self.settings
