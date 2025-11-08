@@ -53,4 +53,6 @@ Thumbs.db
 config/config.json
 accounts.json
 yacs.log
-data
+!data/price.json
+data/mafiles
+data/settings.lock
