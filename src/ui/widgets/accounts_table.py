@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
   QHeaderView,
   QTableWidgetItem,
 )
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, QEvent
 from PyQt6.QtGui import QColor, QMouseEvent
 
 from src.ui.theme import CURRENT_THEME
@@ -90,16 +90,23 @@ class AccountsTable(QTableWidget):
         f"Session Time: 00:45:12\n"
         f"Last Drop: 2 days ago"
       )
-      status_item.setToolTip(detailed_tooltip)
+
+      status_item.setData(Qt.ItemDataRole.UserRole, detailed_tooltip)
       self.setItem(row, 2, status_item)
 
   def mouseMoveEvent(self, event: QMouseEvent):
     item = self.itemAt(event.pos())
 
-    if item and item.column() == 2:
+    tooltip_text = item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    if item and item.column() == 2 and tooltip_text:
       global_pos = self.mapToGlobal(event.pos())
-      self.tooltip.show_tip(global_pos, item.toolTip())
+      self.tooltip.show_tip(global_pos, tooltip_text)
     else:
       self.tooltip.hide_tip()
 
     super().mouseMoveEvent(event)
+
+  def leaveEvent(self, event: QEvent):
+    self.tooltip.hide_tip()
+    super().leaveEvent(event)
