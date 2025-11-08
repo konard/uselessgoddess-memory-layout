@@ -14,7 +14,8 @@ logger = get_logger("sv.launch")
 
 def build_runner_launch_args(login: str, settings: UserSettings):
   args = [
-    "src\\utils\\cs_runner\\matchid_sender.exe",
+    "py",
+    "src\\utils\\cs_runner\\matchid_sender.py",
     "--steamPath",
     settings.steam_path,
     "--login",

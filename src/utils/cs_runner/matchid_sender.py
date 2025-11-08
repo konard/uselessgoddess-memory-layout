@@ -172,8 +172,8 @@ def get_child_processes_wmic(parent_pid: int) -> List[tuple]:
       cmd,
       capture_output=True,
       text=True,
-      encoding='utf-8',
-      errors='replace',
+      encoding="utf-8",
+      errors="replace",
       creationflags=subprocess.CREATE_NO_WINDOW,
     )
 
@@ -299,8 +299,8 @@ def is_process_running(pid: int) -> bool:
       cmd,
       capture_output=True,
       text=True,
-      encoding='utf-8',
-      errors='replace',
+      encoding="utf-8",
+      errors="replace",
       creationflags=subprocess.CREATE_NO_WINDOW,
     )
     return str(pid) in result.stdout
@@ -360,8 +360,8 @@ def main() -> int:
     opts,
     stdout=subprocess.DEVNULL,
     stderr=subprocess.DEVNULL,
-    encoding='utf-8',
-    errors='replace',
+    encoding="utf-8",
+    errors="replace",
   )
   print(f"Steam процесс запущен с PID: {proc.pid}")
 
@@ -373,19 +373,23 @@ def main() -> int:
     except Exception:
       pass
 
-  cs2_pids = wait_for_child_processes(
-    proc.pid, ["steamwebhelper.exe"], timeout=120
-  )
+  cs2_pids = wait_for_child_processes(proc.pid, timeout=120)
 
   if cs2_pids:
     print(f"steamwebhelper найдены: {cs2_pids}")
 
+    time.sleep(2)
     hook = subprocess.Popen(
-      ["rundll32", "NetHook2.dll,Inject", str(proc.pid), str(args.login)],
+      [
+        "rundll32",
+        "src\\utils\\cs_runner\\NetHook2.dll,Inject",
+        str(proc.pid),
+        str(args.login),
+      ],
       stdout=subprocess.DEVNULL,
       stderr=subprocess.DEVNULL,
-      encoding='utf-8',
-      errors='replace',
+      encoding="utf-8",
+      errors="replace",
     )
     print(f"Hook запущен с PID: {hook.pid}")
   else:
