@@ -321,7 +321,7 @@ def set_console_title(title: str) -> None:
 
 
 def main() -> int:
-  print(f"runner started")
+  print("runner started")
 
   parser = argparse.ArgumentParser(
     description=(
@@ -406,7 +406,7 @@ def main() -> int:
     print("\nЗавершение работы...")
     try:
       proc.terminate()
-    except:
+    except Exception:
       pass
 
 

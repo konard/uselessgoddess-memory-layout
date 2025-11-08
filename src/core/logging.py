@@ -17,10 +17,11 @@ class Logger(logging.Logger):
   def warn(self, message, *args, **kwargs):
     if self.isEnabledFor(WARN):
       self._log(WARN, message, args, **kwargs)
-  
+
   def trace(self, message, *args, **kwargs):
     if self.isEnabledFor(TRACE):
       self._log(TRACE, message, args, **kwargs)
+
 
 logging.addLevelName(TRACE, "TRACE")
 logging.setLoggerClass(Logger)

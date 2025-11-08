@@ -69,7 +69,7 @@ class CS2Controller:
     time.sleep(0.05)
     win32api.keybd_event(0x56, 0, win32con.KEYEVENTF_KEYUP, 0)
     win32api.keybd_event(0x11, 0, win32con.KEYEVENTF_KEYUP, 0)
-    logger.trace(f"Вставка из буфера выполнена")
+    logger.trace("Вставка из буфера выполнена")
 
   @staticmethod
   def select_all():
@@ -79,7 +79,7 @@ class CS2Controller:
     time.sleep(0.05)
     win32api.keybd_event(0x41, 0, win32con.KEYEVENTF_KEYUP, 0)
     win32api.keybd_event(0x11, 0, win32con.KEYEVENTF_KEYUP, 0)
-    logger.trace(f"Выделение всего текста выполнено (Ctrl+A)")
+    logger.trace("Выделение всего текста выполнено (Ctrl+A)")
 
   @staticmethod
   def press_delete():
@@ -88,7 +88,7 @@ class CS2Controller:
     time.sleep(0.1)
     win32api.keybd_event(win32con.VK_BACK, 0, win32con.KEYEVENTF_KEYUP, 0)
     time.sleep(0.1)
-    logger.trace(f"Нажата кнопка Delete")
+    logger.trace("Нажата кнопка Delete")
 
   @staticmethod
   def press_button(button: int, sleep: float = 0.1):

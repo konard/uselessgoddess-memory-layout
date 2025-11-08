@@ -42,7 +42,7 @@ def build_mafile_indexes(
     # Accept .maFile and .mafile (case-insensitive)
     if not (name_lower.endswith(".mafile") or name_lower.endswith(".mafile")):
       # Allow any file that starts with .ma (rare cases), but skip others
-      if not (".ma" in name_lower):
+      if ".ma" not in name_lower:
         continue
 
     data = load_json_file(path)

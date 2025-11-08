@@ -1,5 +1,5 @@
 from typing import Callable, Optional
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QCheckBox
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel
 from PyQt6.QtCore import (
   pyqtProperty,
   pyqtSignal,

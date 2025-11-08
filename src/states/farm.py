@@ -1,7 +1,6 @@
 import asyncio
 from typing import List
 
-import states
 from core.panel import State
 from core.context import Context
 from core.account import Account

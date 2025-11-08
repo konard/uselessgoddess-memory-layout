@@ -45,7 +45,6 @@ try:
   import win32gui
   import win32con
   import win32process
-  import win32api
   import ctypes
 except Exception as e:
   raise RuntimeError(
@@ -258,7 +257,7 @@ class SteamWebHelperLimiter:
       while True:
         try:
           self.run_once()
-        except Exception as e:
+        except Exception:
           logging.exception("Error during run_once")
           if interval < 0:
             break

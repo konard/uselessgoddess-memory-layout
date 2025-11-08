@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 from PyQt6.QtWidgets import QLabel
 from src.ui.theme import CURRENT_THEME
 

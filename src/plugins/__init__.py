@@ -4,19 +4,17 @@ from typing import Protocol, Dict, Any
 
 
 class PluginBase(Protocol):
-    """Интерфейс плагина.
+  """Интерфейс плагина.
 
-    Каждый плагин должен реализовать методы:
-    - setup(app_context): инициализация/регистрация
-    - teardown(): корректное отключение
-    - meta: свойство с метаданными (dict)
-    """
+  Каждый плагин должен реализовать методы:
+  - setup(app_context): инициализация/регистрация
+  - teardown(): корректное отключение
+  - meta: свойство с метаданными (dict)
+  """
 
-    def setup(self, app_context: Dict[str, Any]) -> None: ...
+  def setup(self, app_context: Dict[str, Any]) -> None: ...
 
-    def teardown(self) -> None: ...
+  def teardown(self) -> None: ...
 
-    @property
-    def meta(self) -> Dict[str, Any]: ...
-
-
+  @property
+  def meta(self) -> Dict[str, Any]: ...

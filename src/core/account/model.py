@@ -49,6 +49,7 @@ class RunningAccount(Account):
     if self.runner_pid > 0:
       # Ленивый импорт для избежания циклических зависимостей
       from core.services.process import ProcessService
+
       ProcessService.kill_by_pid(self.runner_pid)
       return True
     return False

@@ -21,16 +21,19 @@ dependencies = [
   "pyautogui>=0.9",
   "pyscreeze==0.1.28",
   "pywin32>=311",
+  "pyuac",
+  "psutil",
   # --
-  "steamio",
   "uvicorn",
   "fastapi",
+  "steamio",
 ]
 
 [dependency-groups]
 dev = [
   "ruff>=0.14",
   "ty>=0.0.1a23",
+  "pre-commit",
 ]
 
 [tool.ruff]
@@ -41,6 +44,7 @@ line-length = 80
 indent-width = 2
 
 [tool.ruff.lint]
+ignore = ["F401"]
 select = ["E4", "E7", "E9", "F"]
 # allow _unused variables
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
@@ -52,4 +56,4 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.uv.sources]
-steamio = { git = "https://github.com/PONYAWKA/gc-handler", rev = "main" }
+steamio = { git = "https://github.com/PONYAWKA/gc-handler" }
