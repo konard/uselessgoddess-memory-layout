@@ -1,3 +1,5 @@
+import os
+
 from os.path import isdir, isfile
 
 from core.panel.state import State
@@ -19,6 +21,15 @@ def check_path(path, what: str, dir: bool = False):
     raise Exception  # mark as return?
 
 
+MAPS_DIR = "game/csgo/maps"
+
+
+def remove_bg(dir):
+  for file in os.listdir(dir):
+    if "_vanity" in file and os.path.isfile(os.path.join(dir, file)):
+      os.remove(os.path.join(dir, file))
+
+
 class LaunchAccounts(State):
   def __init__(self, accounts: list[Account]):
     self.accounts_to_launch = accounts
@@ -29,6 +40,12 @@ class LaunchAccounts(State):
       check_path(ctx.s.u.cs_path, "CS2", dir=True)
     except Exception:
       return
+
+    # try to remove backgrounds before launch
+    maps_path = os.path.join(ctx.s.u.cs_path, MAPS_DIR)
+    if isdir(maps_path):
+      logger.debug(f"remove backgrounds from {maps_path}")
+      remove_bg(maps_path)
 
     for account in self.accounts_to_launch:
       logger.info(f"launching account +{account.login}")
