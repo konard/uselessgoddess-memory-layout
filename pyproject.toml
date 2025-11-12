@@ -30,6 +30,7 @@ dependencies = [
   "steamio",
   # -- 
   "opencv-python>=4.12.0.88",
+  "tinydb>=4.8",
 ]
 
 [dependency-groups]

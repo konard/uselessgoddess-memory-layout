@@ -1,8 +1,9 @@
 import json
 import asyncio
+from pathlib import Path
 from typing import Dict, List, Set
 
-from core.account import Account
+from core.account import Account, AccountsLock
 from core.logging import get_logger
 from core.services.mafiles import MafilesService
 
@@ -14,12 +15,16 @@ ACCOUNTS_FILE = "accounts.json"
 class AccountsService:
   accounts: Dict[str, Account] = {}
 
-  def __init__(self, accounts: Dict[str, Account]):
+  def __init__(self, accounts: Dict[str, Account], lock: AccountsLock):
     self.accounts = accounts
     self._selected: Set[str] = set()
+    self.lock: AccountsLock = lock
+
+    for account in self.accounts.values():
+      account.update_from_lock(self.lock)
 
   @staticmethod
-  def load(file: str = "accounts.json"):
+  def load(file: str = "accounts.json", lock_path: str = "data/accounts.lock"):
     accounts: Dict[str, Account] = {}
     try:
       with open(file, "r") as f:
@@ -46,7 +51,7 @@ class AccountsService:
     except json.JSONDecodeError:
       logger.error(f"Invalid accountsfile: {file}")
 
-    return AccountsService(accounts)
+    return AccountsService(accounts, lock_path)
 
   def select(self, login: str):
     if login in self.accounts:

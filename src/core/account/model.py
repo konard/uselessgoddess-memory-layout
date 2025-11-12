@@ -1,6 +1,64 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any, Dict
+from .lock import AccountsLock
+
+
+@dataclass(slots=True)
+class AccountMetadata:
+  _data: Dict[str, Any] = field(default_factory=dict, init=False)
+  _lock: AccountsLock | None = field(init=False, default=None)
+  _login: str = field(init=False, default="")
+
+  def update_from_lock(self, login: str, lock: AccountsLock) -> None:
+    self._lock = lock
+    self._login = login
+    info = lock.get_account_info(login)
+    if info:
+      self._data.update(info)
+
+  def save_to_lock(self) -> None:
+    if self._lock and self._login:
+      self._lock.set_account_info(self._login, **self._data)
+
+  @property
+  def lvl(self) -> int | None:
+    return self._data.get("lvl")
+
+  @lvl.setter
+  def lvl(self, value: int) -> None:
+    self._data["lvl"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "lvl", value)
+
+  @property
+  def xp(self) -> int | None:
+    return self._data.get("xp")
+
+  @xp.setter
+  def xp(self, value: int) -> None:
+    self._data["xp"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "xp", value)
+
+  @property
+  def invite(self) -> str | None:
+    return self._data.get("invite")
+
+  @invite.setter
+  def invite(self, value: str) -> None:
+    self._data["invite"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "invite", value)
+
+  def get(self, field_name: str, default: Any = None) -> Any:
+    return self._data.get(field_name, default)
+
+  def set(self, field_name: str, value: Any) -> None:
+    self._data[field_name] = value
+    if self._lock:
+      self._lock.set_field(self._login, field_name, value)
 
 
 @dataclass(slots=True)
@@ -10,6 +68,8 @@ class Account:
   shared_secret: str
   identity_secret: str | None
   steam_id: str
+
+  lock: AccountMetadata = field(default_factory=AccountMetadata, init=False)
 
   @staticmethod
   def from_json(data: dict) -> "Account":
@@ -29,6 +89,13 @@ class Account:
       "identity_secret": self.identity_secret,
       "steam_id": self.steam_id,
     }
+
+  def update_from_lock(self, accounts_lock: "AccountsLock") -> None:
+    """
+    Обновить метаданные аккаунта из lock.
+    """
+    self.lock._lock = accounts_lock
+    self.lock.update_from_lock(self.login, accounts_lock)
 
 
 @dataclass(slots=True)
