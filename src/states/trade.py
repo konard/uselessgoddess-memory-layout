@@ -15,7 +15,7 @@ from ui.widgets import Label, Progress
 logger = get_logger("state.trade")
 
 
-class ScanInventory(csgo.Client):
+class ScanInventory(steam.Client):
   trade_url: steam.utils.TradeURLInfo
 
   def __init__(self, trade_url: Optional[str]):
@@ -24,7 +24,7 @@ class ScanInventory(csgo.Client):
       self.trade_url = steam.utils.parse_trade_url(trade_url)
     self.complete = asyncio.Future[tuple[str, list]]()
 
-  async def on_ready(self):
+  async def on_login(self):
     logger.debug(f"logged in as {self.user.name}")
 
     target = None
@@ -74,8 +74,8 @@ class ScanInventory(csgo.Client):
 
     try:
       if self.identity_secret is not None and target:
-        await target._send_trade(trade=trade_offer)
-        self.complete.set_result("Trade sent", items_to_report)
+        await target.send(trade=trade_offer)
+        self.complete.set_result(("Trade sent", items_to_report))
     except Exception as e:
       logger.error(f"Failed to send trade offer: {e}")
     finally:
@@ -106,6 +106,7 @@ class ScanAccounts(State):
       return
 
     for account in self.accounts:
+      await asyncio.sleep(5)
       send_trade_client = ScanInventory(
         settings.trade_url if self.trade else None
       )
@@ -171,3 +172,6 @@ class ScanAccounts(State):
     except Exception as e:
       logger.error(f"Failed to write report: {e}")
       self.status.set("Completed.")
+    import states
+
+    return states.Idle()

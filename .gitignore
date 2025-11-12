@@ -61,3 +61,5 @@ data/accounts.lock
 node_modules
 pyuac.*
 report.json
+
+settings.json
