@@ -51,7 +51,7 @@ class AccountsService:
     except json.JSONDecodeError:
       logger.error(f"Invalid accountsfile: {file}")
 
-    return AccountsService(accounts, lock_path)
+    return AccountsService(accounts, AccountsLock(lock_path))
 
   def select(self, login: str):
     if login in self.accounts:

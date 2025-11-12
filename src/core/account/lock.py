@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Dict, Optional, Any
 from tinydb import TinyDB, Query
@@ -11,6 +12,9 @@ logger = get_logger("account.lock")
 
 class AccountsLock:
   def __init__(self, db_path: Path | str) -> None:
+    if not os.path.isfile(db_path):
+      with open(db_path, "w") as file:
+        file.write("{}")
     self._db_path = Path(db_path)
     self._db = TinyDB(str(self._db_path))
     self._table = self._db.table("accounts")

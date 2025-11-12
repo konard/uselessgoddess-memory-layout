@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
 
+    # TODO! create in main.py
     self.ctx = Context()
 
     asyncio.create_task(start_gc_server(self.ctx.gc))
