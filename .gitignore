@@ -56,3 +56,8 @@ yacs.log
 !data/price.json
 data/mafiles
 data/settings.lock
+
+node_modules
+pyuac.*
+report.json
+
