@@ -40,7 +40,7 @@ if (!login || !password || !sharedSecret || !qrUrl) {
             approve: true
         });
 
-        console.log('[✅] QR login approved successfully!');
+        console.log('[+] QR login approved successfully!');
 
     } catch (err) {
         console.error('[-] Error:', err);
