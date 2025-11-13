@@ -13,24 +13,28 @@ authors = [
     { name = "uselessgoddes" },
 ]
 dependencies = [
+  # -- qt
   "qasync>=0.28",
   "PyQt6>=6.6",
-  "typing-extensions>=4.8",
-  # --
+  # -- auto
   "PyAutoIt>=0.6",
   "pyautogui>=0.9",
-  "pyscreeze==0.1.28",
-  "pillow>=12.0.0",
+  "pyzbar>=0.1.9",
+  # -- win 
   "pywin32>=311",
   "pyuac",
   "psutil",
-  # --
+  # -- api
   "uvicorn",
   "fastapi",
   "steamio",
   # -- 
   "opencv-python>=4.12.0.88",
+  "pyscreeze==0.1.28",
+  "pillow>=12.0.0",
+  # -- 
   "tinydb>=4.8",
+  "typing-extensions>=4.8",
 ]
 
 [dependency-groups]

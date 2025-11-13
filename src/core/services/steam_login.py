@@ -5,6 +5,8 @@ import pyautogui
 import struct
 import hmac
 
+from pyzbar.pyzbar import decode
+
 from src.core.logging import get_logger
 from src.core.services import UserSettings
 from src.core.services.windows_service import WindowService
@@ -65,6 +67,58 @@ def steam_login(
     time.sleep(1)
   time.sleep(5)
 
+  if not login_qr(login, password, shared_secret, settings):
+    logger.warn("failed to login. run fallback")
+    login_fallback(login, password, shared_secret, settings)
+
+
+def wait_qr() -> str:
+  qr_url = None
+
+  while True:
+    screenshot = pyautogui.screenshot()
+    codes = decode(screenshot)
+
+    for code in codes:
+      data = code.data.decode("utf-8")
+      if "s.team" in data:
+        qr_url = data
+        break
+
+    if qr_url:
+      logger.debug(f"found QR code: {qr_url}")
+      break
+    time.sleep(1)
+
+  return qr_url
+
+
+def login_qr(
+  login: str,
+  password: str,
+  shared_secret: str,
+  settings: UserSettings,
+):
+  qr_url = wait_qr()
+  code = subprocess.run(
+    [
+      "node",
+      # todo!: better to use `scripts("script.js")`
+      "resources/scripts/approve_qr.js",
+      login,
+      password,
+      shared_secret,
+      qr_url,
+    ],
+    text=True,
+  ).returncode
+
+  return code == 0
+
+
+def login_fallback(
+  login: str, password: str, shared_secret: str, settings: UserSettings
+):
   logger.debug(f"[{login}] Steam launched")
   pyautogui.typewrite(login)
   logger.debug(f"[{login}] Login typed")

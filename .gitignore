@@ -58,6 +58,10 @@ data/mafiles
 data/settings.lock
 data/accounts.lock
 
-node_modules
+# Local trash
 pyuac.*
 report.json
+
+# Js scritpts 
+package-lock.json
+node_modules
