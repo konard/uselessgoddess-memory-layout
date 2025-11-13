@@ -50,7 +50,7 @@ class ClaimDrop(csgo.Client):
         filtered, key=lambda x: x.get("price", -1), reverse=True
       )
       top_results = sorted_results[:2]
-      print(f"top_results: {top_results}")
+      print(f"sorted_results: {sorted_results}")
       await self.redeem_weekly_reward(
         [int(item["id"]) for item in top_results], time=rtime32_cur
       )

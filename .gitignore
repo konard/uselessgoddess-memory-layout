@@ -57,6 +57,7 @@ yacs.log
 data/mafiles
 data/settings.lock
 data/accounts.lock
+settings.json
 
 # Local trash
 pyuac.*
@@ -65,3 +66,4 @@ report.json
 # Js scritpts 
 package-lock.json
 node_modules
+
