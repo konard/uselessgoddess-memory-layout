@@ -7,6 +7,7 @@ from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.services.launch_service import LaunchService
+from core.services.settings import FarmMode
 
 logger = get_logger("state.launch_accounts")
 
@@ -53,3 +54,9 @@ class LaunchAccounts(State):
         account, ctx.settings.user, ctx.accounts()
       )
       logger.info(f"{account.login} launched")
+
+    match ctx.settings.system.farm_mode:
+      case FarmMode.TWO_BY_TWO:
+        pass
+      case FarmMode.FIVE_BY_FIVE:
+        pass

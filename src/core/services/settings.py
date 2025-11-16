@@ -1,5 +1,6 @@
 import json
 import os
+from enum import Enum
 from typing import Callable
 from dataclasses import asdict, dataclass
 from core.logging import get_logger
@@ -8,6 +9,11 @@ from core.utils import name_of
 logger = get_logger("settings")
 
 SETTINGS_FILE = "settings.json"
+
+
+class FarmMode(str, Enum):
+  TWO_BY_TWO = "2x2"
+  FIVE_BY_FIVE = "5x5"
 
 
 def _load_settings(path, ty, label="settings"):
@@ -26,8 +32,13 @@ def _load_settings(path, ty, label="settings"):
 
 def _save_settings(path, settings, label="settings"):
   try:
+    data = asdict(settings)
+    # Преобразуем enum в строку для JSON сериализации
+    for key, value in data.items():
+      if isinstance(value, Enum):
+        data[key] = value.value
     with open(path, "w") as f:
-      json.dump(asdict(settings), f, indent=2)
+      json.dump(data, f, indent=2)
     logger.debug(f"{label} saved to '{path}'.")
   except Exception as e:
     logger.error(f"Failed to save '{path}': {e}")
@@ -75,6 +86,7 @@ class SystemState(Settings):
   shuffle_lobbies: bool = True
   collect_drop: bool = False
   farm_on_launch: bool = True
+  farm_mode: FarmMode = FarmMode.TWO_BY_TWO
 
   def path_of(self, settings: "SettingsService"):
     return settings.system_file

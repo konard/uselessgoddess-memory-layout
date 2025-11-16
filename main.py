@@ -5,7 +5,7 @@ import sys
 import asyncio
 import qasync
 import subprocess
-from pyuac import main_requires_admin
+from pyuac import isUserAdmin, runAsAdmin
 
 from PyQt6.QtWidgets import QApplication
 
@@ -16,7 +16,6 @@ import pyautogui
 pyautogui.FAILSAFE = False
 
 
-@main_requires_admin
 async def main():
   _app = QApplication.instance() or QApplication(sys.argv)
 
@@ -43,6 +42,11 @@ def dev_deps():
 
 if __name__ == "__main__":
   dev_deps()
+
+  # Проверяем права администратора и перезапускаем с правами админа, если нужно
+  if not isUserAdmin():
+    runAsAdmin()
+    sys.exit(0)
 
   try:
     qasync.run(main())

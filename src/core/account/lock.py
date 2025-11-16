@@ -11,7 +11,7 @@ logger = get_logger("account.lock")
 
 
 class AccountsLock:
-  def __init__(self, db_path: Path | str) -> None:
+  def __init__(self, db_path: Path | str = "data/accounts.lock") -> None:
     if not os.path.isfile(db_path):
       with open(db_path, "w") as file:
         file.write("{}")

@@ -1,5 +1,8 @@
 from core.services.gc.matcher_service import MatcherService
+from core.services.gc.player_info_service import PlayerInfoService
+from core.account.lock import AccountsLock
 
 
 class GCService:
   matcher: MatcherService = MatcherService()
+  player_info_service: PlayerInfoService = PlayerInfoService(AccountsLock())

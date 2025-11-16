@@ -24,7 +24,7 @@ class AccountsService:
       account.update_from_lock(self.lock)
 
   @staticmethod
-  def load(file: str = "accounts.json", lock_path: str = "data/accounts.lock"):
+  def load(file: str = "accounts.json"):
     accounts: Dict[str, Account] = {}
     try:
       with open(file, "r") as f:
@@ -51,7 +51,7 @@ class AccountsService:
     except json.JSONDecodeError:
       logger.error(f"Invalid accountsfile: {file}")
 
-    return AccountsService(accounts, AccountsLock(lock_path))
+    return AccountsService(accounts, AccountsLock())
 
   def select(self, login: str):
     if login in self.accounts:

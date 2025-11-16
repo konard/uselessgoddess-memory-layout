@@ -1,5 +1,6 @@
 {
   "shuffle_lobbies": true,
   "collect_drop": false,
-  "farm_on_launch": true
+  "farm_on_launch": true,
+  "farm_mode": "2x2"
 }

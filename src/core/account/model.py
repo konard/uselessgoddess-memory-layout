@@ -2,12 +2,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Dict
+from enum import Enum
 from .lock import AccountsLock
+
+
+class FarmStatus(str, Enum):
+  NEED_TO_FARM = "need_to_farm"
+  CAN_BE_LOOTED = "can_be_looted"
+  FARMED = "farmed"
+
+
+class Metadata(Dict[str, Any]):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.lvl = 0
+    self.xp = 0
+    self.invite = ""
+    self.status = FarmStatus.NEED_TO_FARM
 
 
 @dataclass(slots=True)
 class AccountMetadata:
-  _data: Dict[str, Any] = field(default_factory=dict, init=False)
+  _data: Dict[str, Any] = field(default_factory=Metadata, init=False)
   _lock: AccountsLock | None = field(init=False, default=None)
   _login: str = field(init=False, default="")
 
@@ -51,6 +67,16 @@ class AccountMetadata:
     self._data["invite"] = value
     if self._lock:
       self._lock.set_field(self._login, "invite", value)
+
+  @property
+  def status(self) -> FarmStatus | None:
+    return self._data.get("status")
+
+  @status.setter
+  def status(self, value: FarmStatus) -> None:
+    self._data["status"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "status", value)
 
   def get(self, field_name: str, default: Any = None) -> Any:
     return self._data.get(field_name, default)
