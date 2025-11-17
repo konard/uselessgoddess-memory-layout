@@ -47,19 +47,20 @@ async def receive_steam_message(
     "%Y-%m-%d %H:%M:%S"
   )
 
-  binary_data = None
+  binary_data = base64.b64decode(message.data)
 
-  print("=" * 80)
-  print(f"Timestamp: {timestamp_str} ({message.timestamp})")
-  print(f"Direction: {message.direction.upper()}")
-  print(f"Message ID: {message.msgId}")
-  print(f"Message Name: {message.msgName}")
-  print(f"Size: {message.size} bytes")
-  print(f"Client Name: {message.Name}")
-  print(f"File Name: {message.fileName}")
-  print("=" * 80)
+  # print("=" * 80)
+  # print(f"Timestamp: {timestamp_str} ({message.timestamp})")
+  # print(f"Direction: {message.direction.upper()}")
+  # print(f"Message ID: {message.msgId}")
+  # print(f"Message Name: {message.msgName}")
+  # print(f"Size: {message.size} bytes")
+  # print(f"Client Name: {message.Name}")
+  # print(f"File Name: {message.fileName}")
+  # print("=" * 80)
 
   if message.msgId == 5453:
+    print(f"Processing message for {message.msgId}")
     gc_service.player_info_service.process_message(binary_data, message.Name)
 
   # # Сохраняем бинарные данные с оригинальным именем файла

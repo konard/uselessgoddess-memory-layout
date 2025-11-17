@@ -12,6 +12,9 @@ from PyQt6.QtGui import QColor, QMouseEvent
 from src.ui.theme import CURRENT_THEME
 from .switch import Switch
 from .tooltip import Tooltip
+from core.logging import get_logger
+
+logger = get_logger("ui.widgets.accounts_table")
 
 
 class AccountsTable(QTableWidget):
@@ -58,13 +61,6 @@ class AccountsTable(QTableWidget):
     self.setRowCount(0)
     self.setRowCount(len(accounts))
 
-    mock_statuses = [
-      "Farming (2v2)",
-      "Idle",
-      "Searching game...",
-      "Connecting...",
-    ]
-
     for row, acc in enumerate(accounts):
       switch = Switch()
       switch.toggled.connect(
@@ -78,17 +74,23 @@ class AccountsTable(QTableWidget):
       layout.addStretch()
       self.setCellWidget(row, 0, cell_widget)
 
-      xp_item = QTableWidgetItem(f"{row * 1250} XP")
+      xp = acc.lock.xp if acc.lock.xp is not None else 0
+      xp_item = QTableWidgetItem(f"{xp} XP")
       xp_item.setForeground(QColor(CURRENT_THEME.SECONDARY_TEXT))
       self.setItem(row, 1, xp_item)
 
-      status_text = mock_statuses[row % len(mock_statuses)]
+      status_text = (
+        acc.lock.status
+        if acc.lock.status is not None
+        else "Wasn't launched yet"
+      )
+
       status_item = QTableWidgetItem(status_text)
       detailed_tooltip = (
         f"Account: {acc.login}\n"
         f"Status: {status_text}\n"
-        f"Session Time: 00:45:12\n"
-        f"Last Drop: 2 days ago"
+        f"Experience: {xp} XP\n"
+        f"Level: {acc.lock.lvl if acc.lock.lvl is not None else 'N/A'}"
       )
 
       status_item.setData(Qt.ItemDataRole.UserRole, detailed_tooltip)
