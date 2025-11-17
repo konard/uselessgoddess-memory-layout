@@ -11,12 +11,13 @@ from PyQt6.QtWidgets import (
   QTextEdit,
 )
 from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QFont, QTextOption
+from PyQt6.QtGui import QFont, QTextOption, QCloseEvent
 
 from core.services.gc import start_gc_server
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
 from core.context import Context
+from core.process_config import ConfigService
 
 from src.ui import CURRENT_THEME, ButtonType, Align
 from src.ui.widgets import Button, TitledPanel, AccountsTable, Switch, VStack
@@ -339,3 +340,16 @@ class MainWindow(QMainWindow):
 
   def dispatch_message(self, message: Message):
     asyncio.create_task(self.manager.dispatch(message))
+
+  def closeEvent(self, event: QCloseEvent) -> None:
+    """Обработчик закрытия окна - удаляет блокировку Steam Store."""
+    try:
+      config_service = ConfigService(self.ctx)
+      config_service.unblock_steam_store()
+      logger.debug("Блокировка Steam Store удалена при закрытии приложения")
+    except Exception:
+      logger.exception(
+        "Ошибка при удалении блокировки Steam Store при закрытии"
+      )
+    finally:
+      event.accept()

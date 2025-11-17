@@ -6,6 +6,7 @@ from core.panel.state import State
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
+from core.process_config import ConfigService
 from core.services.launch_service import LaunchService
 from core.services.settings import FarmMode
 
@@ -48,8 +49,12 @@ class LaunchAccounts(State):
       logger.debug(f"remove backgrounds from {maps_path}")
       remove_bg(maps_path)
 
+    config_service = ConfigService(ctx)
+    config_service.ensure_cs_cfgs()
+    config_service.block_steam_store()
     for account in self.accounts_to_launch:
       logger.info(f"launching account +{account.login}")
+      config_service.apply_video_config(account.steam_id)
       await self.block(LaunchService.launch_account_with_steam)(
         account, ctx.settings.user, ctx.accounts()
       )
