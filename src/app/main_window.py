@@ -87,7 +87,28 @@ class MainWindow(QMainWindow):
 
     asyncio.create_task(self._init_srt())
 
+    self._apply_dark_title_bar()
+
     logger.debug("main window initialized.")
+
+  def _apply_dark_title_bar(self):
+    try:
+      DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+
+      hwnd = int(self.winId())
+
+      from ctypes import c_int, byref, windll
+
+      windll.dwmapi.DwmSetWindowAttribute(
+        hwnd,
+        DWMWA_USE_IMMERSIVE_DARK_MODE,
+        byref(c_int(1)),  # True
+        4,  # sizeof(int)
+      )
+    except Exception as e:
+      logger.warning(
+        f"Failed to set dark title bar (very old or brand new windows version): {e}"
+      )
 
   def setup_ui(self):
     self.setStyleSheet(STYLESHEET)
