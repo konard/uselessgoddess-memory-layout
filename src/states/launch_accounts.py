@@ -8,6 +8,7 @@ from core.account import Account
 from core.logging import get_logger
 from core.services.launch_service import LaunchService
 from core.services.settings import FarmMode
+from core import utils
 
 logger = get_logger("state.launch_accounts")
 
@@ -50,7 +51,7 @@ class LaunchAccounts(State):
 
     for account in self.accounts_to_launch:
       logger.info(f"launching account +{account.login}")
-      await self.block(LaunchService.launch_account_with_steam)(
+      await utils.block_on(LaunchService.launch_account_with_steam)(
         account, ctx.settings.user, ctx.accounts()
       )
       logger.info(f"{account.login} launched")

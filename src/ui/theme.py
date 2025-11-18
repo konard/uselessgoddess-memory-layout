@@ -11,6 +11,7 @@ class Theme:
 
   ACCENT_GREEN: str = "#98971a"
   ACCENT_YELLOW: str = "#cc241d"
+  ACCENT_ORANGE: str = "#fe8019"
   ACCENT_RED: str = "#cc241d"
   ACCENT_BLUE: str = "#458588"
   ACCENT_PURPLE: str = "#b16286"

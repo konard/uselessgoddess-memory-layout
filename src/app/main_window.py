@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
   QLabel,
   QGridLayout,
   QTextEdit,
+  QTabWidget,
 )
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QFont, QTextOption
@@ -17,14 +18,40 @@ from core.services.gc import start_gc_server
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
 from core.context import Context
+from core import utils
 
 from src.ui import CURRENT_THEME, ButtonType, Align
 from src.ui.widgets import Button, TitledPanel, AccountsTable, Switch, VStack
 
 from .log_view import LogHandler
 from .settings import SettingsDialog
+from .srt_table import SRTTable
 
 logger = get_logger("ui.main")
+
+STYLESHEET = f"""
+  QWidget {{ 
+      background-color: {CURRENT_THEME.BACKGROUND}; 
+      color: {CURRENT_THEME.PRIMARY_TEXT}; 
+  }}
+  QTabWidget::pane {{ 
+      border: none; 
+      /* Если нужна тонкая линия сверху, раскомментируйте: */
+      /* border-top: 1px solid {CURRENT_THEME.BORDER}; */
+  }}
+  QTabBar::tab {{ 
+      background: {CURRENT_THEME.PANEL_BACKGROUND}; 
+      color: {CURRENT_THEME.SECONDARY_TEXT}; 
+      padding: 8px 20px; 
+      margin-right: 2px; 
+  }}
+  QTabBar::tab:selected {{ 
+      background: {CURRENT_THEME.INPUT_BACKGROUND}; 
+      color: {CURRENT_THEME.PRIMARY_TEXT}; 
+      border-bottom: 2px solid {CURRENT_THEME.ACCENT_BLUE}; 
+  }}
+
+"""
 
 
 class QtLogHandler(logging.Handler):
@@ -40,7 +67,7 @@ class MainWindow(QMainWindow):
   def __init__(self, parent=None):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
-    self.resize(1000, 800)
+    self.resize(1100, 800)
     self.setFont(
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
@@ -56,16 +83,27 @@ class MainWindow(QMainWindow):
 
     self.manager = StateManager(self.ctx, callback=self.reload_layout)
     self.accounts_table.populate(self.ctx.accounts())
+
+    asyncio.create_task(self._init_srt())
+
     logger.debug("main window initialized.")
 
   def setup_ui(self):
-    self.setStyleSheet(
-      f"background-color: {CURRENT_THEME.BACKGROUND}; color: {CURRENT_THEME.PRIMARY_TEXT};"
-    )
-    central_widget = QWidget()
-    self.setCentralWidget(central_widget)
+    self.setStyleSheet(STYLESHEET)
 
-    main_hbox_layout = QHBoxLayout(central_widget)
+    self.tabs = QTabWidget()
+    self.setCentralWidget(self.tabs)
+
+    self.dashboard_tab = QWidget()
+    self._setup_dashboard_tab(self.dashboard_tab)
+    self.tabs.addTab(self.dashboard_tab, "Dashboard")
+
+    self.utils_tab = QWidget()
+    self._setup_utils_tab(self.utils_tab)
+    self.tabs.addTab(self.utils_tab, "SRT")
+
+  def _setup_dashboard_tab(self, parent_widget: QWidget):
+    main_hbox_layout = QHBoxLayout(parent_widget)
     main_hbox_layout.setSpacing(5)
     main_hbox_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -93,6 +131,16 @@ class MainWindow(QMainWindow):
     main_hbox_layout.addWidget(main_content_container)
     main_hbox_layout.setStretch(0, 2)
     main_hbox_layout.setStretch(1, 3)
+
+  def _setup_utils_tab(self, parent_widget: QWidget):
+    layout = QHBoxLayout(parent_widget)
+    layout.setContentsMargins(5, 5, 5, 5)
+    layout.setSpacing(5)
+
+    srt_panel = self._create_srt_panel()
+    layout.addWidget(srt_panel)
+
+    layout.addStretch()
 
   def _create_status_panel(self) -> QWidget:
     panel = TitledPanel("YACS Panel")
@@ -339,3 +387,49 @@ class MainWindow(QMainWindow):
 
   def dispatch_message(self, message: Message):
     asyncio.create_task(self.manager.dispatch(message))
+
+  def _create_srt_panel(self) -> QWidget:
+    self.srt_panel = TitledPanel("")
+
+    self.srt_table = SRTTable(on_toggle_block=self._on_srt_block_toggle)
+
+    layout = QVBoxLayout(self.srt_panel.container)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addWidget(self.srt_table)
+
+    btn_layout = QHBoxLayout()
+    btn_layout.addWidget(
+      Button(
+        "Ping",
+        on_click=lambda _: asyncio.create_task(self._refresh_srt_ping()),
+        button_type=ButtonType.PRIMARY,
+      )
+    )
+    btn_layout.addWidget(
+      Button(
+        "Clear Rules",
+        on_click=self._clear_srt_rules,
+        button_type=ButtonType.DANGER,
+      )
+    )
+    layout.addLayout(btn_layout)
+
+    return self.srt_panel
+
+  async def _init_srt(self):
+    logger.debug("loading SRT config...")
+    self.srt_table.populate(
+      await utils.run_blocking(self.ctx.srt.load_routes),
+    )
+    await self._refresh_srt_ping()
+
+  async def _refresh_srt_ping(self, _=None):
+    await self.ctx.srt.ping_all()
+    self.srt_table.populate(self.ctx.srt.routes)
+
+  def _on_srt_block_toggle(self, route_name: str, checked: bool):
+    self.ctx.srt.toggle_route(route_name, checked)
+
+  def _clear_srt_rules(self, _=None):
+    self.ctx.srt.clear_all_rules()
+    self.srt_table.populate(self.ctx.srt.routes)
