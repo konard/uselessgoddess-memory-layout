@@ -1,0 +1,33 @@
+import asyncio
+from typing import List
+
+from core.panel import State
+from core.context import Context
+from core.account import Account
+from core.logging import get_logger
+from ui.widgets import Progress
+
+logger = get_logger("state.farm")
+
+
+class MakeLobbies(State):
+  def __init__(self, accounts: List[Account]):
+    pass
+
+  def layout(self, ctx: Context, dispatch):
+    self.progress = Progress()
+
+    return [self.progress]
+
+  async def execute(self, ctx: Context):
+    launched = 0
+
+    for account in self.accounts:
+      logger.info(f"launching account +{account.login}")
+      await asyncio.sleep(1)
+      logger.info(f"{account.login} launched")
+
+      launched += 1
+      self.progress.setValue(int(launched / len(self.accounts) * 100))
+
+    logger.info("all accounts launched")

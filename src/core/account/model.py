@@ -10,6 +10,7 @@ class FarmStatus(str, Enum):
   NEED_TO_FARM = "need_to_farm"
   CAN_BE_LOOTED = "can_be_looted"
   FARMED = "farmed"
+  TRADED = "traded"
 
 
 class Metadata(Dict[str, Any]):
@@ -19,6 +20,8 @@ class Metadata(Dict[str, Any]):
     self.xp = 0
     self.invite = ""
     self.status = FarmStatus.NEED_TO_FARM
+    self.vac_banned = False
+    self.refresh_token = ""
 
 
 @dataclass(slots=True)
@@ -51,6 +54,26 @@ class AccountMetadata:
   @property
   def xp(self) -> int | None:
     return self._data.get("xp")
+
+  @property
+  def vac_banned(self) -> bool | None:
+    return self._data.get("vac_banned")
+
+  @vac_banned.setter
+  def vac_banned(self, value: bool) -> None:
+    self._data["vac_banned"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "vac_banned", value)
+
+  @property
+  def refresh_token(self) -> str | None:
+    return self._data.get("refresh_token")
+
+  @refresh_token.setter
+  def refresh_token(self, value: str) -> None:
+    self._data["refresh_token"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "refresh_token", value)
 
   @xp.setter
   def xp(self, value: int) -> None:

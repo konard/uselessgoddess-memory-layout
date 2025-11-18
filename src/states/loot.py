@@ -1,7 +1,10 @@
 import asyncio
 import json
+from os import name
 from typing import List, Any
 
+from core.account.lock import AccountsLock
+from core.account.model import FarmStatus
 from core.panel import State
 from core.context import Context
 from core.account import Account
@@ -18,9 +21,24 @@ assembler = SkinAssembler(prices)
 
 
 class ClaimDrop(csgo.Client):
-  def __init__(self):
+  def __init__(self, account_lock: AccountsLock):
     super().__init__()
     self.completion = asyncio.Future()
+    self.loot_report = None
+    self.account_lock = account_lock
+
+  async def on_gc_ready(self) -> None:
+    profile = await self.user.csgo_profile()
+    self.account_lock.set_field(self.username, "lvl", profile.level)
+    self.account_lock.set_field(
+      self.username, "xp", profile.current_xp - 327680000
+    )
+    self.account_lock.set_field(
+      self.username, "vac_banned", bool(profile.vac_banned)
+    )
+    self.account_lock.set_field(
+      self.username, "refresh_token", self.refresh_token
+    )
 
   async def on_weekly_reward(self, items: list[csgo.BaseItem]):
     results: list[dict[str, Any]] = []
@@ -32,8 +50,14 @@ class ClaimDrop(csgo.Client):
       logger.debug("looting")
       return
 
+    if self.loot_report is not None:
+      self.completion.set_result(self.loot_report)
+      self.account_lock.set_field(self.username, "status", FarmStatus.FARMED)
+      return
+
     if rtime32_cur == -1:
       self.completion.set_result("No weekly reward available")
+      self.account_lock.set_field(self.username, "status", FarmStatus.FARMED)
       return
 
     if global_stats:
@@ -50,15 +74,14 @@ class ClaimDrop(csgo.Client):
         filtered, key=lambda x: x.get("price", -1), reverse=True
       )
       top_results = sorted_results[:2]
-      print(f"sorted_results: {sorted_results}")
-      await self.redeem_weekly_reward(
-        [int(item["id"]) for item in top_results], time=rtime32_cur
-      )
+
       report_results = [
         f"{report['item_name']} {report['price']}$" for report in top_results
       ]
-      print(f"report_results: {report_results}")
-      self.completion.set_result(report_results)
+      self.loot_report = report_results
+      await self.redeem_weekly_reward(
+        [int(item["id"]) for item in top_results], time=rtime32_cur
+      )
 
 
 class LootAccounts(State):
@@ -72,14 +95,25 @@ class LootAccounts(State):
 
   async def execute(self, ctx: Context):
     for account in self.accounts:
-      loot_client = ClaimDrop()
+      loot_client = ClaimDrop(ctx.account.lock)
+
+      login_data = None
+      if account.lock.refresh_token:
+        login_data = {
+          "username": account.login,
+          "refresh_token": account.lock.refresh_token,
+        }
+      else:
+        login_data = {
+          "username": account.login,
+          "password": account.password,
+          "shared_secret": account.shared_secret,
+        }
 
       try:
         login_task = asyncio.create_task(
           loot_client.login(
-            username=account.login,
-            password=account.password,
-            shared_secret=account.shared_secret,
+            **login_data,
             identity_secret=account.identity_secret,
           )
         )

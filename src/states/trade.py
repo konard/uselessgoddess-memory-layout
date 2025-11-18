@@ -6,6 +6,8 @@ import steam
 from steam.ext import csgo
 from steam import TradeOffer
 
+from core.account.lock import AccountsLock
+from core.account.model import FarmStatus
 from core.panel.state import State
 from core.context import Context
 from core.account import Account
@@ -18,8 +20,9 @@ logger = get_logger("state.trade")
 class ScanInventory(steam.Client):
   trade_url: steam.utils.TradeURLInfo
 
-  def __init__(self, trade_url: Optional[str]):
+  def __init__(self, trade_url: Optional[str], account_lock: AccountsLock):
     super().__init__()
+    self.account_lock = account_lock
     if trade_url:
       self.trade_url = steam.utils.parse_trade_url(trade_url)
     self.complete = asyncio.Future[tuple[str, list]]()
@@ -28,19 +31,16 @@ class ScanInventory(steam.Client):
     logger.debug(f"logged in as {self.user.name}")
 
     target = None
-    if self.trade_url:
+    if self.trade_url is not None:
       id64 = self.trade_url.id.id64
-      target = await self.fetch_user(id64)
-      if not target:
-        logger.error(f"User with ID {id64} not found.")
-        return
 
     logger.info("fetching inventory...")
     try:
       inventory = await self.user.inventory(steam.CSGO)
       logger.info(f"inventory with {len(inventory)} items.")
     except Exception as e:
-      self.complete.set_result((f"Failed to fetch inventory: {e}", []))
+      if not self.complete.done():
+        self.complete.set_result((f"Failed to fetch inventory: {e}", []))
       return
 
     items_to_send: list[csgo.Item[csgo.ClientUser]] = []
@@ -62,24 +62,31 @@ class ScanInventory(steam.Client):
           logger.warning(f"Could not fetch price for {item.name}: {e}")
 
     if not items_to_send:
-      self.complete.set_result(("No tradable item in inventory", []))
+      if not self.complete.done():
+        self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
+        self.complete.set_result(("No tradable item in inventory", []))
+
       return
 
-    trade_offer = TradeOffer(
-      sending=items_to_send,
-      receiving=[],
-      message="сосал ? Только честно",  # TODO random mesages?
-      token=self.trade_url.token,
-    )
-
     try:
-      if self.identity_secret is not None and target:
+      if self.identity_secret is not None:
+        target = await self.fetch_user(id64)
+
+        trade_offer = TradeOffer(
+          sending=items_to_send,
+          receiving=[],
+          message="random message",
+          token=self.trade_url.token,
+        )
+
         await target.send(trade=trade_offer)
-        self.complete.set_result(("Trade sent", items_to_report))
+        self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
+        if not self.complete.done():
+          self.complete.set_result(("Trade sent", items_to_report))
     except Exception as e:
       logger.error(f"Failed to send trade offer: {e}")
-    finally:
-      self.complete.set_result(("Drop reported", items_to_report))
+      if not self.complete.done():
+        self.complete.set_result(("Drop reported", items_to_report))
 
 
 class ScanAccounts(State):
@@ -108,14 +115,27 @@ class ScanAccounts(State):
     for account in self.accounts:
       await asyncio.sleep(5)
       send_trade_client = ScanInventory(
-        settings.trade_url if self.trade else None
+        settings.trade_url if self.trade else None,
+        ctx.account.lock,
       )
+
+      login_data = None
+      if account.lock.refresh_token:
+        login_data = {
+          "username": account.login,
+          "refresh_token": account.lock.refresh_token,
+        }
+      else:
+        login_data = {
+          "username": account.login,
+          "password": account.password,
+          "shared_secret": account.shared_secret,
+        }
+
       try:
         login_task = asyncio.create_task(
           send_trade_client.login(
-            username=account.login,
-            password=account.password,
-            shared_secret=account.shared_secret,
+            **login_data,
             identity_secret=account.identity_secret,
           )
         )
@@ -123,7 +143,6 @@ class ScanAccounts(State):
         done, pending = await asyncio.wait(
           [login_task, send_trade_client.complete],
           return_when=asyncio.FIRST_COMPLETED,
-          timeout=60.0,
         )
 
         for task in pending:
