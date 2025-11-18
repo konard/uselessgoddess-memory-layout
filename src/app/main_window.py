@@ -12,8 +12,9 @@ from PyQt6.QtWidgets import (
   QTabWidget,
 )
 from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QFont, QTextOption
+from PyQt6.QtGui import QFont, QTextOption, QCloseEvent
 
+from core.process_config import ConfigService
 from core.services.gc import start_gc_server
 from src.core.panel import StateManager, Message
 from core.logging import get_logger, logging
@@ -433,3 +434,16 @@ class MainWindow(QMainWindow):
   def _clear_srt_rules(self, _=None):
     self.ctx.srt.clear_all_rules()
     self.srt_table.populate(self.ctx.srt.routes)
+
+  def closeEvent(self, event: QCloseEvent) -> None:
+    """Обработчик закрытия окна - удаляет блокировку Steam Store."""
+    try:
+      config_service = ConfigService(self.ctx)
+      config_service.unblock_steam_store()
+      logger.debug("Блокировка Steam Store удалена при закрытии приложения")
+    except Exception:
+      logger.exception(
+        "Ошибка при удалении блокировки Steam Store при закрытии"
+      )
+    finally:
+      event.accept()
