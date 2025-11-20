@@ -1,8 +1,8 @@
 import json
 import os
 from enum import Enum
-from typing import Callable
-from dataclasses import asdict, dataclass
+from typing import Callable, Optional, List
+from dataclasses import asdict, dataclass, field
 from core.logging import get_logger
 from core.utils import name_of
 
@@ -69,6 +69,9 @@ class UserSettings(Settings):
   cs_path: str = ""
   win_w: int = 360
   win_h: int = 270
+
+  telegram_token: Optional[str] = None
+  telegram_whitelist: List[str] = field(default_factory=list)
 
   def path_of(self, settings: "SettingsService"):
     return settings.user_file

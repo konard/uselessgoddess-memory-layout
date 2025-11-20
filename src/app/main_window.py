@@ -79,7 +79,9 @@ class MainWindow(QMainWindow):
     self.ctx = Context()
     self.manager = StateManager(self.ctx, callback=lambda: None)
 
+    # FIXME: avoid this pls!
     asyncio.create_task(start_gc_server(self.ctx.gc))
+    asyncio.create_task(self.ctx.bot.start())
 
     self.setup_ui()
     self._apply_dark_title_bar()
@@ -131,7 +133,9 @@ class MainWindow(QMainWindow):
       config_service = ConfigService(self.ctx)
       config_service.unblock_steam_store()
       logger.debug("steal lock removed")
+      asyncio.create_task(self.ctx.bot.stop())
+      logger.debug("telegram bot stopped")
     except Exception:
-      logger.exception("error while steam lock removing")
+      logger.exception("error during gracefully shutdown")
     finally:
       event.accept()

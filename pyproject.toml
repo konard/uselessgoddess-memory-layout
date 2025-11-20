@@ -38,6 +38,7 @@ dependencies = [
   # -- srt
   "icmplib>=3.0.4",
   "tzdata>=2025.2",
+  "python-telegram-bot>=22.5",
 ]
 
 [dependency-groups]

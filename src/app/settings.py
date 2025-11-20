@@ -22,9 +22,16 @@ class SettingsDialog(QDialog):
     self.steam_path_edit = QLineEdit()
     self.cs_path_edit = QLineEdit()
 
-    form_layout.addRow("Trade URL:", self.trade_url_edit)
+    self.tg_token_edit = QLineEdit()
+    self.tg_whitelist_edit = QLineEdit()
+    self.tg_whitelist_edit.setPlaceholderText("12345678, 87654321")
+
     form_layout.addRow("Steam Path:", self.steam_path_edit)
     form_layout.addRow("CS2 Path:", self.cs_path_edit)
+    form_layout.addRow("Trade URL:", self.trade_url_edit)
+    form_layout.addRow("Telegram Token:", self.tg_token_edit)
+    form_layout.addRow("TG Whitelist (comma sep):", self.tg_whitelist_edit)
+
     layout.addLayout(form_layout)
 
     button_box = QDialogButtonBox(
@@ -42,13 +49,19 @@ class SettingsDialog(QDialog):
     self.trade_url_edit.setText(settings.trade_url)
     self.steam_path_edit.setText(settings.steam_path)
     self.cs_path_edit.setText(settings.cs_path)
+    self.tg_token_edit.setText(settings.telegram_token)
+    self.tg_whitelist_edit.setText(", ".join(settings.telegram_whitelist))
 
   def accept(self):
     settings = self.settings.user
     settings.trade_url = self.trade_url_edit.text()
     settings.steam_path = self.steam_path_edit.text()
     settings.cs_path = self.cs_path_edit.text()
-
+    settings.telegram_token = self.tg_token_edit.text()
+    raw_whitelist = self.tg_whitelist_edit.text()
+    settings.telegram_whitelist = [
+      x.strip() for x in raw_whitelist.split(",") if x.strip()
+    ]
     self.settings.set_user(settings)
 
     super().accept()
