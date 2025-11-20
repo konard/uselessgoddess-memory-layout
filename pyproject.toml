@@ -37,6 +37,7 @@ dependencies = [
   "typing-extensions>=4.8",
   # -- srt
   "icmplib>=3.0.4",
+  "tzdata>=2025.2",
 ]
 
 [dependency-groups]
