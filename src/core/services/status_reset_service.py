@@ -9,14 +9,12 @@ from core.logging import get_logger
 
 logger = get_logger("sv.status_reset")
 
-# Московское время (UTC+3)
 MOSCOW_TZ = ZoneInfo("Europe/Moscow")
-# Время сброса: среда, 5:00 МСК
+
 RESET_DAY = 2  # 0 = понедельник, 2 = среда
 RESET_HOUR = 5
 RESET_MINUTE = 0
 
-# Ключ для хранения даты последнего сброса в базе данных
 LAST_RESET_KEY = "__last_status_reset_date__"
 
 
@@ -31,7 +29,6 @@ class StatusResetService:
   def _load_last_reset_date(self) -> Optional[date]:
     """Загрузить дату последнего сброса из базы данных."""
     try:
-      # Используем специальный "логин" для метаданных сервиса
       last_reset_str = self.account_lock.get_field(
         LAST_RESET_KEY, "last_reset_date"
       )
@@ -44,7 +41,6 @@ class StatusResetService:
   def _save_last_reset_date(self, reset_date: date):
     """Сохранить дату последнего сброса в базу данных."""
     try:
-      # Используем специальный "логин" для метаданных сервиса
       self.account_lock.set_field(
         LAST_RESET_KEY, "last_reset_date", reset_date.isoformat()
       )
@@ -55,22 +51,16 @@ class StatusResetService:
   def _get_last_wednesday_5am(self, now: datetime) -> datetime:
     """Получить дату и время последней среды в 5:00."""
     days_since_monday = now.weekday()
-    # Вычисляем, сколько дней назад была среда
     if days_since_monday < RESET_DAY:
-      # Если сегодня понедельник или вторник, берем среду прошлой недели
       days_back = days_since_monday + (7 - RESET_DAY)
     elif days_since_monday == RESET_DAY:
-      # Если сегодня среда
       if now.hour < RESET_HOUR or (
         now.hour == RESET_HOUR and now.minute < RESET_MINUTE
       ):
-        # Если еще не 5:00, берем среду прошлой недели
         days_back = 7
       else:
-        # Если уже прошло 5:00, берем сегодняшнюю среду
         days_back = 0
     else:
-      # Если сегодня четверг, пятница, суббота или воскресенье
       days_back = days_since_monday - RESET_DAY
 
     last_wednesday = now - timedelta(days=days_back)
@@ -87,7 +77,6 @@ class StatusResetService:
     self._running = True
     logger.info("StatusResetService started")
 
-    # Проверяем при старте, нужно ли выполнить сброс
     self._check_and_reset_on_startup()
 
     asyncio.create_task(self._check_loop())
@@ -98,7 +87,6 @@ class StatusResetService:
     last_wednesday_5am = self._get_last_wednesday_5am(now_moscow)
     last_wednesday_date = last_wednesday_5am.date()
 
-    # Если последний сброс был раньше, чем последняя среда в 5:00, выполняем сброс
     if (
       self._last_reset_date is None
       or self._last_reset_date < last_wednesday_date
@@ -118,7 +106,6 @@ class StatusResetService:
       except Exception as e:
         logger.error(f"Error in status reset check: {e}")
 
-      # Проверяем каждую минуту
       await asyncio.sleep(60)
 
   def _check_and_reset(self):
@@ -127,19 +114,16 @@ class StatusResetService:
     current_weekday = now_moscow.weekday()
     current_time = now_moscow.time()
 
-    # Проверяем, что это среда и время 5:00
     if current_weekday != RESET_DAY:
       return
 
     if current_time.hour != RESET_HOUR or current_time.minute != RESET_MINUTE:
       return
 
-    # Проверяем, что мы еще не сбрасывали сегодня
     reset_date = now_moscow.date()
     if self._last_reset_date == reset_date:
       return
 
-    # Выполняем сброс
     logger.info("Resetting all account statuses to NEED_TO_FARM")
     self._reset_all_statuses()
     self._save_last_reset_date(reset_date)
@@ -147,15 +131,12 @@ class StatusResetService:
   def _reset_all_statuses(self):
     """Сбросить статус всех аккаунтов до NEED_TO_FARM."""
     try:
-      # Получаем все аккаунты из базы данных
-      # AccountsLock использует TinyDB, нужно получить все записи
       table = self.account_lock._table
       all_accounts = table.all()
 
       reset_count = 0
       for account_data in all_accounts:
         login = account_data.get("login")
-        # Пропускаем метаданные сервиса
         if login and login != LAST_RESET_KEY:
           self.account_lock.set_field(login, "status", FarmStatus.NEED_TO_FARM)
           reset_count += 1

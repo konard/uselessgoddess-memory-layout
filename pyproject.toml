@@ -37,6 +37,8 @@ dependencies = [
   "typing-extensions>=4.8",
   # -- srt
   "icmplib>=3.0.4",
+  # -- timezone
+  "tzdata",
 ]
 
 [dependency-groups]
