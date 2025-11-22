@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import onnxruntime as ort
+
 import os
 import sys
 import asyncio

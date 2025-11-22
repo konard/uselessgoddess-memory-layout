@@ -28,7 +28,7 @@ dependencies = [
   "uvicorn",
   "fastapi",
   "steamio",
-  # --
+  # -- vision
   "opencv-python>=4.12.0.88",
   "pyscreeze==0.1.28",
   "pillow>=12.0.0",
@@ -39,6 +39,8 @@ dependencies = [
   "icmplib>=3.0.4",
   "tzdata>=2025.2",
   "python-telegram-bot>=22.5",
+  # -- nn
+  "onnxruntime-directml>=1.23",
 ]
 
 [dependency-groups]
@@ -46,6 +48,7 @@ dev = [
   "ruff>=0.14",
   "ty>=0.0.1a23",
   "pre-commit",
+  "pytest>=9.0.1",
 ]
 
 [tool.ruff]
@@ -69,3 +72,11 @@ line-ending = "auto"
 
 [tool.uv.sources]
 steamio = { git = "https://github.com/PONYAWKA/gc-handler" }
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::RuntimeWarning"
+]

@@ -3,6 +3,7 @@ from typing import List, TYPE_CHECKING
 from core.logging import get_logger
 from core.services import GCService
 from core.services import SRTService
+from core.services import ai
 
 from .account import Account
 from .services import AccountsService, SettingsService
@@ -20,6 +21,8 @@ class Context:
   srt: SRTService
   bot: TelegramBotService
 
+  ai: ai.InferenceService
+
   def __init__(self):
     from core.services.bot import TelegramBotService
 
@@ -28,6 +31,10 @@ class Context:
     self.gc = GCService()
     self.srt = SRTService()
     self.bot = TelegramBotService(self)
+    self.ai = ai.InferenceService(
+      "resources/model.onnx",
+      ["ct", "t"],  # TODO: STRICT CONSTANT
+    )  # TODO: make prebuilt configurable
 
   def accounts(self) -> List[Account]:
     return list(self.account.accounts.values())
