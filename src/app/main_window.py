@@ -22,8 +22,8 @@ from core.logging import get_logger, logging
 from core.context import Context
 from core import utils
 
-from src.ui import CURRENT_THEME, ButtonType, Align
-from src.ui.widgets import Button, TitledPanel, AccountsTable, Switch, VStack
+from ui.theme import CURRENT_THEME, ButtonType
+from ui.widgets import Button, TitledPanel, Switch, VStack
 
 from .log_view import LogHandler
 from .settings import SettingsDialog

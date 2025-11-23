@@ -3,12 +3,14 @@ from dataclasses import dataclass, field
 
 from states.launch_accounts import LaunchAccounts
 from ui.widgets import Button, HStack
+from ui import ButtonType
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.panel import Message, State, StateManager, handles
 from states.wait_for_game import WaitForGame
 
+from states import debug
 import states
 
 logger = get_logger("state.idle")
@@ -38,7 +40,12 @@ class Idle(State):
   def layout(self, ctx: Context, dispatch):
     def acquire_accounts(mtype):
       def inner():
-        accounts = ctx.account.capture_selected()
+        logins = ctx.ui.capture_selected()
+        accounts = [
+          ctx.account.accounts[login]
+          for login in logins
+          if login in ctx.account.accounts
+        ]
         # TODO!: maybe rethink dispatch propogation
         if not accounts:
           logger.info("Please select at least one account")
@@ -79,6 +86,12 @@ class Idle(State):
         "Launch Accounts",
         on_click=acquire_accounts(LaunchAccounts),
         tooltip="Launch accounts.",
+      ),
+      Button(
+        "Debug AI (Camera)",
+        on_click=lambda: dispatch(debug.AIState()),
+        button_type=ButtonType.SPECIAL,
+        tooltip="Open OpenCV window to see what bot sees",
       ),
     ]
 
@@ -131,3 +144,7 @@ class Idle(State):
     await manager.into_state(
       states.LaunchAccounts(message.accounts_to_launch).then(self),
     )
+
+  @handles(debug.AIState)
+  async def _on_debug_ai(self, state, manager: StateManager):
+    await manager.into_state(state.then(self))

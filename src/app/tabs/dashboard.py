@@ -12,11 +12,11 @@ from PyQt6.QtGui import QTextOption
 
 from core.context import Context
 from core.logging import get_logger, logging
-from src.core.panel import StateManager, Message
-from src.ui import ButtonType, Align
-from src.ui.widgets import Button, TitledPanel, AccountsTable, Switch, VStack
-from src.app.log_view import LogHandler
-from src.app.settings import SettingsDialog
+from core.panel import StateManager, Message
+from ui import Align
+from ui.theme import ButtonType
+from ui.widgets import Button, TitledPanel, Switch, VStack
+from app import AccountsPanel, SettingsDialog, LogHandler
 
 logger = get_logger("ui.dashboard")
 
@@ -31,8 +31,6 @@ class DashboardTab(QWidget):
 
     # TODO: wrap with method
     self.manager._update_ui = self.reload_layout
-
-    self.accounts_table.populate(self.ctx.accounts())
 
   def _setup_ui(self):
     main_hbox = QHBoxLayout(self)
@@ -100,14 +98,19 @@ class DashboardTab(QWidget):
     return panel
 
   def _create_accounts_panel(self) -> QWidget:
-    self.accounts_panel = TitledPanel("Accounts | Selected: 0")
-    self.accounts_table = AccountsTable()
-    self.accounts_table.selected.connect(self._on_selection)
+    self.accounts_container = TitledPanel("Accounts")
+    self.accounts_widget = AccountsPanel(self.ctx)
 
-    layout = QVBoxLayout(self.accounts_panel.container)
+    layout = QVBoxLayout(self.accounts_container.container)
     layout.setContentsMargins(0, 0, 0, 0)
-    layout.addWidget(self.accounts_table)
-    return self.accounts_panel
+    layout.addWidget(self.accounts_widget)
+
+    self.ctx.ui.selection_changed.connect(self._update_header)
+    return self.accounts_container
+
+  def _update_header(self):
+    count = len(self.ctx.ui.selected_logins)
+    self.accounts_container.title_label.setText(f"Accounts | Selected: {count}")
 
   def _create_logs_panel(self) -> QWidget:
     panel = TitledPanel("")
@@ -130,15 +133,6 @@ class DashboardTab(QWidget):
     main_layout.addWidget(self.log_text_edit)
     return panel
 
-  def _on_selection(self, is_checked: bool, login: str):
-    if is_checked:
-      self.ctx.account.select(login)
-    else:
-      self.ctx.account.deselect(login)
-
-    count = len(self.ctx.account.selected())
-    self.accounts_panel.title_label.setText(f"Accounts | Selected: {count}")
-
   def open_settings(self):
     dialog = SettingsDialog(self.ctx.settings, self)
     dialog.exec()
@@ -146,21 +140,7 @@ class DashboardTab(QWidget):
   def dispatch_message(self, message: Message):
     asyncio.create_task(self.manager.dispatch(message))
 
-  def clear_selection(self):
-    _ = self.ctx.account.capture_selected()
-    # Сброс свичей в таблице (упрощенно)
-    for row in range(self.accounts_table.rowCount()):
-      cell_widget = self.accounts_table.cellWidget(row, 0)
-      if cell_widget:
-        switch = cell_widget.findChild(Switch)
-        if switch and switch.isChecked():
-          switch.blockSignals(True)
-          switch.setChecked(False)
-          switch.blockSignals(False)
-
   def reload_layout(self):
-    self.clear_selection()
-
     current_state = self.manager.acquire_state()
     if not current_state:
       return

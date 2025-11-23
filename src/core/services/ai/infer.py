@@ -76,6 +76,8 @@ class InferenceService:
 
     target_providers = []
 
+    target_providers.append("CPUExecutionProvider")
+
     # DirectML -> CUDA -> CPU
     if "DmlExecutionProvider" in providers:
       target_providers.append("DmlExecutionProvider")
@@ -83,8 +85,6 @@ class InferenceService:
     elif "CUDAExecutionProvider" in providers:
       target_providers.append("CUDAExecutionProvider")
       logger.debug("CUDA detected (NVIDIA GPU acceleration enabled)")
-
-    target_providers.append("CPUExecutionProvider")
 
     try:
       session = ort.InferenceSession(model_path, providers=target_providers)

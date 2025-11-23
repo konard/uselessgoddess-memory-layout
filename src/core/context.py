@@ -1,9 +1,13 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 from core.logging import get_logger
-from core.services import GCService
-from core.services import SRTService
-from core.services import ai
+from core.services import (
+  GCService,
+  SRTService,
+  ScreenCaptureService,
+  ai,
+  UIService,
+)
 
 from .account import Account
 from .services import AccountsService, SettingsService
@@ -21,7 +25,9 @@ class Context:
   srt: SRTService
   bot: TelegramBotService
 
+  ui: UIService
   ai: ai.InferenceService
+  screen: ScreenCaptureService
 
   def __init__(self):
     from core.services.bot import TelegramBotService
@@ -31,10 +37,12 @@ class Context:
     self.gc = GCService()
     self.srt = SRTService()
     self.bot = TelegramBotService(self)
+    self.ui = UIService()
     self.ai = ai.InferenceService(
       "resources/model.onnx",
       ["ct", "t"],  # TODO: STRICT CONSTANT
     )  # TODO: make prebuilt configurable
+    self.screen = ScreenCaptureService()
 
   def accounts(self) -> List[Account]:
     return list(self.account.accounts.values())

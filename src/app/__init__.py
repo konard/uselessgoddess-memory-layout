@@ -1,1 +1,3 @@
-"""Application layer: PyQt6 windows and GUI logic."""
+from .accounts_panel import AccountsPanel
+from .log_view import LogHandler
+from .settings import SettingsDialog
