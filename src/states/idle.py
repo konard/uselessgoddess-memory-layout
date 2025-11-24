@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 
 from states.launch_accounts import LaunchAccounts
+from states.make_lobbies import MakeLobbies
 from ui.widgets import Button, HStack
 from core.context import Context
 from core.account import Account
@@ -47,6 +48,12 @@ class Idle(State):
 
       return inner
 
+    def launch(mtype):
+      def inner():
+        dispatch(mtype())
+
+      return inner
+
     return [
       Button(
         "Start Farming",
@@ -79,6 +86,11 @@ class Idle(State):
         "Launch Accounts",
         on_click=acquire_accounts(LaunchAccounts),
         tooltip="Launch accounts.",
+      ),
+      Button(
+        "Make Lobbies",
+        on_click=launch(MakeLobbies),
+        tooltip="Make lobbies.",
       ),
     ]
 
@@ -130,4 +142,11 @@ class Idle(State):
     logger.debug(f"launch accounts {message.accounts_to_launch}")
     await manager.into_state(
       states.LaunchAccounts(message.accounts_to_launch).then(self),
+    )
+
+  @handles(MakeLobbies)
+  async def _on_make_lobbies(self, message: MakeLobbies, manager: StateManager):
+    logger.debug("make lobbies")
+    await manager.into_state(
+      message.then(self),
     )

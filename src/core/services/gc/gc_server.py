@@ -4,6 +4,7 @@
 """
 
 from dataclasses import dataclass
+import os
 import uvicorn
 from fastapi import FastAPI, Depends
 
@@ -43,10 +44,7 @@ async def receive_steam_message(
   from datetime import datetime
   import base64
 
-  timestamp_str = datetime.fromtimestamp(message.timestamp).strftime(
-    "%Y-%m-%d %H:%M:%S"
-  )
-
+  print(f"Processing message for {message.msgId} {message.msgName}")
   binary_data = base64.b64decode(message.data)
 
   # print("=" * 80)
@@ -63,16 +61,16 @@ async def receive_steam_message(
     print(f"Processing message for {message.msgId}")
     gc_service.player_info_service.process_message(binary_data, message.Name)
 
-  # # Сохраняем бинарные данные с оригинальным именем файла
-  # if binary_data and len(binary_data) > 0:
-  #   filename = f"{message.fileName}.bin"
-  #   with open(filename, "wb") as f:
-  #     f.write(binary_data)
-  #   print(f"💾 Saved binary data to: {filename}")
-  #   print()
+  if message.msgId == 800:
+    print(f"Processing message for {message.msgId}")
+    gc_service.lobby_service.process_message(binary_data)
 
-  # gc_service.matcher.set_match_id(message.Name, 1123)
-
+  if binary_data and len(binary_data) > 0:
+    os.makedirs(f"proto/{message.Name.lower()}", exist_ok=True)
+    filename = f"proto/{message.Name.lower()}/{message.fileName}.bin"
+    with open(filename, "wb") as f:
+      f.write(binary_data)
+    print()
   return {
     "status": "ok",
     "received_bytes": len(binary_data) if binary_data else 0,

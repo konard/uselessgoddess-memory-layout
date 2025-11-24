@@ -140,13 +140,14 @@ class WindowService:
     window_width, window_height = win_w, win_h
     screen_width = pyautogui.size()[0]
 
-    accounts_dict = {acc.login: acc for acc in accounts}
-    running_accounts = WindowService.scan_cs2_windows(accounts_dict)
+    running_accounts: List[RunningAccount] = WindowService.scan_cs2_windows(
+      accounts
+    )
 
     max_cols = max(1, screen_width // window_width)
     occupied = set()
-    logger.debug(f"Running accounts: {running_accounts.values()}")
-    for account in running_accounts.values():
+    logger.debug(f"Running accounts: {running_accounts}")
+    for account in running_accounts:
       col = max(0, account.posX // window_width)
       row = max(0, account.posY // window_height)
       occupied.add((row, col))
@@ -189,9 +190,11 @@ class WindowService:
 
   @staticmethod
   def scan_cs2_windows(
-    accounts: Dict[str, Account],
-  ) -> Dict[str, RunningAccount]:
+    accounts: List[Account], values=True
+  ) -> List[RunningAccount] | List[str]:
     running = {}
+
+    accounts_dict = {acc.login: acc for acc in accounts}
 
     def callback(hwnd, lParam):
       if not win32gui.IsWindowVisible(hwnd):
@@ -202,9 +205,10 @@ class WindowService:
         try:
           login = title.split("]")[0][1:]
           rect = win32gui.GetWindowRect(hwnd)
-          _, pid = win32process.GetWindowThreadProcessId(hwnd)
-          if accounts.get(login) is not None:
-            acc = accounts[login]
+          print(rect, login)
+          window_info = WindowService.get_window_info(f"Runner-{login}")
+          if accounts_dict.get(login) is not None:
+            acc = accounts_dict[login]
             running[login] = RunningAccount(
               login=login,
               password=acc.password,
@@ -213,12 +217,13 @@ class WindowService:
               steam_id=acc.steam_id,
               posX=rect[0],
               posY=rect[1],
-              runner_pid=pid,
+              runner_pid=window_info.get("pid"),
             )
         except Exception as e:
           print(e)
           pass
 
     win32gui.EnumWindows(callback, None)
-    logger.debug(f"Running accounts: {running}")
-    return running
+    if values:
+      return list(running.values())
+    return list(running.keys())

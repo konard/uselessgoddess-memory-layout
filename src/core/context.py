@@ -4,6 +4,8 @@ from core.logging import get_logger
 from core.services import GCService
 from core.services import SRTService
 from core.services import ai
+from core.account.model import FarmStatus
+from core.services.windows_service import WindowService
 
 from .account import Account
 from .services import AccountsService, SettingsService
@@ -38,6 +40,18 @@ class Context:
 
   def accounts(self) -> List[Account]:
     return list(self.account.accounts.values())
+
+  def unfarmed_accounts(self) -> List[Account]:
+    launched_accounts = WindowService.scan_cs2_windows(
+      self.accounts(), values=False
+    )
+    accounts = self.accounts()
+    unfarmed_accounts_list = filter(
+      lambda x: x.lock.status == FarmStatus.NEED_TO_FARM
+      and x.login not in launched_accounts,
+      accounts,
+    )
+    return list(unfarmed_accounts_list)
 
   @property  # shorthand to `settings`
   def s(self):

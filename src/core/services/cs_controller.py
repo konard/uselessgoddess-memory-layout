@@ -13,6 +13,11 @@ from core.account import Account
 logger = get_logger("yacs.cs_controller")
 
 
+class ZeroPosAccount:
+  posX = 0
+  posY = 0
+
+
 class CS2Controller:
   def __init__(self):
     pass
@@ -91,6 +96,13 @@ class CS2Controller:
     logger.trace("Нажата кнопка Delete")
 
   @staticmethod
+  def press_escape():
+    """Нажимает кнопку Escape"""
+    pyautogui.press("esc")
+    time.sleep(0.1)
+    logger.trace("Нажата кнопка Escape")
+
+  @staticmethod
   def press_button(button: int, sleep: float = 0.1):
     win32api.keybd_event(button, 0, 0, 0)
     time.sleep(sleep)
@@ -109,10 +121,11 @@ class CS2Controller:
     """Кликает если изображение найдено"""
     x = account.posX + win_w
     y = account.posY + win_h
-
+    print(x, y, account.posX, account.posY)
     try:
       matches = pyautogui.locateAllOnScreen(image, confidence=confidence)
       for match in matches:
+        print(match)
         if (
           match[0] < x
           and match[1] < y
@@ -122,7 +135,7 @@ class CS2Controller:
         ):
           click_x = int(match[0] + match[2] / 2)
           click_y = int(match[1] + match[3] / 2)
-          CS2Controller.click(click_x, click_y, account, immediate)
+          CS2Controller.click(click_x, click_y, ZeroPosAccount(), immediate)
           return True
       return False
     except ImageNotFoundException:

@@ -67,3 +67,5 @@ report.json
 package-lock.json
 node_modules
 
+# Proto files
+proto/*
