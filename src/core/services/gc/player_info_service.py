@@ -26,19 +26,17 @@ class PlayerInfoService:
           logger.trace("parsing player farm status for login: %s", login)
           try:
             self.parse_player_farm_status(decoded_message.payload, login)
-          except Exception as e:
+          except Exception:
             logger.error(
               f"error parsing player farm status for login: {login}",
-              e,
             )
         case 9110:
           logger.trace("parsing player stats: %s", login)
           try:
             self.parse_player_stats(decoded_message.payload, login)
-          except Exception as e:
+          except Exception:
             logger.error(
               f"error parsing player stats for login: {login}",
-              e,
             )
         case _:
           logger.trace("unknown emsg_id: %s", emsg_id)

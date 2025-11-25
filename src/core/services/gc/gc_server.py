@@ -1,4 +1,5 @@
 import asyncio
+import os
 import struct
 import win32pipe
 import win32file
@@ -67,6 +68,23 @@ class PipeServer:
 
     try:
       while True:
+        file_name_len_bytes = await loop.run_in_executor(
+          None, self._read_exact_sync, pipe, 4
+        )
+
+        file_name_len = struct.unpack("<I", file_name_len_bytes)[0]
+
+        file_name = None
+
+        if file_name_len > 0:
+          file_name_bytes = await loop.run_in_executor(
+            None, self._read_exact_sync, pipe, file_name_len
+          )
+          try:
+            file_name = file_name_bytes.decode("utf-8")
+          except UnicodeDecodeError:
+            pass
+
         name_len_bytes = await loop.run_in_executor(
           None, self._read_exact_sync, pipe, 4
         )
@@ -103,7 +121,9 @@ class PipeServer:
 
         direction_str = "in" if direction_id == 1 else "out"
 
-        await self.process_packet(client_name, direction_str, msg_id, payload)
+        await self.process_packet(
+          client_name, direction_str, msg_id, payload, file_name
+        )
 
     except (ConnectionResetError, ConnectionAbortedError):
       pass
@@ -113,9 +133,20 @@ class PipeServer:
       win32file.CloseHandle(pipe)
 
   async def process_packet(
-    self, client_name: str, direction: str, msg_id: int, data: bytes
+    self,
+    client_name: str,
+    direction: str,
+    msg_id: int,
+    data: bytes,
+    file_name: str,
   ):
-    logger.trace(f"({msg_id}) process packet with {len(data)} bytes payload")
+    logger.trace(file_name)
+
+    if data and len(data) > 0:
+      os.makedirs(f"proto/{client_name}", exist_ok=True)
+      filename = f"proto/{client_name}/{file_name.lower()}.bin"
+      with open(filename, "wb") as f:
+        f.write(data)
 
     if msg_id == 5453:
       self.gc_service.player_info_service.process_message(data, client_name)
