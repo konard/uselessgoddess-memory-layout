@@ -5,6 +5,7 @@ import win32file
 import pywintypes
 from dataclasses import dataclass
 from core.logging import get_logger
+
 from .gc_service import GCService
 
 logger = get_logger("gc.server")
@@ -37,7 +38,6 @@ class PipeServer:
 
     while True:
       pipe_handle = self._create_pipe_instance()
-
       try:
         await loop.run_in_executor(
           None, win32pipe.ConnectNamedPipe, pipe_handle, None
@@ -115,10 +115,13 @@ class PipeServer:
   async def process_packet(
     self, client_name: str, direction: str, msg_id: int, data: bytes
   ):
-    logger.trace(f"process packet with {len(data)} bytes payload")
+    logger.trace(f"({msg_id}) process packet with {len(data)} bytes payload")
 
     if msg_id == 5453:
       self.gc_service.player_info_service.process_message(data, client_name)
+
+    if msg_id == 800:
+      self.gc_service.lobby_service.process_message(data)
 
 
 async def start_gc_server(gc_service: GCService):

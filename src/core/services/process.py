@@ -6,6 +6,7 @@ ProcessService - сервис для управления процессами
 import os
 import psutil
 from core.logging import get_logger
+from core.services.windows_service import WindowService
 
 logger = get_logger("yacs.process")
 

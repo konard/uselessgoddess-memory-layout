@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 
 from states.launch_accounts import LaunchAccounts
+from states.make_lobbies import MakeLobbies
 from ui.widgets import Button, HStack
 from ui import ButtonType
 from core.context import Context
@@ -54,6 +55,12 @@ class Idle(State):
 
       return inner
 
+    def launch(mtype):
+      def inner():
+        dispatch(mtype())
+
+      return inner
+
     return [
       Button(
         "Start Farming",
@@ -92,6 +99,11 @@ class Idle(State):
         on_click=lambda: dispatch(debug.AIState()),
         button_type=ButtonType.SPECIAL,
         tooltip="Open OpenCV window to see what bot sees",
+      ),
+      Button(
+        "Make Lobbies",
+        on_click=launch(MakeLobbies),
+        tooltip="Make lobbies.",
       ),
     ]
 
@@ -148,3 +160,10 @@ class Idle(State):
   @handles(debug.AIState)
   async def _on_debug_ai(self, state, manager: StateManager):
     await manager.into_state(state.then(self))
+
+  @handles(MakeLobbies)
+  async def _on_make_lobbies(self, message: MakeLobbies, manager: StateManager):
+    logger.debug("make lobbies")
+    await manager.into_state(
+      message.then(self),
+    )

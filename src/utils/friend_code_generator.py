@@ -32,7 +32,7 @@ def hash_steam_id(id):
   return int.from_bytes(h, "little")
 
 
-def encode(steamid):
+def generate_friend_code(steamid):
   steamid = int(steamid)
   h = hash_steam_id(steamid)
   r = 0
