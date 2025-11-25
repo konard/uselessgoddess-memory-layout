@@ -128,8 +128,19 @@ class WindowService:
 
   @staticmethod
   def move_window_to_position(title: str, pos_x: int, pos_y: int):
+    logger.trace(f"move window={title} to x={pos_x} y={pos_y}")
+
     try:
-      autoit.win_move(title, pos_x, pos_y)
+      autoit.auto_it_set_option("WinTitleMatchMode", 2)
+    except Exception:
+      pass
+
+    try:
+      if autoit.win_exists(title):
+        autoit.win_activate(title)
+        autoit.win_wait_active(title, timeout=5)
+        autoit.win_move(title, pos_x, pos_y)
+        return True
     except Exception as e:
       logger.error(f"Failed to move window '{title}': {e}")
 

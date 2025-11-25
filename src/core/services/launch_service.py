@@ -91,12 +91,13 @@ class LaunchService:
 
       next_x, next_y = WindowService.get_next_window_position(accounts)
 
-      running_account.posX = next_x
-      running_account.posY = next_y
-
+      time.sleep(5)  # sleep saves all
       WindowService.move_window_to_position(
         running_account.win_cs_title, next_x, next_y
       )
+      running_account.posX = next_x
+      running_account.posY = next_y
+      time.sleep(10)  # ULTRAFIXME: use less time. sleep saves all
 
       logger.info(f"+ Аккаунт {account.login} успешно запущен!")
 

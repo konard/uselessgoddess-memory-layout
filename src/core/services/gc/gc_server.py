@@ -1,3 +1,5 @@
+from typing import Optional
+
 import asyncio
 import os
 import struct
@@ -12,6 +14,13 @@ from .gc_service import GCService
 logger = get_logger("gc.server")
 
 PIPE_NAME = r"\\.\pipe\SteamProtobufPipe"
+
+
+def unicode_of(data: bytes) -> str:
+  try:
+    return data.decode("utf-8")
+  except UnicodeDecodeError:
+    return None
 
 
 class PipeServer:
@@ -62,65 +71,57 @@ class PipeServer:
         raise ConnectionResetError("Disconnected")
       raise e
 
+  async def _read_sized_buf(
+    self, loop, pipe, limit: int = 255
+  ) -> Optional[bytes]:
+    len_bytes = await loop.run_in_executor(None, self._read_exact_sync, pipe, 4)
+
+    data_len = struct.unpack("<I", len_bytes)[0]
+    if data_len > limit:
+      logger.warn(f"crazy buffer length: {data_len}. Skip. Plz report")
+      return None
+
+    if data_len > 0:
+      return await loop.run_in_executor(
+        None, self._read_exact_sync, pipe, data_len
+      )
+    else:
+      return None
+
   async def handle_client(self, pipe):
     loop = asyncio.get_running_loop()
     print("[PIPE] Ожидание данных...")
 
     try:
       while True:
-        file_name_len_bytes = await loop.run_in_executor(
-          None, self._read_exact_sync, pipe, 4
+        header_bytes = await loop.run_in_executor(
+          None, self._read_exact_sync, pipe, 1 + 4
         )
+        direction_id, msg_id = struct.unpack("<BI", header_bytes)
 
-        file_name_len = struct.unpack("<I", file_name_len_bytes)[0]
-
-        file_name = None
-
-        if file_name_len > 0:
-          file_name_bytes = await loop.run_in_executor(
-            None, self._read_exact_sync, pipe, file_name_len
-          )
-          try:
-            file_name = file_name_bytes.decode("utf-8")
-          except UnicodeDecodeError:
-            pass
-
-        name_len_bytes = await loop.run_in_executor(
-          None, self._read_exact_sync, pipe, 4
-        )
-        name_len = struct.unpack("<I", name_len_bytes)[0]
-
-        if name_len > 255:
-          logger.warn(f"strange name length: {name_len}. Desync?")
+        if direction_id > 1:  # nor of 0,1
+          logger.debug("skip invalid packet")
           break
 
-        client_name = None
-        if name_len > 0:
-          name_bytes = await loop.run_in_executor(
-            None, self._read_exact_sync, pipe, name_len
-          )
-          try:
-            client_name = name_bytes.decode("utf-8")
-          except UnicodeDecodeError:
-            pass
+        file_name = await self._read_sized_buf(loop, pipe)
+        if file_name:
+          file_name = unicode_of(file_name)
+        if not file_name:
+          logger.debug("skip invalid `file_name`")
+          break
 
-        header_bytes = await loop.run_in_executor(
-          None, self._read_exact_sync, pipe, 9
-        )
-        direction_id, msg_id, data_size = struct.unpack("<BII", header_bytes)
+        client_name = await self._read_sized_buf(loop, pipe)
+        if client_name:
+          client_name = unicode_of(client_name)
+        if not client_name:
+          logger.debug("skip invalid `client_name`")
+          break
 
-        payload = b""
-        if data_size > 0:
-          if data_size > 100 * 1024 * 1024:
-            logger.error(f"crazy packet size: {data_size} байт!")
-            break
-
-          payload = await loop.run_in_executor(
-            None, self._read_exact_sync, pipe, data_size
-          )
+        payload = await self._read_sized_buf(loop, pipe, limit=128 * 1024)
+        if not payload:
+          break
 
         direction_str = "in" if direction_id == 1 else "out"
-
         await self.process_packet(
           client_name, direction_str, msg_id, payload, file_name
         )
@@ -140,7 +141,9 @@ class PipeServer:
     data: bytes,
     file_name: str,
   ):
-    logger.trace(file_name)
+    logger.trace(
+      f"recv packet: id={msg_id} name={file_name}, login={client_name}, data=[{len(data)} bytes...]"
+    )
 
     if data and len(data) > 0:
       os.makedirs(f"proto/{client_name}", exist_ok=True)
