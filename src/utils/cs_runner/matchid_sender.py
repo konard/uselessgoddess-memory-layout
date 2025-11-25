@@ -145,6 +145,9 @@ def build_cs2_launch_args(
       str(win_w),
       "-h",
       str(win_h),
+      # TODO: be worry
+      "-language",
+      "russian",
     ]
   )
   if cs2:

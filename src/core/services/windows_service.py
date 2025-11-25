@@ -14,7 +14,7 @@ from core.logging import get_logger
 from core.account import RunningAccount
 from core.account import Account
 
-logger = get_logger("yacs.window")
+logger = get_logger("window")
 
 
 class WindowService:
