@@ -18,6 +18,14 @@ from core.context import Context
 from core.account.model import FarmStatus
 
 
+enum_to_color = {
+  FarmStatus.NEED_TO_FARM: CURRENT_THEME.ACCENT_RED,
+  FarmStatus.CAN_BE_LOOTED: CURRENT_THEME.ACCENT_PURPLE,
+  FarmStatus.FARMED: CURRENT_THEME.ACCENT_GREEN,
+  FarmStatus.TRADED: CURRENT_THEME.ACCENT_BLUE,
+}
+
+
 class AccountsPanel(QWidget):
   def __init__(self, ctx: Context, parent=None):
     super().__init__(parent)
@@ -146,12 +154,7 @@ class AccountsPanel(QWidget):
       status_text = status_enum.replace("_", " ").title()
       status_item = QTableWidgetItem(status_text)
 
-      if status_enum == FarmStatus.FARMED:
-        color = CURRENT_THEME.ACCENT_GREEN
-      elif status_enum == FarmStatus.CAN_BE_LOOTED:
-        color = CURRENT_THEME.ACCENT_PURPLE
-      else:  # NEED_TO_FARM
-        color = CURRENT_THEME.ACCENT_RED
+      color = enum_to_color[status_enum]
 
       status_item.setForeground(QBrush(QColor(color)))
       status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -234,7 +237,7 @@ class AccountsPanel(QWidget):
       return
 
     raw_xp = account.lock.xp or 0
-    level = (raw_xp // 5000) + 1
+    level = account.lock.lvl
     progress_val = raw_xp % 5000
 
     status_enum = account.lock.status or FarmStatus.NEED_TO_FARM

@@ -70,16 +70,26 @@ class ScanInventory(steam.Client):
 
     try:
       if self.identity_secret is not None:
-        target = await self.fetch_user(id64)
+        count = 0
+        while count < 5:
+          try:
+            trade_offer = TradeOffer(
+              sending=items_to_send,
+              receiving=[],
+              message="random message",
+              token=self.trade_url.token,
+            )
 
-        trade_offer = TradeOffer(
-          sending=items_to_send,
-          receiving=[],
-          message="random message",
-          token=self.trade_url.token,
-        )
+            target = await self.fetch_user(id64)
+            await target.send(trade=trade_offer)
+            break
+          except Exception as e:
+            logger.error(
+              f"Failed to send trade offer, retry {count + 1}/5: {e}"
+            )
+            count += 1
+            await asyncio.sleep(1)
 
-        await target.send(trade=trade_offer)
         self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
         if not self.complete.done():
           self.complete.set_result(("Trade sent", items_to_report))
