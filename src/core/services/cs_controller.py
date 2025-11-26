@@ -1,14 +1,17 @@
+import asyncio
 import time
 import win32api
 import win32con
 import win32clipboard
 import pyautogui
 from pyscreeze import ImageNotFoundException
+from typing import TYPE_CHECKING
 
 from core.account.model import RunningAccount
 from src.constants import win_w, win_h
 from core.logging import get_logger
 from core.account import Account
+from core.utils import async_methods
 
 logger = get_logger("yacs.cs_controller")
 
@@ -18,6 +21,7 @@ class ZeroPosAccount:
   posY = 0
 
 
+@async_methods
 class CS2Controller:
   def __init__(self):
     pass
@@ -193,3 +197,76 @@ class CS2Controller:
       count += 1
       print(count)
       time.sleep(1)
+
+  @staticmethod
+  async def click_bulk(image: str, account: Account, confidence: float = 0.9):
+    """Кликает на все изображения"""
+    x = account.posX + win_w
+    y = account.posY + win_h
+
+    matches = pyautogui.locateAllOnScreen(image, confidence=confidence)
+    for match in matches:
+      if (
+        match[0] < x
+        and match[1] < y
+        and match[0] > account.posX
+        and match[1] > account.posY
+      ):
+        x = account.posX + win_w
+        y = account.posY + win_h
+        await asyncio.sleep(0.1)
+        CS2Controller.click(
+          (match[0] + match[2] / 2).astype("int"),
+          (match[1] + match[3] / 2).astype("int"),
+          ZeroPosAccount(),
+          True,
+        )
+        continue
+    return True
+
+  @staticmethod
+  async def move_mouse_async(x, y, account: Account): ...
+
+  @staticmethod
+  async def click_async(x, y, account: Account, immediate: bool = False): ...
+
+  @staticmethod
+  async def send_text_async(text: str): ...
+
+  @staticmethod
+  async def copy_to_clipboard_async(text: str): ...
+
+  @staticmethod
+  async def wait_async(secs: float): ...
+
+  @staticmethod
+  async def paste_from_clipboard_async(): ...
+
+  @staticmethod
+  async def select_all_async(): ...
+
+  @staticmethod
+  async def press_delete_async(): ...
+
+  @staticmethod
+  async def press_escape_async(): ...
+
+  @staticmethod
+  async def press_button_async(button: int, sleep: float = 0.1): ...
+
+  @staticmethod
+  async def click_if_exists_async(
+    image: str,
+    account: RunningAccount,
+    confidence: float = 0.9,
+    immediate: bool = False,
+    whole_screen: bool = False,
+  ) -> bool: ...
+
+  @staticmethod
+  async def check_if_exists_async(
+    image: str, account: Account, confidence: float = 0.9
+  ) -> bool: ...
+
+  @staticmethod
+  async def wait_for_image_async(image: str, account: Account): ...

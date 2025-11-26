@@ -24,9 +24,7 @@ def parse_filename(filename: str):
   return None
 
 
-def read_bin_file(
-  filepath: Path, hex_only: bool = False, raw_only: bool = False
-):
+def read_bin_file(filepath: Path):
   """Читает и выводит содержимое бинарного файла."""
   if not filepath.exists():
     print(f"❌ Файл не найден: {filepath}")
@@ -45,10 +43,8 @@ def main():
     sys.exit(1)
 
   filepath = Path(sys.argv[1])
-  hex_only = "--hex" in sys.argv
-  raw_only = "--raw" in sys.argv
 
-  read_bin_file(filepath, hex_only, raw_only)
+  read_bin_file(filepath)
 
 
 if __name__ == "__main__":

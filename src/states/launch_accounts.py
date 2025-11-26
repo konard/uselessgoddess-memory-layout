@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from os.path import isdir, isfile
@@ -8,8 +9,8 @@ from core.account import Account
 from core.logging import get_logger
 from core.process_config import ConfigService
 from core.services.launch_service import LaunchService
-from core.services.settings import FarmMode
 from core import utils
+from states.make_lobbies.make_lobbies import MakeLobbies
 
 logger = get_logger("state.launch_accounts")
 
@@ -62,8 +63,5 @@ class LaunchAccounts(State):
       )
       logger.info(f"{account.login} launched")
 
-    match ctx.settings.system.farm_mode:
-      case FarmMode.TWO_BY_TWO:
-        pass
-      case FarmMode.FIVE_BY_FIVE:
-        pass
+    await asyncio.sleep(5)
+    return MakeLobbies()

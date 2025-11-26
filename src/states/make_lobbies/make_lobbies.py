@@ -8,6 +8,7 @@ from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
 from resources import game_constants
 from states.select_accounts import SelectAccounts
+from states.select_map import SelectMap
 from utils.friend_code_generator import generate_friend_code
 from .generate_party_schema import generate_party_schema
 from ui.widgets import Progress
@@ -53,40 +54,73 @@ class MakeLobbies(State):
 
       print(game_constants)
       for party in party_schema:
-        WindowService.focus_window(party.leader.win_cs_title)
-        CS2Controller.move_mouse(
+        await WindowService.focus_window_async(party.leader.win_cs_title)
+        await CS2Controller.move_mouse_async(
           **game_constants.invite_friend, account=party.leader
         )
         await asyncio.sleep(1)
-        CS2Controller.click(
+        await CS2Controller.click_async(
           **game_constants.invite_friend, account=party.leader, immediate=True
         )
 
-        CS2Controller.click(
+        await CS2Controller.click_async(
           **game_constants.friend_code_input, account=party.leader
         )
 
-        for member in party.members:
-          CS2Controller.copy_to_clipboard(generate_friend_code(member.steam_id))
-          CS2Controller.paste_from_clipboard()
-          CS2Controller.click(
+        i = 0
+        while i < len(party.members):
+          member = party.members[i]
+          await CS2Controller.copy_to_clipboard_async(
+            generate_friend_code(member.steam_id)
+          )
+          await CS2Controller.paste_from_clipboard_async()
+          await CS2Controller.click_async(
             **game_constants.result_button, account=party.leader
           )
           await asyncio.sleep(1)
-          CS2Controller.click_if_exists(
+          await CS2Controller.click_if_exists_async(
             "resources/img/invite.png", party.leader, 0.9, True
           )
 
-        await asyncio.sleep(0.3)
-        WindowService.focus_window(party.leader.win_cs_title)
-        await asyncio.sleep(0.3)
-        CS2Controller.press_escape()
+          try:
+            await self.accept_invite(ctx, member)
 
-        for member in party.members:
-          await self.accept_invite(ctx, member)
+          except Exception as e:
+            logger.error(f"Error accepting invite for {member.login}: {e}")
+            await WindowService.focus_window_async(party.leader.win_cs_title)
+            await asyncio.sleep(1)
+            await CS2Controller.press_escape_async()
+            await asyncio.sleep(0.3)
+            await CS2Controller.press_escape_async()
+            await asyncio.sleep(0.3)
+
+            await CS2Controller.move_mouse_async(
+              **game_constants.invite_friend, account=party.leader
+            )
+            await asyncio.sleep(1)
+            await CS2Controller.click_async(
+              **game_constants.invite_friend,
+              account=party.leader,
+              immediate=True,
+            )
+
+            await CS2Controller.click_async(
+              **game_constants.friend_code_input, account=party.leader
+            )
+            i -= 1
+            continue
+
+          i += 1
+
+        await asyncio.sleep(0.3)
+        await WindowService.focus_window_async(party.leader.win_cs_title)
+        await asyncio.sleep(0.3)
+        await CS2Controller.press_escape_async()
+        await asyncio.sleep(1)
+
+      await asyncio.sleep(0.5)
+      return SelectMap(party_schema)
 
     except ValueError as e:
       reason: str = e.reason
       return
-
-    logger.info("all lobbies made")

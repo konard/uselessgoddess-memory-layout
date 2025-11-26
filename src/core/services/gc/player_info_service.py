@@ -4,6 +4,7 @@ from core.account.lock import AccountsLock
 from core.account.model import FarmStatus
 from core.services.gc.gc_parser import decode_bytes, decode_gc_bytes
 from steam.ext.csgo.protobufs.econ import ClientRedeemFreeReward
+from core.services.gc.matcher_service import MatcherService
 from utils.is_in_wednesday_range import is_in_wednesday_range
 
 from steam._const import READ_U32, CLEAR_PROTO_BIT
@@ -13,6 +14,8 @@ logger = get_logger("player_info_service")
 
 
 class PlayerInfoService:
+  matcher_service: MatcherService = MatcherService()
+
   def __init__(self, lock: AccountsLock):
     self.lock = lock
 
@@ -37,6 +40,14 @@ class PlayerInfoService:
           except Exception:
             logger.error(
               f"error parsing player stats for login: {login}",
+            )
+        case 9107:
+          logger.trace("parsing player match id: %s", login)
+          try:
+            self.matcher_service.process_message(decoded_message.payload, login)
+          except Exception as e:
+            logger.error(
+              f"error parsing player match id for login: {login}: {e}",
             )
         case _:
           logger.trace("unknown emsg_id: %s", emsg_id)

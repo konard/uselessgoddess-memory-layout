@@ -13,10 +13,12 @@ from constants import win_w, win_h
 from core.logging import get_logger
 from core.account import RunningAccount
 from core.account import Account
+from core.utils import async_methods
 
 logger = get_logger("window")
 
 
+@async_methods
 class WindowService:
   """Сервис для управления окнами"""
 
@@ -238,3 +240,6 @@ class WindowService:
     if values:
       return list(running.values())
     return list(running.keys())
+
+  @staticmethod
+  async def focus_window_async(window_title: str): ...

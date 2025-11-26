@@ -47,7 +47,7 @@ class Context:
     self.screen = ScreenCaptureService()
 
   def accounts(self) -> List[Account]:
-    return list(self.account.accounts.values())
+    return sorted(list(self.account.accounts.values()), key=lambda x: x.login)
 
   def unfarmed_accounts(self) -> List[Account]:
     launched_accounts = WindowService.scan_cs2_windows(

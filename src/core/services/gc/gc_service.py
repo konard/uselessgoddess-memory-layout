@@ -5,6 +5,5 @@ from core.account.lock import AccountsLock
 
 
 class GCService:
-  matcher: MatcherService = MatcherService()
   player_info_service: PlayerInfoService = PlayerInfoService(AccountsLock())
   lobby_service: LobbyService = LobbyService()

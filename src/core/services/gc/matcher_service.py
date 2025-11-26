@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Tuple
 import asyncio
 
+from steam.ext.csgo.protobufs.cstrike import MatchmakingClientReserve
+
 from core.account import Account
 from core.logging import get_logger
+from core.services.gc.gc_parser import decode_gc_bytes
 
 logger = get_logger("sv.matcher")
 
@@ -35,6 +38,11 @@ class MatcherService:
       self.matches[login] = (match_id, event)
 
     return True
+
+  def process_message(self, data: bytes, login: str):
+    decoded_message = MatchmakingClientReserve().parse(data)
+    match_id = decoded_message.reservation.match_id
+    self.set_match_id(login, match_id)
 
   async def wait_for_match_id(self, accounts: list[Account]):
     self.matches.clear()

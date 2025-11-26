@@ -1,0 +1,15 @@
+from core.panel.state import State
+from core.context import Context
+from core.account import Account
+from core.logging import get_logger
+
+logger = get_logger("state.template")
+
+
+class Template(State):
+  def __init__(self, accounts: list[Account]):
+    self.accounts = accounts
+    self.launched = 0
+
+  async def execute(self, ctx: Context):
+    logger.info("Template state")

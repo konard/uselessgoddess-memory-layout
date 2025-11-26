@@ -86,7 +86,7 @@ class Idle(State):
       ),
       Button(
         "Wait for Game",
-        on_click=acquire_accounts(WaitForGame),
+        on_click=launch(WaitForGame),
         tooltip="Wait for game to start.",
       ),
       Button(
@@ -99,11 +99,6 @@ class Idle(State):
         on_click=lambda: dispatch(debug.AIState()),
         button_type=ButtonType.SPECIAL,
         tooltip="Open OpenCV window to see what bot sees",
-      ),
-      Button(
-        "Make Lobbies",
-        on_click=launch(MakeLobbies),
-        tooltip="Make lobbies.",
       ),
     ]
 
@@ -161,8 +156,10 @@ class Idle(State):
   async def _on_debug_ai(self, state, manager: StateManager):
     await manager.into_state(state.then(self))
 
-  @handles(MakeLobbies)
-  async def _on_make_lobbies(self, message: MakeLobbies, manager: StateManager):
+  @handles(WaitForGame)
+  async def _on_wait_for_game(
+    self, message: WaitForGame, manager: StateManager
+  ):
     logger.debug("make lobbies")
     await manager.into_state(
       message.then(self),

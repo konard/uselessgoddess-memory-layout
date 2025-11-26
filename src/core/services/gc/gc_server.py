@@ -141,9 +141,9 @@ class PipeServer:
     data: bytes,
     file_name: str,
   ):
-    logger.trace(
-      f"recv packet: id={msg_id} name={file_name}, login={client_name}, data=[{len(data)} bytes...]"
-    )
+    # logger.trace(
+    #   f"recv packet: id={msg_id} name={file_name}, login={client_name}, data=[{len(data)} bytes...]"
+    # )
 
     if data and len(data) > 0:
       os.makedirs(f"proto/{client_name}", exist_ok=True)
