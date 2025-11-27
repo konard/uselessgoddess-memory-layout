@@ -110,6 +110,10 @@ class StateManager:
       return
     except Exception as e:
       logger.error(f"error in state {name}: {e}")
+
+      import traceback
+
+      logger.error(traceback.format_exc())
       return
 
     if next_state:
