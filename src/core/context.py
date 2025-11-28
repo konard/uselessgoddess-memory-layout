@@ -8,6 +8,7 @@ from core.services import (
   ai,
   UIService,
   WindowService,
+  GSIService,
 )
 from core.account import FarmStatus
 
@@ -45,6 +46,7 @@ class Context:
       ["ct", "t"],  # TODO: STRICT CONSTANT
     )  # TODO: make prebuilt configurable
     self.screen = ScreenCaptureService()
+    self.gsi = GSIService(port=6969)  # TODO: avoid hardcoded ports
 
   def accounts(self) -> List[Account]:
     return sorted(list(self.account.accounts.values()), key=lambda x: x.login)

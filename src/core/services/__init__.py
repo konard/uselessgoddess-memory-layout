@@ -6,3 +6,4 @@ from .srt import SRTService
 from .bot import TelegramBotService
 from .capture import ScreenCaptureService, Region
 from .ui import UIService
+from .gsi import GSIService

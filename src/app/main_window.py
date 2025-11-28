@@ -29,7 +29,7 @@ from .log_view import LogHandler
 from .settings import SettingsDialog
 from .srt_table import SRTTable
 
-from .tabs import DashboardTab, SRTTab
+from .tabs import DashboardTab, SRTTab, GSITab
 
 logger = get_logger("ui.main")
 
@@ -82,11 +82,18 @@ class MainWindow(QMainWindow):
     # FIXME: avoid this pls!
     asyncio.create_task(start_gc_server(self.ctx.gc))
     asyncio.create_task(self.ctx.bot.start())
+    self.ctx.gsi.start()
 
     self.setup_ui()
     self._apply_dark_title_bar()
 
-    self._init_tabs()
+    try:
+      self._init_tabs()
+    except Exception:
+      import traceback
+
+      logger.error("failed to initialize tabs")
+      logger.error(traceback.print_exc())
 
     self.setup_logging()
 
@@ -103,6 +110,9 @@ class MainWindow(QMainWindow):
 
     self.srt_tab = SRTTab(self.ctx)
     self.tabs.addTab(self.srt_tab, "SRT")
+
+    self.gsi_tab = GSITab(self.ctx)
+    self.tabs.addTab(self.gsi_tab, "GSI")
 
   def setup_logging(self):
     text, combo, filt = self.dashboard_tab.get_log_handler_widgets()
@@ -135,6 +145,8 @@ class MainWindow(QMainWindow):
       logger.debug("steal lock removed")
       asyncio.create_task(self.ctx.bot.stop())
       logger.debug("telegram bot stopped")
+      self.ctx.gsi.stop()
+      logger.debug("gsi service stopped")
     except Exception:
       logger.exception("error during gracefully shutdown")
     finally:

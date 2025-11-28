@@ -155,12 +155,3 @@ class Idle(State):
   @handles(debug.AIState)
   async def _on_debug_ai(self, state, manager: StateManager):
     await manager.into_state(state.then(self))
-
-  @handles(WaitForGame)
-  async def _on_wait_for_game(
-    self, message: WaitForGame, manager: StateManager
-  ):
-    logger.debug("make lobbies")
-    await manager.into_state(
-      message.then(self),
-    )
