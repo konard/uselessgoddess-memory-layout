@@ -5,6 +5,7 @@ from core.context import Context
 from core.logging import get_logger
 from core.services.cs_controller import CS2Controller
 from core.services.settings import FarmMode
+from core.services.windows_service import WindowService
 from resources import game_constants
 from states.types import PartySchema
 from states.wait_for_game import WaitForGame
@@ -20,6 +21,8 @@ class SelectMap(State):
     logger.info("Selecting map")
 
     for party in self.party_schema:
+      WindowService.focus_window(party.leader.win_cs_title)
+
       CS2Controller.click(**game_constants.play_button, account=party.leader)
       CS2Controller.click(**game_constants.real_games, account=party.leader)
 
@@ -30,7 +33,7 @@ class SelectMap(State):
           **game_constants.wingman_button, account=party.leader
         )
 
-        await CS2Controller.click_bulk(
+        await CS2Controller.click_bulk_async(
           "resources/img/check.png", party.leader, 0.9
         )
 

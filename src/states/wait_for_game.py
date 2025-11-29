@@ -25,7 +25,7 @@ class WaitForGame(State):
     while True:
       leaders = [party.leader for party in self.party_schema]
 
-      await Yass.press_resource(
+      await Yass.press_resource_async(
         "resources/img/ready_button_left_corner.png", leaders
       )
 

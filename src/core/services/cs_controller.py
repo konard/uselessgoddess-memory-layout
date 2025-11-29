@@ -174,8 +174,11 @@ class CS2Controller:
 
     count = 0
 
-    x = account.posX + win_w
-    y = account.posY + win_h
+    x_max = account.posX + win_w
+    y_max = account.posY + win_h
+
+    x_min = account.posX
+    y_min = account.posY
 
     while True:
       try:
@@ -183,10 +186,10 @@ class CS2Controller:
         for match in matches:
           print(match)
           if (
-            match[0] < x
-            and match[1] < y
-            and match[0] > account.posX
-            and match[1] > account.posY
+            match.left > x_min
+            and match.left < x_max
+            and match.top > y_min
+            and match.top < y_max
           ):
             return True
       except ImageNotFoundException:
@@ -199,30 +202,43 @@ class CS2Controller:
       time.sleep(1)
 
   @staticmethod
-  async def click_bulk(image: str, account: Account, confidence: float = 0.9):
+  def click_bulk(image: str, account: RunningAccount, confidence: float = 0.9):
     """Кликает на все изображения"""
-    x = account.posX + win_w
-    y = account.posY + win_h
 
-    matches = pyautogui.locateAllOnScreen(image, confidence=confidence)
+    print("=" * 60)
+    print(account.posX, account.posY)
+    print("=" * 60)
+
+    x_max = account.posX + win_w
+    y_max = account.posY + win_h
+
+    x_min = account.posX
+    y_min = account.posY
+
+    matches = list(pyautogui.locateAllOnScreen(image, confidence=confidence))
+
     for match in matches:
       if (
-        match[0] < x
-        and match[1] < y
-        and match[0] > account.posX
-        and match[1] > account.posY
+        match.left > x_min
+        and match.left < x_max
+        and match.top > y_min
+        and match.top < y_max
       ):
-        x = account.posX + win_w
-        y = account.posY + win_h
-        await asyncio.sleep(0.1)
+        time.sleep(0.1)
+        print("clicked")
         CS2Controller.click(
-          (match[0] + match[2] / 2).astype("int"),
-          (match[1] + match[3] / 2).astype("int"),
+          (match.left + match.width / 2).astype("int"),
+          (match.top + match.height / 2).astype("int"),
           ZeroPosAccount(),
           True,
         )
         continue
     return True
+
+  @staticmethod
+  def click_bulk_async(
+    image: str, account: RunningAccount, confidence: float = 0.9
+  ): ...
 
   @staticmethod
   async def move_mouse_async(x, y, account: Account): ...

@@ -243,3 +243,8 @@ class WindowService:
 
   @staticmethod
   async def focus_window_async(window_title: str): ...
+
+  @staticmethod
+  async def wait_for_window_async(
+    window_title: str, timeout_sec: int = 120
+  ) -> bool: ...

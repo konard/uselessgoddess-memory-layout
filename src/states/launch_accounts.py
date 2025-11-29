@@ -3,13 +3,17 @@ import os
 
 from os.path import isdir, isfile
 
+from core.account.model import RunningAccount
 from core.panel.state import State
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.process_config import ConfigService
+from core.services.cs_controller import CS2Controller
 from core.services.launch_service import LaunchService
 from core import utils
+from core.services.windows_service import WindowService
+from resources import game_constants
 from states.make_lobbies.make_lobbies import MakeLobbies
 
 logger = get_logger("state.launch_accounts")
@@ -45,7 +49,6 @@ class LaunchAccounts(State):
     except Exception:
       return
 
-    # try to remove backgrounds before launch
     maps_path = os.path.join(ctx.s.u.cs_path, MAPS_DIR)
     if isdir(maps_path):
       logger.debug(f"remove backgrounds from {maps_path}")
@@ -58,9 +61,9 @@ class LaunchAccounts(State):
       logger.info(f"launching account +{account.login}")
 
       config_service.apply_video_config(account.steam_id)
-      await utils.block_on(LaunchService.launch_account_with_steam)(
-        account, ctx.settings.user, ctx.accounts()
-      )
+      running_account: RunningAccount = await utils.block_on(
+        LaunchService.launch_account_with_steam
+      )(account, ctx.settings.user, ctx.accounts())
       logger.info(f"{account.login} launched")
 
     await asyncio.sleep(5)

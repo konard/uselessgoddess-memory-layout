@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from states.launch_accounts import LaunchAccounts
 from states.make_lobbies import MakeLobbies
+from states.select_map import SelectMap
 from ui.widgets import Button, HStack
 from ui import ButtonType
 from core.context import Context
@@ -100,6 +101,16 @@ class Idle(State):
         button_type=ButtonType.SPECIAL,
         tooltip="Open OpenCV window to see what bot sees",
       ),
+      Button(
+        "Make Lobbies",
+        on_click=lambda: dispatch(MakeLobbies()),
+        tooltip="Make lobbies.",
+      ),
+      Button(
+        "Select Map",
+        on_click=lambda: dispatch(SelectMap()),
+        tooltip="Select map.",
+      ),
     ]
 
   async def execute(self, ctx: Context):
@@ -155,3 +166,15 @@ class Idle(State):
   @handles(debug.AIState)
   async def _on_debug_ai(self, state, manager: StateManager):
     await manager.into_state(state.then(self))
+
+  @handles(MakeLobbies)
+  async def _on_make_lobbies(self, state, manager: StateManager):
+    await manager.into_state(
+      state.then(self),
+    )
+
+  @handles(SelectMap)
+  async def _on_select_map(self, state, manager: StateManager):
+    await manager.into_state(
+      state.then(self),
+    )

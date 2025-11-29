@@ -12,6 +12,7 @@ from core.services.account import AccountsService
 from core.services.cs_controller import CS2Controller
 from core.services.steam_login import steam_login
 from core.services.windows_service import WindowService
+from resources import game_constants
 from utils import steam_web_helper_limiter
 from src.core.services import UserSettings
 
@@ -24,7 +25,7 @@ class LaunchService:
   @staticmethod
   def launch_account_with_steam(
     account: Account, settings: UserSettings, accounts: List[Account]
-  ) -> bool:
+  ) -> RunningAccount:
     """Запустить аккаунт через Steam"""
     try:
       steam_login(
@@ -34,8 +35,7 @@ class LaunchService:
         settings=settings,
       )
 
-      if LaunchService._launch_cs2(account, accounts):
-        return True
+      return LaunchService._launch_cs2(account, accounts)
 
     except Exception as ex:
       if str(ex) == "run program failed":
@@ -97,12 +97,18 @@ class LaunchService:
       )
       running_account.posX = next_x
       running_account.posY = next_y
-      time.sleep(10)  # ULTRAFIXME: use less time. sleep saves all
 
       logger.info(f"+ Аккаунт {account.login} успешно запущен!")
 
       steam_web_helper_limiter.limit_steam_web_helper(force_close=True)
 
+      WindowService.focus_window(running_account.win_cs_title)
+      CS2Controller.click(**game_constants.play_button, account=running_account)
+      CS2Controller.wait_for_image("resources/img/play.png", running_account)
+
+      CS2Controller.click_if_exists(
+        "resources/img/close_reward.png", running_account, 0.9, True
+      )
       return running_account
 
     except Exception:

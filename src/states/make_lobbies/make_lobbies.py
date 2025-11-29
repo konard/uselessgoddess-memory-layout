@@ -107,16 +107,23 @@ class MakeLobbies(State):
             await CS2Controller.click_async(
               **game_constants.friend_code_input, account=party.leader
             )
-            i -= 1
             continue
 
           i += 1
 
+        print(f"party {party.leader.login} lobbied")
+
         await asyncio.sleep(0.3)
         await WindowService.focus_window_async(party.leader.win_cs_title)
+
+        await CS2Controller.click_async(
+          **game_constants.open_side_bar, account=party.leader
+        )
+        await asyncio.sleep(1)
+        await CS2Controller.press_escape_async()
         await asyncio.sleep(0.3)
         await CS2Controller.press_escape_async()
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.3)
 
       await asyncio.sleep(0.5)
       return SelectMap(party_schema)
