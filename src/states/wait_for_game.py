@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from core.panel.state import State
 from core.services.cs_controller import CS2Controller
 from core.yass import Yass
-from resources import game_constants
+from core import game_constants
 from states.types import PartySchema
 from core.context import Context
 from core.logging import get_logger

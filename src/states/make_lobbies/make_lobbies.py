@@ -6,7 +6,7 @@ from core.logging import get_logger
 from core.services.cs_controller import CS2Controller
 from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
-from resources import game_constants
+from core import game_constants
 from states.select_accounts import SelectAccounts
 from states.select_map import SelectMap
 from utils.friend_code_generator import generate_friend_code
