@@ -1,3 +1,4 @@
+import traceback
 from typing import Optional
 
 import asyncio
@@ -130,6 +131,7 @@ class PipeServer:
       pass
     except Exception as e:
       logger.error(f"[!] critical client error: {e}")
+      print(traceback.format_exc())
     finally:
       win32file.CloseHandle(pipe)
 
@@ -151,11 +153,7 @@ class PipeServer:
       with open(filename, "wb") as f:
         f.write(data)
 
-    if msg_id == 5453:
-      self.gc_service.player_info_service.process_message(data, client_name)
-
-    if msg_id == 800:
-      self.gc_service.lobby_service.process_message(data)
+    self.gc_service.process_message(data, msg_id, client_name)
 
 
 async def start_gc_server(gc_service: GCService):

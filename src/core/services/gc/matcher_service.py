@@ -40,8 +40,13 @@ class MatcherService:
     return True
 
   def process_message(self, data: bytes, login: str):
-    decoded_message = MatchmakingClientReserve().parse(data)
+
+
+
+    decoded_message = MatchmakingClientReserve().parse(data[4:])
     match_id = decoded_message.reservation.match_id
+
+    logger.trace(f"Got match_id {match_id} for {login}")
     self.set_match_id(login, match_id)
 
   async def wait_for_match_id(self, accounts: list[Account]):

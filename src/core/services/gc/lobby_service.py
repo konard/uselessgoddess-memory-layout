@@ -1,13 +1,22 @@
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
 import asyncio
 import time
+
+import struct
+import vdf
+from steam.protobufs.clientserver_mms import CMsgClientMMSLobbyData
+from steam.protobufs.client_server_2 import CMsgClientOfflineMessageNotification
+
+if TYPE_CHECKING:
+  from core.context import Context
 
 from core.services.gc.gc_parser import decode_bytes
 from steam.protobufs.client_server import CMsgClientChatInvite
 from core.account import Account
 from core.logging import get_logger
+from core.services.gc.match_warning import MatchWarning
 
 logger = get_logger("lobby_service")
 
@@ -31,13 +40,14 @@ class InviteTimeoutError(Exception):
 
 
 class LobbyService:
-  # Хранит: (инвайт, event, время получения)
+  match_warning: MatchWarning = MatchWarning()
   invites: dict[
     str, Tuple[CMsgClientChatInvite | None, asyncio.Event, float | None]
   ] = {}
-
-  def __init__(self):
-    pass
+  ctx: Context
+  
+  def __init__(self, ctx: Context):
+    self.ctx = ctx
 
   async def wait_for_invite(self, account: Account) -> CMsgClientChatInvite:
     """
@@ -131,10 +141,35 @@ class LobbyService:
     )
     return True
 
-  def process_message(self, data: bytes):
-    """Обрабатывает входящие сообщения и ищет инвайты"""
+  def process_chat_invite(self, data: bytes):
     decoded_message: CMsgClientChatInvite = decode_bytes(data)
-
     steam_id_invited = str(decoded_message.steam_id_invited)
-
     self.set_invite(steam_id_invited, decoded_message)
+
+  def process_match_warning(self, data: bytes, login: str):
+    emsg = struct.unpack("<I", data[:4])[0]
+    if emsg & 0x80000000:
+      header_len = struct.unpack("<I", data[4:8])[0]
+      body = data[8 + header_len :]
+    else:
+      body = data[4:]  # Fallback for non-proto (should not happen for 6612)
+
+    MMSLobbyData = CMsgClientMMSLobbyData().parse(body)
+    metadata = list(vdf.binary_loads(MMSLobbyData.metadata).values())[0]
+    self.match_warning.process_message(metadata, login)
+
+  def process_offline_event(self, data: bytes, login: str):
+    decoded_message: CMsgClientOfflineMessageNotification = decode_bytes(data)
+    print(decoded_message)
+    
+
+  def process_message(self, data: bytes, login: str, msg_id: int):
+    """Обрабатывает входящие сообщения и ищет инвайты"""
+    if msg_id == 800:
+      self.process_chat_invite(data)
+    elif msg_id == 6612:
+      self.process_match_warning(data, login)
+    elif msg_id == 7523:
+      self.process_offline_event(data, login)
+    else:
+      pass

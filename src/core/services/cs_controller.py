@@ -205,10 +205,6 @@ class CS2Controller:
   def click_bulk(image: str, account: RunningAccount, confidence: float = 0.9):
     """Кликает на все изображения"""
 
-    print("=" * 60)
-    print(account.posX, account.posY)
-    print("=" * 60)
-
     x_max = account.posX + win_w
     y_max = account.posY + win_h
 

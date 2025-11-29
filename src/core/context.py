@@ -37,7 +37,7 @@ class Context:
 
     self.account = AccountsService.load()
     self.settings = SettingsService()
-    self.gc = GCService()
+    self.gc = GCService(self)
     self.srt = SRTService()
     self.bot = TelegramBotService(self)
     self.ui = UIService()

@@ -18,27 +18,42 @@ class WaitForGame(State):
     self.party_schema = party_schema
 
   async def execute(self, ctx: Context):
-    logger.info("Waiting for game")
-
     logger.info(f"Waiting for match_id for {len(self.party_schema)} accounts")
 
+    count = 0
+
+    leaders = [party.leader for party in self.party_schema]
     while True:
-      leaders = [party.leader for party in self.party_schema]
+
+      if count >= ctx.ss.times_to_shuffle:
+        return states.ShuffleLobby(self.party_schema)
 
       await Yass.press_resource_async(
         "resources/img/ready_button_left_corner.png", leaders
       )
 
+      while not ctx.gc.lobby_service.match_warning.is_searching(leaders[0]):
+        await Yass.press_resource_single_async("resources/img/cancel_button_left_corner.png", leaders[1])
+        await asyncio.sleep(0.5)
+
+      while not ctx.gc.lobby_service.match_warning.is_searching(leaders[1]):
+        await Yass.press_resource_single_async("resources/img/cancel_button_left_corner.png", leaders[0])
+        await asyncio.sleep(0.5)
+
+      await Yass.press_resource_async("resources/img/ready_button_left_corner.png", leaders)
+      
       if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(
         leaders
       ):
-        logger.error("Failed to get match_id for all accounts")
+        logger.warn("Failed to get same match_ids for all accounts")
 
         await Yass.press_resource_async(
           "resources/img/cancel_button_left_corner.png", leaders
         )
 
         await asyncio.sleep(1)
+        if ctx.ss.shuffle_lobbies:
+          count += 1
         continue
 
       for party in self.party_schema:

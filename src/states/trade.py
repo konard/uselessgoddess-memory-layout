@@ -73,6 +73,7 @@ class ScanInventory(steam.Client):
         count = 0
         while count < 5:
           try:
+            logger.info(f"Sending trade offer to {id64}")
             trade_offer = TradeOffer(
               sending=items_to_send,
               receiving=[],
@@ -88,7 +89,6 @@ class ScanInventory(steam.Client):
               f"Failed to send trade offer, retry {count + 1}/5: {e}"
             )
             count += 1
-            await asyncio.sleep(1)
 
         self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
         if not self.complete.done():

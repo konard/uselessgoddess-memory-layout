@@ -1,4 +1,5 @@
 import math
+import traceback
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientHello
 from core.account.lock import AccountsLock
 from core.account.model import FarmStatus
@@ -49,6 +50,7 @@ class PlayerInfoService:
             logger.error(
               f"error parsing player match id for login: {login}: {e}",
             )
+            print(traceback.format_exc())
         case _:
           logger.trace("unknown emsg_id: %s", emsg_id)
 

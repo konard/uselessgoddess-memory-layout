@@ -11,8 +11,11 @@ import sys
 import re
 from pathlib import Path
 
-from core.account.lock import AccountsLock
-from core.services.gc.player_info_service import PlayerInfoService
+# Add src to python path
+sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
+
+from core.context import Context
+from core.services.gc.gc_service import GCService
 
 
 def parse_filename(filename: str):
@@ -33,7 +36,13 @@ def read_bin_file(filepath: Path):
   with open(filepath, "rb") as f:
     data = f.read()
 
-  PlayerInfoService(AccountsLock()).process_message(data, "test")
+
+  msg_id = parse_filename(filepath.name)
+
+  print(msg_id)
+  GCService(Context()).process_message(data, msg_id, "test")
+
+
 
 
 def main():

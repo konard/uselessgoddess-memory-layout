@@ -73,6 +73,8 @@ class UserSettings(Settings):
   telegram_token: Optional[str] = None
   telegram_whitelist: List[str] = field(default_factory=list)
 
+
+
   def path_of(self, settings: "SettingsService"):
     return settings.user_file
 
@@ -87,10 +89,11 @@ class UserSettings(Settings):
 @dataclass
 class SystemState(Settings):
   shuffle_lobbies: bool = True
+  times_to_shuffle: int = 3
+  
   collect_drop: bool = False
   farm_on_launch: bool = True
   farm_mode: FarmMode = FarmMode.TWO_BY_TWO
-
   def path_of(self, settings: "SettingsService"):
     return settings.system_file
 

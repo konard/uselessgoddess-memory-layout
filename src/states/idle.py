@@ -123,7 +123,7 @@ class Idle(State):
       ),
       Button(
         "Make Lobbies",
-        on_click=lambda: dispatch(MakeLobbies()),
+        on_click=lambda: dispatch(MakeLobbies(None)),
         tooltip="Make lobbies.",
       ),
       Button(

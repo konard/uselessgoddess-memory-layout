@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional, Tuple
 from core.account.model import Account
 from core.panel import State
 from core.context import Context
@@ -9,6 +10,7 @@ from core.services.windows_service import WindowService
 from core import game_constants
 from states.select_accounts import SelectAccounts
 from states.select_map import SelectMap
+from states.types import PartySchema
 from utils.friend_code_generator import generate_friend_code
 from .generate_party_schema import generate_party_schema
 from ui.widgets import Progress
@@ -23,8 +25,8 @@ farm_mode_size = {
 
 
 class MakeLobbies(State):
-  def __init__(self):
-    pass
+  def __init__(self, party_schema: Optional[Tuple[PartySchema, PartySchema]]):
+    self.party_schema: Optional[Tuple[PartySchema, PartySchema]] = party_schema
 
   def layout(self, ctx: Context, dispatch):
     self.progress = Progress()
@@ -39,21 +41,22 @@ class MakeLobbies(State):
     CS2Controller.move_mouse(**game_constants.open_side_bar, account=account)
     await asyncio.sleep(0.5)
     CS2Controller.click(**game_constants.accept_invite, account=account)
+    await asyncio.sleep(0.5)
 
   async def execute(self, ctx: Context):
     launched_accounts = WindowService.scan_cs2_windows(ctx.accounts())
     farm_mode = ctx.settings.system.farm_mode
 
-    print(launched_accounts, farm_mode)
 
     if farm_mode_size.get(farm_mode) != len(launched_accounts):
       return SelectAccounts(farm_mode_size[farm_mode]).then(self)
 
     try:
-      party_schema = generate_party_schema(launched_accounts, farm_mode)
+      if self.party_schema is None:
+        self.party_schema = generate_party_schema(launched_accounts, farm_mode)
 
       print(game_constants)
-      for party in party_schema:
+      for party in self.party_schema:
         await WindowService.focus_window_async(party.leader.win_cs_title)
         await CS2Controller.move_mouse_async(
           **game_constants.invite_friend, account=party.leader
@@ -126,7 +129,7 @@ class MakeLobbies(State):
         await asyncio.sleep(0.3)
 
       await asyncio.sleep(0.5)
-      return SelectMap(party_schema)
+      return SelectMap(self.party_schema)
 
     except ValueError as e:
       logger.error(f"{e}")
