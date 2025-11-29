@@ -31,11 +31,11 @@ class Key(Enum):
 
 
 class Context:
-  def __init__(self, team, frame, delta, recorder=None):
+  def __init__(self, team, frame, targets, delta):
     self.team = team
     self.frame = frame
+    self.targets = targets
     self.delta = delta
-    self.recorder = recorder
 
 
 Step = Tuple[bool, Union[Team, None]]

@@ -7,11 +7,15 @@ class Config:
   # Input resolution to the model (frame is resized to a square of this size)
   model_input: int = 320
 
+  # TODO: use panel config
+  screenshot_width = 360
+  screenshot_height = 270
+
   # Autoaim mouse movement amplifier
-  aa_movement_amp: float = 4.0
+  aa_movement_amp: float = 3.0
 
   # Person Class Confidence
-  confidence: float = 0.75
+  confidence: float = 0.0  # TODO: research
 
   # Chance to start headshot aim controller
   headshot_chance: float = 0.50
@@ -21,12 +25,6 @@ class Config:
 
   # Filter out lying targets by aspect ratio: skip if width/height > this
   filter_aspect: float = 0.60
-
-  # Visual debug overlays
-  visuals: bool = True
-
-  # Clicks per second meter in console
-  cps: bool = False
 
   # Shooting configuration
   shoot_distance_threshold: float = 35.0

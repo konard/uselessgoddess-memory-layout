@@ -39,10 +39,15 @@ class MinimapDirectionDetector:
     )
 
     white_mask = np.all(minimap > self.config.threshold, axis=-1)
-    minimap[~white_mask] = [0, 0, 0, 0]
+    channels = minimap.shape[2] if len(minimap.shape) > 2 else 1
+
+    if channels == 4:
+      minimap[~white_mask] = [0, 0, 0, 0]
+    else:
+      minimap[~white_mask] = [0, 0, 0]
 
     pixels = np.argwhere(white_mask)
-    pixels = sorted(pixels, key=lambda p: p[0] + p[1] + p[2])
+    pixels = sorted(pixels, key=lambda p: p[0] + p[1])
     pixels.reverse()
 
     angle_position = None

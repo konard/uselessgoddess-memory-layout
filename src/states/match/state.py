@@ -20,7 +20,7 @@ class MatchState(State):
   def layout(self, ctx: Context, dispatch):
     return [
       VStack(
-        Label("Auto Match (Raw GSI)", LabelType.HEADER),
+        Label("Auto Match", LabelType.HEADER),
         self.lbl_status,
         Button("Stop", on_click=lambda _: self.stop()),
       )
@@ -39,7 +39,7 @@ class MatchState(State):
 
     try:
       while self.worker and self.worker.is_alive():
-        self.lbl_status.set(f"Status: {self.worker.status}")
+        self.lbl_status.set(f"{self.worker.status}")
         await asyncio.sleep(0.1)
     finally:
       if self.worker:

@@ -180,7 +180,7 @@ class InferenceService:
         label=label_name,
         laidx=int(class_id),
       )
-      targets.append(target)
+      targets.append(target.scale_to(orig_w, orig_h))
 
     return targets
 

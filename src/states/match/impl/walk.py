@@ -6,10 +6,9 @@ import win32con
 from typing import List, Tuple, Union
 from abc import ABC, abstractmethod
 
-from ultralytics import YOLO
-
 from core.logging import get_logger
-from .rotation import rotate_step
+from .rotation import rotate_step, smooth_rotate_to_target
+from .detector import MinimapConfig, MinimapDirectionDetector
 from .aim import AimController
 from .utils import (
   Action,
@@ -112,12 +111,6 @@ class RotateAction(Action):
 
   def execute(self, ctx: Context) -> Step:
     if self.detector is None:
-      from src.services.automatch.detector import (
-        MinimapDirectionDetector,
-        MinimapConfig,
-      )
-      from src.services.automatch.rotation_utils import smooth_rotate_to_target
-
       self.detector = MinimapDirectionDetector(MinimapConfig())
 
     current_rotation = self.detector.extract_rotation(ctx.frame, visuals=False)
@@ -129,8 +122,6 @@ class RotateAction(Action):
 
       if abs(diff) <= self.precision or abs(diff - 360) <= self.precision:
         return True, None
-
-      from src.services.automatch.rotation_utils import smooth_rotate_to_target
 
       smooth_rotate_to_target(
         current_rotation, self.target_rotation, 10 * ctx.delta
@@ -166,9 +157,10 @@ class Path:
     self.edges = edges
     self.timer = 0
     self.team = team
-    self.recorder = None
 
-  def step(self, delta: float, frame) -> Tuple[bool, Team | None]:
+  def step(
+    self, frame, targets: List, delta: float
+  ) -> Tuple[bool, Team | None]:
     if len(self.edges) == 0:
       return True, None
 
@@ -192,7 +184,7 @@ class Path:
 
     team = None
 
-    ctx = Context(self.team, frame, delta, recorder=self.recorder)
+    ctx = Context(self.team, frame, targets, delta)
     release, change_team = action.execute(ctx)
     if change_team is not None:
       team = change_team
@@ -208,8 +200,7 @@ class Path:
 
 
 class BuilderContext:
-  def __init__(self, model: YOLO, team: Team, bomb: bool, last: bool):
-    self.model = model
+  def __init__(self, team: Team, bomb: bool, last: bool):
     self.team = team
     self.bomb = bomb
     self.last = last
@@ -352,7 +343,6 @@ class RandomKnifeDecorator(ActionBuilder):
 def infer_path(
   name: str,
   mode: str,
-  model: YOLO,
   team: Team,
   bomb: bool,
   last_round: bool = False,
@@ -366,7 +356,7 @@ def infer_path(
     return None
 
   # apply decorators
-  ctx = BuilderContext(model, team, bomb, last_round)
+  ctx = BuilderContext(team, bomb, last_round)
   skel = random.choice(skel)
   skel.insert(
     0,
@@ -389,9 +379,7 @@ def infer_path(
   skel = RandomKnifeDecorator(AList(skel)).build(ctx)
   path = Path(extract(skel, ctx), team)
   # final aim after walk (2 min limit)
-  path.edges.append(
-    (120, AimController(ctx.model, ctx.direction, burst=ctx.burst))
-  )
+  path.edges.append((120, AimController(ctx.direction, burst=ctx.burst)))
 
   for edge in path.edges:
     logger.trace(edge)
@@ -483,7 +471,7 @@ class T:
       (40.0, rotate(0, 5.0)),
       (3.0, [Key.W, Key.A]),
       (2.0, [Key.W, Key.D]),
-      (2.0, [Key.W]),
+      (3.0, [Key.W]),
       (0.5, [Key.S, Key.A]),
       (3.0, [Key.A]),
       (0.5, [Key.S, Key.A]),
@@ -520,7 +508,7 @@ class T:
       SetDirection(Path.LEFT),
       (40.0, rotate(0, 5.0)),
       (3.0, [Key.W, Key.A]),
-      (5.0, [Key.W, Key.D]),
+      (6.0, [Key.W, Key.D]),
       shoot(),
       (1.0, [Key.S]),
       (1.0, [Key.D]),
@@ -554,7 +542,7 @@ class T:
       DisableRecursive(True),
       (40.0, rotate(0, 5.0)),
       (3.0, [Key.W, Key.A]),
-      (5.0, [Key.W, Key.D]),
+      (6.0, [Key.W, Key.D]),
       (1.0, [Key.S]),
       (1.0, [Key.D]),
       (2.0, [Key.W]),
@@ -572,7 +560,7 @@ class T:
         [
           [ChangeTeam(Team.T), T.left_killall(), maybe(ChangeTeam())],
           [ChangeTeam(Team.CT), CT.default_defuse(), maybe(ChangeTeam())],
-          [(1.2, [Key.W]), (0.8, [Key.A])],
+          [(2.0, [Key.W]), (0.8, [Key.A])],
         ]
       ),
     ]
@@ -590,11 +578,12 @@ class CT:
       (1.0, [Key.D]),
       (0.5, [Key.W]),
       (3.0, [Key.D]),
-      maybe(shoot()),
       (2.0, [Key.W]),
       (6.0, [Key.W, Key.A]),
-      (2.0, [Key.W]),
-      (1.0, [Key.D]),
+      (2.0, [Key.A]),
+      (2.0, [Key.W, Key.A]),
+      (2.0, [Key.W, Key.D]),
+      (2.0, [Key.S, Key.D]),
       maybe(
         recursive(
           lambda _: [
@@ -619,9 +608,7 @@ class CT:
       (1.0, [Key.A]),
       (0.5, [Key.S]),
       (3.0, [Key.S, Key.A]),
-      (2.0, [Key.W]),
-      (0.3, [Key.A]),
-      maybe(shoot()),
+      (2.5, [Key.W]),
       (1.5, [Key.W, Key.A]),
       (1.0, [Key.W, Key.D]),
       (3.0, [Key.W]),
@@ -629,6 +616,7 @@ class CT:
       (1.5, [Key.W, Key.D]),
       (1.0, [Key.W, Key.A]),
       (0.8, [Key.D]),
+      (1.0, [Key.A]),
       maybe(
         recursive(
           lambda _: [
@@ -659,7 +647,7 @@ class CT:
       (1.0, [Key.A]),
       (0.5, [Key.S]),
       (3.0, [Key.S, Key.A]),
-      (1.6, [Key.W]),
+      (2.0, [Key.W]),
       (0.5, [Key.D]),
       maybe(
         [

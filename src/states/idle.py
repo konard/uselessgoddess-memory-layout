@@ -61,6 +61,15 @@ class Idle(State):
 
       return inner
 
+    def acquire_running(mtype):
+      def inner():
+        from core.services import WindowService
+
+        accounts = WindowService.scan_cs2_windows(ctx.accounts())
+        dispatch(mtype(accounts))
+
+      return inner
+
     def launch(mtype):
       def inner():
         dispatch(mtype())
@@ -102,7 +111,7 @@ class Idle(State):
       ),
       Button(
         "Start match",
-        on_click=acquire_accounts(MatchState),
+        on_click=acquire_running(MatchState),
         button_type=ButtonType.SPECIAL,
         tooltip="Manually run auto-match",
       ),

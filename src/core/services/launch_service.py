@@ -12,7 +12,7 @@ from core.services.account import AccountsService
 from core.services.cs_controller import CS2Controller
 from core.services import UserSettings
 from core.services.windows_service import WindowService
-from resources import game_constants
+from core import game_constants
 from utils import steam_web_helper_limiter
 from .steam_login import steam_login
 

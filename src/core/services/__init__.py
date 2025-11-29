@@ -8,3 +8,4 @@ from .bot import TelegramBotService
 from .capture import ScreenCaptureService, Region
 from .ui import UIService
 from .gsi import GSIService
+from .cs_controller import CS2Controller

@@ -1,3 +1,4 @@
+# TODO: move to ХЗ КУДА
 invite_friend = {"x": 353, "y": 9}
 friend_code_input = {"x": 153, "y": 131}
 result_button = {"x": 168, "y": 136}

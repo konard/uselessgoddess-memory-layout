@@ -11,6 +11,22 @@ class Team(StrEnum):
   CT = "CT"
   UNDEFINED = "undefined"
 
+  def label(self):
+    match self:
+      case Team.T:
+        return "t"
+      case Team.CT:
+        return "ct"
+    return None
+
+  def enemy(self):
+    match self:
+      case Team.T:
+        return Team.CT
+      case Team.CT:
+        return Team.T
+    return None
+
 
 class MapPhase(StrEnum):
   LIVE = "live"
@@ -59,9 +75,9 @@ class WeaponType(StrEnum):
 
 
 class WeaponState(StrEnum):
-  HOLSTERED = "Holstered"
-  ACTIVE = "Active"
-  RELOADING = "Reloading"
+  HOLSTERED = "holstered"
+  ACTIVE = "active"
+  RELOADING = "reloading"
   UNDEFINED = "undefined"
 
 

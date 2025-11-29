@@ -1,27 +1,51 @@
 import time
 import threading
 import queue
+import random
+import enum
 import traceback
 from typing import Optional, Dict, List
 from dataclasses import dataclass
 
+from core.account import Account
 from core.context import Context
 from core.services.gsi.models import GameState, Team, RoundPhase
-from core.services import WindowService
+from core.services import WindowService, CS2Controller
 from core.services.capture import Region
 from core.logging import get_logger
 
-from .impl import infer_path, config, Path
+from .impl import infer_path, config, Path, Key, scancode
 
 logger = get_logger("match.worker")
 
 
+# internal mode settings with extra dev flags
+@dataclass
+class ModeSettings:
+  teams: List[Team] = None
+  prefer_plant: bool = False
+  max_round: int = 8  # todo allow non-tie
+
+
+DEV_MODE = ModeSettings(
+  teams=[Team.T, Team.CT],
+  prefer_plant=False,
+)
+
+
+class State(enum.IntEnum):
+  Prepare = 0
+  Round = 1
+  Stop = 2
+
+
 @dataclass
 class PlayerEntry:
-  steam_id: str
   team: Team
-  phase: RoundPhase
+  account: Account
   bomb: bool
+  phase: RoundPhase
+  win_cs_title: str
 
 
 class MatchWorker(threading.Thread):
@@ -30,162 +54,181 @@ class MatchWorker(threading.Thread):
     self.ctx = ctx
     self.accounts = accounts
 
-    self.running = False
-    self.paused = False
-    self.status = "Idle"
+    self.mode = DEV_MODE
+    self.running = True
+    self.status = "Initializing..."
 
-    # State Queue (как в оригинале)
-    self.state_queue = queue.Queue(maxsize=12)
-
-    # Match State
-    self.current_path: Optional[Path] = None
+    self.path: Path = None
     self.players: Dict[str, PlayerEntry] = {}
-    self.round_number = -1
-    self.round_active = False
-
-    # Current active player index (for rotation if needed)
-    self.current_idx = 0
+    self.score = {Team.CT: 0, Team.T: 0}
+    self.round = -1
+    self.ingame = False
+    self.state = State.Prepare
+    self._event_queue = queue.Queue(maxsize=12)
 
   def run(self):
     logger.info("Worker started")
-    self.running = True
     last_time = time.perf_counter()
 
     while self.running:
-      # 1. Process GSI Queue
+      curr = time.perf_counter()
+
       try:
-        state = self.state_queue.get_nowait()
-        self._process_gsi_event(state)
+        event: GameState = self._event_queue.get_nowait()
+        self.process_state(event)
       except queue.Empty:
         pass
 
-      # 2. Physics / AI Loop
-      curr_time = time.perf_counter()
-      delta = curr_time - last_time
-      last_time = curr_time
+      if self.all_ready() and self.player is not None:
+        if self.state == State.Prepare:
+          # anti afk system
+          self.coco_jambo(self.player.bomb)
+          self.state = State.Round
+          WindowService.focus_window(self.player.win_cs_title)
+        else:
+          self.status = f"Round {self.round}: {self.player.account.login} ({self.state.name})"
 
-      if not self.round_active or self.paused:
-        time.sleep(0.01)
-        continue
+          x, y = self.player.account.posX, self.player.account.posY
+          w, h = self.ctx.su.win_w, self.ctx.su.win_h
+          frame = self.ctx.screen.capture(Region(x, y, w, h))
+          if frame is not None:
+            if self.state != State.Round:
+              continue
 
-      try:
-        self._process_frame(delta)
-      except Exception:
-        logger.error(traceback.format_exc())
-        time.sleep(1.0)
+            targets = self.ctx.ai.infer(frame)
 
-  def on_game_state(self, state: GameState):
+            stop, team = self.path.step(
+              frame,
+              targets,
+              curr - last_time,
+            )
+            if stop:
+              self.state = State.Stop
+            elif team is not None:
+              next_players = [
+                player
+                for player in self.filter_team(team)
+                if player.account.steam_id != self.player.account.steam_id
+              ]
+              if not next_players:
+                logger.error("LESS THAN 2 PLAYERS IN TEAM!")
+              else:
+                self.player = random.choice(next_players)
+              WindowService.focus_window(self.player.win_cs_title)
+      last_time = curr
+      time.sleep(0.001)
+
+    logger.debug(f"Worker exit with status: {self.status}")
+
+  def exit(self):
+    self.running = False
+    self.status = "Exiting..."
+
+  def active_players(self):
+    return list(self.players.values())
+
+  def all_ready(self):
+    return (
+      len(self.accounts) > 0
+      and len(self.active_players()) == len(self.accounts)
+      and all([p.phase == RoundPhase.LIVE for p in self.active_players()])
+    )
+
+  def filter_team(self, team: Team) -> List[PlayerEntry]:
+    return list(p for k, p in self.players.items() if p.team == team)
+
+  def on_game_state(self, event: GameState):
     try:
-      self.state_queue.put_nowait(state)
+      self._event_queue.put_nowait(event)
     except queue.Full:
       try:
-        self.state_queue.get_nowait()
-        self.state_queue.put_nowait(state)
+        self._event_queue.get_nowait()
+        self._event_queue.put_nowait(event)
       except queue.Empty:
         pass
 
-  def _process_gsi_event(self, state: GameState):
-    player = state.player
-    steam_id = state.provider.steamid
-    if not steam_id or steam_id == "0":
-      steam_id = player.steam_id
+  def process_state(self, event: GameState):
+    map, round, player = event.map, event.round, event.player
 
-    # 1. Update Player Registry
-    # Проверяем, есть ли этот игрок в наших аккаунтах
-    is_our_account = any(
-      str(acc.steam_id) == str(steam_id) for acc in self.accounts
+    contains_c4 = any(weapon.type == "C4" for weapon in player.weapons)
+
+    for account in self.accounts:
+      if str(player.steam_id) == str(account.steam_id):
+        if player.team != Team.UNDEFINED:
+          self.players[player.steam_id] = PlayerEntry(
+            team=player.team,
+            account=account,
+            phase=round.phase,
+            bomb=contains_c4,
+            win_cs_title=f"[{account.login}] # CS",  # TODO: from account
+          )
+        elif player.steam_id in self.players:
+          # Remove player from active players if team is undefined
+          del self.players[player.steam_id]
+
+    if map.round != self.round and self.all_ready():
+      self.round = map.round
+      logger.debug(f"start new round {self.round}")
+
+      self.score = {
+        Team.T: map.team_t.score,
+        Team.CT: map.team_ct.score,
+      }
+      self.start_round(map.name, map.mode, self.score)
+
+    active_players = len(self.active_players())
+    if self.ingame and active_players == 0:
+      # hack to calculate final score manually before finish
+      if self.score[Team.T] > self.score[Team.CT]:
+        self.score[Team.T] += 1
+      elif self.score[Team.CT] > self.score[Team.T]:
+        self.score[Team.CT] += 1
+      self.running = False
+    else:
+      self.status_text = f"Waiting {active_players}/{len(self.accounts)}..."
+
+  def start_round(self, map_name: str, mode: str, score: dict):
+    maxround = self.mode.max_round - 2
+    reach_maxround = score[Team.T] == maxround or score[Team.CT] == maxround
+
+    if abs(score[Team.T] - score[Team.CT]) > 5 or reach_maxround:
+      team = Team.T if score[Team.T] < score[Team.CT] else Team.CT
+    else:
+      team = random.choice(self.mode.teams)
+
+    debug = f"team={team.label()}, map={map_name}, mode={mode}"
+    logger.debug(f"starting round with {debug}")
+
+    mates = sorted(self.filter_team(team), key=lambda p: not p.bomb)
+
+    if self.mode.prefer_plant:
+      self.player = mates[0]
+    else:
+      self.player = random.choice(mates)
+
+    self.path = infer_path(
+      map_name, mode, team, self.player.bomb, reach_maxround
     )
+    if self.path is None:
+      logger.error(f"path not found for {debug}")
+      self.exit()
 
-    if is_our_account:
-      has_bomb = any(w.type.name == "C4" for w in player.weapons)
+    self.state = State.Prepare
+    self.ingame = True
 
-      if player.team != Team.UNDEFINED:
-        self.players[steam_id] = PlayerEntry(
-          steam_id=steam_id,
-          team=player.team,
-          phase=state.round.phase,
-          bomb=has_bomb,
-        )
-      elif steam_id in self.players:
-        # Игрок вышел или undefined
-        del self.players[steam_id]
-
-    # 2. Check Round Change
-    # Логика: если номер раунда сменился И все игроки готовы (LIVE)
-    if state.map.round != self.round_number and self._all_ready():
-      logger.info(f"New round detected: {state.map.round}")
-      self.round_number = state.map.round
-      self._start_round(state.map.name, state.map.mode)
-
-    # 3. Update Status Info
-    ready_count = len(
-      [p for p in self.players.values() if p.phase == RoundPhase.LIVE]
-    )
-    if not self.round_active:
-      self.status = f"Waiting... ({ready_count}/{len(self.accounts)} Ready)"
-
-  def _all_ready(self) -> bool:
-    """Все ли аккаунты зашли за команду и находятся в фазе LIVE?"""
-    if not self.accounts:
-      return False
-
-    # В оригинале проверялось: len(active) == len(accounts) and all(LIVE)
-    if len(self.players) < len(self.accounts):
-      return False
-
-    return all(p.phase == RoundPhase.LIVE for p in self.players.values())
-
-  def _start_round(self, map_name: str, mode: str):
-    # Выбираем команду для логики (берем команду первого попавшегося нашего игрока)
-    # В идеале нужно смотреть score difference, как в оригинале
-    my_team = Team.CT
-    if self.players:
-      my_team = list(self.players.values())[0].team
-
-    logger.info(f"Starting round logic for {map_name} as {my_team}")
-
-    # Генерируем путь
-    self.current_path = infer_path(
-      map_name, my_team, bomb=False
-    )  # Bomb check logic todo
-    self.round_active = True
-    self.status = "Round Live"
-
-  # --- Physics / AI ---
-
-  def _process_frame(self, delta: float):
-    if not self.accounts:
-      return
-
-    # TODO: Ротация аккаунтов? Пока берем 0-й
-    acc = self.accounts[self.current_idx]
-
-    win = WindowService.get_window_info(acc.win_cs_title)
-    if not win:
-      return
-
-    wx, wy = win["posX"], win["posY"]
-    WIN_W, WIN_H = self.ctx.su.win_w, self.ctx.su.win_h
-
-    cx = wx + (WIN_W - config.screenshot_width) // 2
-    cy = wy + (WIN_H - config.screenshot_height) // 2
-
-    region = Region(cx, cy, config.screenshot_width, config.screenshot_height)
-    frame = self.ctx.screen.capture(region)
-    if frame is None:
-      return
-
-    targets = self.ctx.ai.infer(frame)
-
-    if self.current_path:
-      self.status = f"Pathing ({acc.login})"
-      finished, new_team = self.current_path.step(self.ctx, targets, delta)
-      if finished:
-        self.current_path = None
-        self.status = "Path Finished"
-
-    time.sleep(0.001)
+  def coco_jambo(self, bomb: bool):
+    for player in self.active_players():
+      WindowService.focus_window(player.win_cs_title)
+      time.sleep(0.2)
+      CS2Controller.press_button(Key.F.value, sleep=0.5)
+      CS2Controller.press_button(Key.CTRL.value, sleep=0.5)
+      CS2Controller.press_button(ord("2"))
+      if player.team == Team.CT:
+        if bomb:
+          CS2Controller.press_button(scancode(35).value)
+        if random.random() < 0.50:
+          CS2Controller.press_button(scancode(37).value)
 
   def stop(self):
-    self.running = False
+    self.exit()
     self.join()

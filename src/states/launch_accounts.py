@@ -58,17 +58,12 @@ class LaunchAccounts(State):
       logger.info(f"launching account +{account.login}")
 
       config_service.apply_video_config(account.steam_id)
-      running_account: RunningAccount = await utils.block_on(
+      running_account: RunningAccount = await utils.block_on(  # noqa: F841 FIXME
         LaunchService.launch_account_with_steam
       )(account, ctx.settings.user, ctx.accounts())
       logger.info(f"{account.login} launched")
 
     await asyncio.sleep(5)
-    logger.info("All accounts launched. Arranging windows...")
-
-    WindowService.arrange_windows(self.accounts_to_launch, ctx.window_size())
-
-    await asyncio.sleep(2.0)
 
     if ctx.ss.farm_on_launch:
       return MakeLobbies()

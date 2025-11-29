@@ -148,6 +148,24 @@ def build_cs2_launch_args(
       # TODO: be worry
       "-language",
       "russian",
+      # optimize TODO: accept from cli args
+      "-swapcores",
+      "-noqueuedload",
+      "-vrdisable",
+      "-nopreload",
+      "-limitvsconst",
+      "-softparticlesdefaultoff",
+      "-nohltv",
+      "-nosound",
+      "-novid",
+      "+violence_hblood",
+      "0",
+      "+sethdmodels",
+      "0",
+      "+mat_disable_fancy_blending",
+      "1",
+      "+r_dynamic",
+      "0",
     ]
   )
   if cs2:

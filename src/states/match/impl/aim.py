@@ -117,28 +117,31 @@ class CpsMonitor:
 
     if self.time >= 1.0:
       self.time = 0
-      if config.cps:
-        print(f"CPS: {self.frames}")
       self.frames = 0
       self.time = 0
 
 
-model_multiplier = 1
+def filter_by_aspect(
+  aspect_filter: float, targets: List[Target]
+) -> List[Target]:
+  filtered = []
+  for t in targets:
+    if t.height > 0:
+      aspect = t.width / t.height
+      if aspect <= aspect_filter:
+        filtered.append(t)
+
+  return filtered
 
 
-def preprocess_frame(raw_frame: np.ndarray, model_input: int) -> np.ndarray:
-  frame = raw_frame[..., :3]
-  return cv2.resize(frame, (model_input, model_input))
+model_multiplier = 3  # TODO: research
 
 
 class AimController(Action):
-  def __init__(
-    self, model: InferenceService, direction: float, burst: bool = True
-  ):
+  def __init__(self, direction: float, burst: bool = True):
     self.center = (config.screenshot_width // 2, config.screenshot_height // 2)
     self.monitor = CpsMonitor()
 
-    self.model = model
     self.direction = direction
     self.burst = burst
 
@@ -157,10 +160,9 @@ class AimController(Action):
   def execute(self, ctx: Context) -> Step:
     self.step(
       ctx.team.enemy().label(),
-      ctx.frame,
+      ctx.targets,
       ctx.delta,
       headshot=self.headshot,
-      recorder=ctx.recorder,
     )
     return False, None
 
@@ -170,14 +172,19 @@ class AimController(Action):
   def step(
     self,
     enemy_label: str,
-    raw_frame: np.ndarray,
+    targets: List[Target],
     delta: float,
     headshot=False,
   ):
-    frame = preprocess_frame(raw_frame, config.model_input)
+    targets = [
+      t
+      for t in targets
+      if t.confidence >= config.confidence and t.label == enemy_label
+    ]
+    targets = filter_by_aspect(config.filter_aspect, targets)
 
     if self.model_timer.tick():
-      self.targets = self.model.infer(frame)
+      self.targets = targets
       self.target = choose_target(self.targets, self.center)
 
     if self.target is not None:
@@ -201,14 +208,9 @@ class AimController(Action):
 
         if should_force_rotate and len(self.targets) == 0:
           # todo rework rotation config values
-          rotate_step(self.direction * 300 * delta)
+          rotate_step(self.direction * 400 * delta)
 
     self.monitor.tick(delta)
-
-    if config.visuals:
-      cv2.imshow("Live Feed", frame)
-      if (cv2.waitKey(1) & 0xFF) == ord("q"):
-        exit()
 
   # todo!> use custom up/down functions instead of winapi
   def burst_fire(self, in_sight: bool, delta: float):
