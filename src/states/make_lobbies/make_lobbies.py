@@ -122,5 +122,5 @@ class MakeLobbies(State):
       return SelectMap(party_schema)
 
     except ValueError as e:
-      reason: str = e.reason
+      logger.error(f"{e}")
       return

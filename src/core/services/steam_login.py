@@ -7,9 +7,9 @@ import hmac
 
 from pyzbar.pyzbar import decode
 
-from src.core.logging import get_logger
-from src.core.services import UserSettings
-from src.core.services.windows_service import WindowService
+from core.logging import get_logger
+from core.services import UserSettings
+from core.services.windows_service import WindowService
 
 logger = get_logger("sv.launch")
 

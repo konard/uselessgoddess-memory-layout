@@ -8,7 +8,7 @@ from pyscreeze import ImageNotFoundException
 from typing import TYPE_CHECKING
 
 from core.account.model import RunningAccount
-from src.constants import win_w, win_h
+from constants import win_w, win_h
 from core.logging import get_logger
 from core.account import Account
 from core.utils import async_methods

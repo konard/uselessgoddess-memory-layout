@@ -10,10 +10,10 @@ from core.logging import get_logger
 from core.account import Account
 from core.services.account import AccountsService
 from core.services.cs_controller import CS2Controller
-from core.services.steam_login import steam_login
+from core.services import UserSettings
 from core.services.windows_service import WindowService
 from utils import steam_web_helper_limiter
-from src.core.services import UserSettings
+from .steam_login import steam_login
 
 logger = get_logger("yacs.launch")
 
@@ -91,13 +91,13 @@ class LaunchService:
 
       next_x, next_y = WindowService.get_next_window_position(accounts)
 
-      time.sleep(5)  # sleep saves all
-      WindowService.move_window_to_position(
-        running_account.win_cs_title, next_x, next_y
-      )
-      running_account.posX = next_x
-      running_account.posY = next_y
-      time.sleep(10)  # ULTRAFIXME: use less time. sleep saves all
+      # time.sleep(5)  # sleep saves all
+      # WindowService.move_window_to_position(
+      #   running_account.win_cs_title, next_x, next_y
+      # )
+      # running_account.posX = next_x
+      # running_account.posY = next_y
+      # time.sleep(10)  # ULTRAFIXME: use less time. sleep saves all
 
       logger.info(f"+ Аккаунт {account.login} успешно запущен!")
 

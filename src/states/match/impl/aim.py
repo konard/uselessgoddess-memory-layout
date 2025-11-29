@@ -1,0 +1,238 @@
+import enum
+import random
+import time
+from typing import List, Optional, Tuple
+
+import cv2
+import numpy as np
+import win32api
+import win32con
+
+from core.logging import get_logger
+from core.services.ai import Target, InferenceService
+
+from .config import config
+from .detector import MinimapDirectionDetector
+from .rotation import rotate_step
+from .utils import Key, Action, Context, Step
+
+logger = get_logger("match.aim")
+
+
+def choose_target(
+  targets: List[Target], center: Tuple[float, float]
+) -> Optional[Target]:
+  if not targets:
+    return None
+  if config.center_of_screen:
+    cx, cy = center
+    targets = sorted(
+      targets,
+      key=lambda t: (t.mid_x - cx) ** 2 + (t.mid_y - cy) ** 2,
+    )
+  # Note: original code computed a distance to last_mid_coord but never applied the sort
+  return targets[0]
+
+
+def compute_mouse_move(
+  target: Target, center: Tuple[float, float], headshot: bool
+) -> Tuple[float, float]:
+  cx, cy = center
+  box_height = target.height
+  headshot_offset = box_height * (0.38 if headshot else 0.2)
+  return target.mid_x - cx, (target.mid_y - headshot_offset) - cy
+
+
+def maybe_move_mouse(dx: float, dy: float) -> None:
+  win32api.mouse_event(
+    win32con.MOUSEEVENTF_MOVE,
+    int(dx * config.aa_movement_amp / model_multiplier),
+    int(dy * config.aa_movement_amp / model_multiplier),
+    0,
+    0,
+  )
+
+
+def shoot_mouse() -> None:
+  win32api.keybd_event(Key.K.value, 0, 0, 0)
+  time.sleep(float(random.randint(60, 120)) / 10000)
+  win32api.keybd_event(Key.K.value, 0, win32con.KEYEVENTF_KEYUP, 0)
+  time.sleep(float(random.randint(60, 120)) / 10000)
+
+
+def should_shoot(target: Target, center: Tuple[float, float]) -> bool:
+  cx, cy = center
+  distance = ((target.mid_x - cx) ** 2 + (target.mid_y - cy) ** 2) ** 0.5
+  return distance <= config.shoot_distance_threshold
+
+
+class State(enum.IntEnum):
+  manual = 0
+  align = 1
+  walk = 2
+  aim = 3
+
+
+class FramesTimer:
+  def __init__(self, duration: int):
+    self.frames = 0
+    self.duration = duration
+
+  def tick(self):
+    self.frames += 1
+
+    if self.frames > self.duration:
+      self.frames = 0
+      return True
+    else:
+      return False
+
+
+class Timer:
+  def __init__(self, duration: float):
+    self.time = 0
+    self.duration = duration
+
+  def stop(self):
+    self.duration = float("inf")
+
+  def tick(self, delta: float):
+    self.time += delta
+
+    if self.time > self.duration:
+      self.time = 0
+      return True
+    else:
+      return False
+
+
+class CpsMonitor:
+  def __init__(self):
+    self.frames = 0
+    self.time = 0
+
+  def tick(self, delta: float):
+    self.frames += 1
+    self.time += delta
+
+    if self.time >= 1.0:
+      self.time = 0
+      if config.cps:
+        print(f"CPS: {self.frames}")
+      self.frames = 0
+      self.time = 0
+
+
+model_multiplier = 1
+
+
+def preprocess_frame(raw_frame: np.ndarray, model_input: int) -> np.ndarray:
+  frame = raw_frame[..., :3]
+  return cv2.resize(frame, (model_input, model_input))
+
+
+class AimController(Action):
+  def __init__(
+    self, model: InferenceService, direction: float, burst: bool = True
+  ):
+    self.center = (config.screenshot_width // 2, config.screenshot_height // 2)
+    self.monitor = CpsMonitor()
+
+    self.model = model
+    self.direction = direction
+    self.burst = burst
+
+    # timers
+    self.model_timer = FramesTimer(model_multiplier)
+    self.burst_timer = Timer(0)
+    self.pistol_timer = Timer(0)
+    self.cooldown_timer = Timer(0)
+    self.rotation_timer = Timer(0)
+
+    self.targets = []
+    self.target = None
+    # try to hs on this round
+    self.headshot = random.random() < config.headshot_chance
+
+  def execute(self, ctx: Context) -> Step:
+    self.step(
+      ctx.team.enemy().label(),
+      ctx.frame,
+      ctx.delta,
+      headshot=self.headshot,
+      recorder=ctx.recorder,
+    )
+    return False, None
+
+  def release(self):
+    pass
+
+  def step(
+    self,
+    enemy_label: str,
+    raw_frame: np.ndarray,
+    delta: float,
+    headshot=False,
+  ):
+    frame = preprocess_frame(raw_frame, config.model_input)
+
+    if self.model_timer.tick():
+      self.targets = self.model.infer(frame)
+      self.target = choose_target(self.targets, self.center)
+
+    if self.target is not None:
+      dx, dy = compute_mouse_move(self.target, self.center, headshot)
+      maybe_move_mouse(dx, dy)
+
+      self.burst_fire(
+        should_shoot(self.target, self.center),
+        delta,
+      )
+    else:
+      if config.enable_rotation:
+        should_force_rotate = self.rotation_timer.tick(delta)
+
+        if should_force_rotate:
+          self.rotation_timer = Timer(0)
+          # logger.debug("force rotating to search for targets")
+
+        if len(self.targets) != 0:
+          self.rotation_timer = Timer(config.rotation_interval)
+
+        if should_force_rotate and len(self.targets) == 0:
+          # todo rework rotation config values
+          rotate_step(self.direction * 300 * delta)
+
+    self.monitor.tick(delta)
+
+    if config.visuals:
+      cv2.imshow("Live Feed", frame)
+      if (cv2.waitKey(1) & 0xFF) == ord("q"):
+        exit()
+
+  # todo!> use custom up/down functions instead of winapi
+  def burst_fire(self, in_sight: bool, delta: float):
+    shoot = Key.K.value
+
+    if not in_sight:
+      win32api.keybd_event(shoot, 0, win32con.KEYEVENTF_KEYUP, 0)
+      return
+
+    if not self.burst and self.pistol_timer.tick(delta):
+      # todo!> extract uniform timer and shoot into function
+      a, b = config.shoot_cooldown
+      self.pistol_timer = Timer(random.uniform(a, b))
+      win32api.keybd_event(shoot, 0, 0, 0)
+      win32api.keybd_event(shoot, 0, win32con.KEYEVENTF_KEYUP, 0)
+      return
+
+    if self.burst_timer.tick(delta):
+      win32api.keybd_event(shoot, 0, win32con.KEYEVENTF_KEYUP, 0)
+      a, b = config.shoot_cooldown
+      self.cooldown_timer = Timer(random.uniform(a, b))
+      self.burst_timer.stop()
+    elif self.cooldown_timer.tick(delta):
+      win32api.keybd_event(shoot, 0, 0, 0)
+      a, b = config.shoot_burst
+      self.burst_timer = Timer(random.uniform(a, b))
+      self.cooldown_timer.stop()

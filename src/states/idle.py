@@ -1,17 +1,22 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from states.launch_accounts import LaunchAccounts
-from states.make_lobbies import MakeLobbies
-from ui.widgets import Button, HStack
 from ui import ButtonType
+from ui.widgets import Button, HStack
+
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.panel import Message, State, StateManager, handles
-from states.wait_for_game import WaitForGame
 
-from states import debug
+from states import (
+  debug,
+  MatchState,
+  MakeLobbies,
+  WaitForGame,
+  LaunchAccounts,
+)
+
 import states
 
 logger = get_logger("state.idle")
@@ -95,6 +100,12 @@ class Idle(State):
         tooltip="Launch accounts.",
       ),
       Button(
+        "Start match",
+        on_click=acquire_accounts(MatchState),
+        button_type=ButtonType.SPECIAL,
+        tooltip="Manually run auto-match",
+      ),
+      Button(
         "Debug AI (Camera)",
         on_click=lambda: dispatch(debug.AIState()),
         button_type=ButtonType.SPECIAL,
@@ -151,6 +162,11 @@ class Idle(State):
     await manager.into_state(
       states.LaunchAccounts(message.accounts_to_launch).then(self),
     )
+
+  @handles(MatchState)
+  async def _on_match(self, state, manager: StateManager):
+    logger.debug(f"start match: {state}")
+    await manager.into_state(state.then(self))
 
   @handles(debug.AIState)
   async def _on_debug_ai(self, state, manager: StateManager):
