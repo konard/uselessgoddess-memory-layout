@@ -12,7 +12,7 @@ from pyuac import isUserAdmin, runAsAdmin
 from PyQt6.QtWidgets import QApplication
 
 from src.app.main_window import MainWindow
-from src.states import Idle
+from src.states.idle import Idle
 import pyautogui
 
 pyautogui.FAILSAFE = False

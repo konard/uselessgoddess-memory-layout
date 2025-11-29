@@ -9,12 +9,9 @@ from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.process_config import ConfigService
-from core.services.cs_controller import CS2Controller
-from core.services.launch_service import LaunchService
+from core.services import LaunchService, WindowService
 from core import utils
-from core.services.windows_service import WindowService
-from resources import game_constants
-from states.make_lobbies.make_lobbies import MakeLobbies
+from states.make_lobbies import MakeLobbies
 
 logger = get_logger("state.launch_accounts")
 
@@ -67,4 +64,11 @@ class LaunchAccounts(State):
       logger.info(f"{account.login} launched")
 
     await asyncio.sleep(5)
-    return MakeLobbies()
+    logger.info("All accounts launched. Arranging windows...")
+
+    WindowService.arrange_windows(self.accounts_to_launch, ctx.window_size())
+
+    await asyncio.sleep(2.0)
+
+    if ctx.ss.farm_on_launch:
+      return MakeLobbies()

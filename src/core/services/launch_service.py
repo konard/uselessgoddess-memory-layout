@@ -10,11 +10,11 @@ from core.logging import get_logger
 from core.account import Account
 from core.services.account import AccountsService
 from core.services.cs_controller import CS2Controller
-from core.services.steam_login import steam_login
+from core.services import UserSettings
 from core.services.windows_service import WindowService
 from resources import game_constants
 from utils import steam_web_helper_limiter
-from src.core.services import UserSettings
+from .steam_login import steam_login
 
 logger = get_logger("yacs.launch")
 

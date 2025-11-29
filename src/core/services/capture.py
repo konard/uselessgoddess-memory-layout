@@ -37,7 +37,7 @@ class ScreenCaptureService:
     self._init_camera()
 
   def _init_camera(self):
-    self.camera = bettercam.create(output_idx=0, output_color="BGR")
+    self.camera = bettercam.create(output_idx=0, output_color="BGRA")
     self.w = self.camera.width
     self.h = self.camera.height
 

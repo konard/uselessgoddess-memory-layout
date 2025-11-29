@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING
 from core.logging import get_logger
 from core.services import (
   GCService,
@@ -70,3 +70,10 @@ class Context:
   @property  # shorthand to `settings.user`
   def su(self):
     return self.settings.user
+
+  @property  # shorthand to `settings.system`
+  def ss(self):
+    return self.settings.system
+
+  def window_size(self) -> Tuple[int, int]:
+    return self.su.win_w, self.su.win_h

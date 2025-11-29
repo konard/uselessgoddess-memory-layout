@@ -92,10 +92,21 @@ class DashboardTab(QWidget):
         on_click=self.open_settings,
         button_type=ButtonType.DEFAULT,
       ),
+      Button(
+        "Arrange Windows",
+        on_click=lambda _: self._arrange_now(),
+        button_type=ButtonType.DEFAULT,
+      ),
     )
     layout = QVBoxLayout(panel.container)
     layout.addWidget(content_widget)
     return panel
+
+  def _arrange_now(self):
+    from core.services import WindowService
+
+    # TODO: arrange running accounts
+    WindowService.arrange_windows(self.ctx.accounts(), self.ctx.window_size())
 
   def _create_accounts_panel(self) -> QWidget:
     self.accounts_container = TitledPanel("Accounts")
@@ -145,7 +156,11 @@ class DashboardTab(QWidget):
     if not current_state:
       return
 
-    widgets = current_state.layout(self.ctx, self.dispatch_message)
+    widgets = []
+    try:
+      widgets = current_state.layout(self.ctx, self.dispatch_message)
+    except Exception as e:
+      logger.error(f"invalid layout: {e}")
 
     container = self.state_panel.container
     if container.layout():

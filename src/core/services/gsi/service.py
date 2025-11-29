@@ -120,3 +120,7 @@ class GSIService:
 
   def listen_raw(self, callback: Callable[[GameState], None]):
     self._global_subscribers.append(callback)
+
+  def unlisten_raw(self, callback: Callable[[GameState], None]):
+    if callback in self._global_subscribers:
+      self._global_subscribers.remove(callback)

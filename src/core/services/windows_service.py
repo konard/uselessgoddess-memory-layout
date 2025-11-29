@@ -1,11 +1,9 @@
-"""
-WindowService - сервис для управления окнами Steam/CS2
-"""
-
 from typing import Tuple, List, Dict
+import time
 import autoit
 import pyautogui
 import win32gui
+import win32api
 import win32con
 import win32process
 
@@ -240,6 +238,47 @@ class WindowService:
     if values:
       return list(running.values())
     return list(running.keys())
+
+  @staticmethod
+  def arrange_windows(accounts: List[Account], dimension: Tuple[int, int]):
+    width, height = dimension
+
+    try:
+      screen_w = win32api.GetSystemMetrics(0)
+      max_cols = max(1, screen_w // width)
+      placed_count = 0
+
+      for account in accounts:
+        window_title = f"[{account.login}] # CS"
+
+        hwnd = win32gui.FindWindow(None, window_title)
+
+        if hwnd:
+          row = placed_count // max_cols
+          col = placed_count % max_cols
+
+          x = col * width
+          y = row * height
+
+          try:
+            win32gui.MoveWindow(hwnd, x, y, width, height, True)
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOWNOACTIVATE)
+
+            if hasattr(account, "posX"):
+              account.posX = x
+              account.posY = y
+
+            placed_count += 1
+            logger.debug(f"Arranged {account.login} to ({x}, {y})")
+
+          except Exception as e:
+            logger.error(f"Failed to move window for {account.login}: {e}")
+        else:
+          logger.trace(f"Window not found for arranging: {account.login}")
+
+        time.sleep(0.5)
+    except Exception as e:
+      logger.error(f"Global arrange error: {e}")
 
   @staticmethod
   async def focus_window_async(window_title: str): ...
