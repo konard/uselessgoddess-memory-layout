@@ -30,10 +30,9 @@ class MainWindow(QMainWindow):
     self.ctx = Context()
 
     self.manager = StateManager(self.ctx, callback=lambda: None)
-    self.gc = GCService(self.ctx)
 
     # FIXME: avoid this pls!
-    asyncio.create_task(start_gc_server(self.gc))
+    asyncio.create_task(start_gc_server(self.ctx.gc))
     asyncio.create_task(self.ctx.bot.start())
     self.ctx.gsi.start()
 

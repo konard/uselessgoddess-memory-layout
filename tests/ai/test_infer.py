@@ -3,7 +3,6 @@ import onnxruntime  # FIXME: RESEARCH ONNX import problem
 import pytest
 import cv2
 import numpy as np
-import os
 
 from core.services.ai import InferenceService, Target
 

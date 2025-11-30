@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import dataclass, field
 
+from states.continue_farm import ContinueFarm
 from ui import ButtonType
 from states.select_map import SelectMap
 from ui.widgets import Button, HStack
@@ -18,6 +19,7 @@ from states import (
   LaunchAccounts,
 )
 
+from states.types import GameSchema
 import states
 
 logger = get_logger("state.idle")
@@ -41,6 +43,11 @@ class Trade(Message):
 @dataclass
 class Report(Message):
   accounts: list[Account] = field(default_factory=list)
+
+
+@dataclass
+class ContinueFarmMsg(Message):
+  game_schema: GameSchema = None
 
 
 class Idle(State):
@@ -111,7 +118,7 @@ class Idle(State):
       ),
       Button(
         "Start match",
-        on_click=acquire_running(MatchState),
+        on_click=lambda: dispatch(MatchState(None)),
         button_type=ButtonType.SPECIAL,
         tooltip="Manually run auto-match",
       ),
@@ -121,15 +128,22 @@ class Idle(State):
         button_type=ButtonType.SPECIAL,
         tooltip="Open OpenCV window to see what bot sees",
       ),
-      Button(
-        "Make Lobbies",
-        on_click=lambda: dispatch(MakeLobbies(None)),
-        tooltip="Make lobbies.",
+      HStack(
+        Button(
+          "Make Lobbies",
+          on_click=lambda: dispatch(MakeLobbies(None)),
+          tooltip="Make lobbies.",
+        ),
+        Button(
+          "Select Map",
+          on_click=lambda: dispatch(SelectMap(None)),
+          tooltip="Select map.",
+        ),
       ),
       Button(
-        "Select Map",
-        on_click=lambda: dispatch(SelectMap(None)),
-        tooltip="Select map.",
+        "Continue Farm",
+        on_click=lambda: dispatch(ContinueFarmMsg()),
+        tooltip="Continue farming.",
       ),
     ]
 
@@ -202,4 +216,10 @@ class Idle(State):
   async def _on_select_map(self, state, manager: StateManager):
     await manager.into_state(
       state.then(self),
+    )
+
+  @handles(ContinueFarmMsg)
+  async def _on_continue_farm(self, state, manager: StateManager):
+    await manager.into_state(
+      ContinueFarm(state.game_schema).then(self),
     )

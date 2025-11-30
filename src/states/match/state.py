@@ -4,6 +4,8 @@ import asyncio
 from core.panel import State
 from core.context import Context
 from core.logging import get_logger
+from core.services.windows_service import WindowService
+from states.types import GameSchema
 from ui.widgets import Label, LabelType, Button, VStack
 
 from .worker import MatchWorker
@@ -12,10 +14,10 @@ logger = get_logger("state.match")
 
 
 class MatchState(State):
-  def __init__(self, accounts: list):
-    self.accounts = accounts
+  def __init__(self, game_schema: Optional[GameSchema]):
     self.worker: Optional[MatchWorker] = None
     self.lbl_status = Label("Initializing...")
+    self.game_schema = game_schema
 
   def layout(self, ctx: Context, dispatch):
     return [
@@ -32,7 +34,13 @@ class MatchState(State):
     self.worker = None
 
   async def execute(self, ctx: Context):
-    self.worker = MatchWorker(ctx, self.accounts)
+    from states.continue_farm import ContinueFarm
+
+    launched_accounts = WindowService.scan_cs2_windows(
+      ctx.accounts(), values=True
+    )
+
+    self.worker = MatchWorker(ctx, launched_accounts)
 
     ctx.gsi.listen_raw(self.worker.on_game_state)
     self.worker.start()
@@ -46,3 +54,4 @@ class MatchState(State):
         ctx.gsi.unlisten_raw(self.worker.on_game_state)
         self.worker.stop()
       pass
+    return ContinueFarm(self.game_schema)

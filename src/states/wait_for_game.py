@@ -1,8 +1,9 @@
 import asyncio
+from core.services.windows_service import WindowService
 import states
-from typing import Optional, Tuple
+from typing import Tuple
 from core.panel.state import State
-from core.services import WindowService, CS2Controller
+from core.services import CS2Controller
 from core.yass import Yass
 from core import game_constants
 from states.types import PartySchema
@@ -17,6 +18,8 @@ class WaitForGame(State):
     self.party_schema = party_schema
 
   async def execute(self, ctx: Context):
+    from states.match.state import MatchState
+
     logger.info(f"Waiting for match_id for {len(self.party_schema)} accounts")
 
     count = 0
@@ -62,7 +65,15 @@ class WaitForGame(State):
 
       for party in self.party_schema:
         for account in party.all:
+          await WindowService.focus_window_async(account.win_cs_title)
+
+          await asyncio.sleep(0.5)
+
           await CS2Controller.click_async(
             **game_constants.accept_game_button, account=account
           )
+
+          await asyncio.sleep(0.5)
       break
+
+    return MatchState(self.party_schema)
