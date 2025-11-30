@@ -35,7 +35,7 @@ class SelectMap(State):
         )
 
         await CS2Controller.click_bulk_async(
-          "resources/img/check.png", party.leader, 0.7
+          "resources/img/check.png", party.leader, 0.65
         )
 
         await asyncio.sleep(0.3)
