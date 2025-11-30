@@ -1,6 +1,6 @@
 from enum import Enum
 from PyQt6.QtWidgets import QLabel
-from src.ui.theme import CURRENT_THEME
+from ui.theme import CURRENT_THEME
 
 
 class LabelType(Enum):

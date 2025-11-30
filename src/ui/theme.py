@@ -40,3 +40,24 @@ class ButtonType(Enum):
 
 
 CURRENT_THEME = Theme()
+
+MAIN_WINDOW_STYLESHEET = f"""
+  QWidget {{ 
+      background-color: {CURRENT_THEME.BACKGROUND}; 
+      color: {CURRENT_THEME.PRIMARY_TEXT}; 
+  }}
+  QTabWidget::pane {{ 
+      border: none; 
+  }}
+  QTabBar::tab {{ 
+      background: {CURRENT_THEME.PANEL_BACKGROUND}; 
+      color: {CURRENT_THEME.SECONDARY_TEXT}; 
+      padding: 8px 20px; 
+      margin-right: 2px; 
+  }}
+  QTabBar::tab:selected {{ 
+      background: {CURRENT_THEME.INPUT_BACKGROUND}; 
+      color: {CURRENT_THEME.PRIMARY_TEXT}; 
+      border-bottom: 2px solid {CURRENT_THEME.ACCENT_BLUE}; 
+  }}
+"""

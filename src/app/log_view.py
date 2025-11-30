@@ -1,10 +1,21 @@
 import html
 import logging
 from typing import List
+
 from PyQt6.QtWidgets import QTextEdit, QComboBox, QLineEdit
 from PyQt6.QtGui import QTextCursor
+from PyQt6.QtCore import QTimer
 
-from src.ui.theme import CURRENT_THEME
+from ui.theme import CURRENT_THEME
+
+
+class QtLogHandler(logging.Handler):
+  def __init__(self, widget: "LogHandler"):
+    super().__init__()
+    self.widget = widget
+
+  def emit(self, record):
+    QTimer.singleShot(0, lambda: self.widget.append(record))
 
 
 class LogHandler:

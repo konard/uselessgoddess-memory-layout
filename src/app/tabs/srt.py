@@ -3,9 +3,9 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from core.utils import run_blocking
 from core.context import Context
 from core.logging import get_logger
-from src.ui import ButtonType
-from src.ui.widgets import Button, TitledPanel
-from src.app.srt_table import SRTTable
+from ui import ButtonType
+from ui.widgets import Button, TitledPanel
+from app.srt_table import SRTTable
 
 logger = get_logger("ui.srt")
 

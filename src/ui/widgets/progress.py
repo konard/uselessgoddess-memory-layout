@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QProgressBar
-from src.ui.theme import CURRENT_THEME
+from ui.theme import CURRENT_THEME
 
 
 class Progress(QProgressBar):

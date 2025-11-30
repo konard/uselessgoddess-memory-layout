@@ -4,14 +4,14 @@ import importlib
 import pkgutil
 from typing import Dict, List
 
-from src.core.logging import get_logger
+from core.logging import get_logger
 from . import PluginBase
 
 
 class PluginManager:
   """Менеджер плагинов: обнаружение, безопасная загрузка и управление жизненным циклом."""
 
-  def __init__(self, plugins_package: str = "src.plugins.available") -> None:
+  def __init__(self, plugins_package: str = "plugins.available") -> None:
     self._logger = get_logger("PluginManager")
     self._plugins_package = plugins_package
     self._loaded: Dict[str, PluginBase] = {}

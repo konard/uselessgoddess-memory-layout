@@ -1,4 +1,3 @@
-
 from typing import TYPE_CHECKING
 from core.services.gc.lobby_service import LobbyService
 from core.services.gc.matcher_service import MatcherService
@@ -8,9 +7,12 @@ from core.account.lock import AccountsLock
 
 if TYPE_CHECKING:
   from core.context import Context
+  from core.panel import StateManager
+
 
 class GCService:
   ctx: "Context"
+  manager: "StateManager"
   player_info_service: PlayerInfoService
   lobby_service: LobbyService
 

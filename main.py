@@ -9,10 +9,13 @@ import qasync
 import subprocess
 from pyuac import isUserAdmin, runAsAdmin
 
+# Add src to sys.path to allow imports from core, app, etc.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+
 from PyQt6.QtWidgets import QApplication
 
-from src.app.main_window import MainWindow
-from src.states.idle import Idle
+from app.main_window import MainWindow
+from states.idle import Idle
 import pyautogui
 
 pyautogui.FAILSAFE = False

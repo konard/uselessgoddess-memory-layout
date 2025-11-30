@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
-from src.ui.theme import CURRENT_THEME
+from ui.theme import CURRENT_THEME
 
 
 class TitledPanel(QWidget):

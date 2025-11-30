@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import List, Tuple, TYPE_CHECKING
 from core.logging import get_logger
 from core.services import (
-  GCService,
   SRTService,
   ScreenCaptureService,
   ai,
@@ -24,10 +23,8 @@ logger = get_logger("ctx")
 class Context:
   account: AccountsService
   settings: SettingsService
-  gc: GCService
   srt: SRTService
   bot: TelegramBotService
-
   ui: UIService
   ai: ai.InferenceService
   screen: ScreenCaptureService
@@ -37,7 +34,6 @@ class Context:
 
     self.account = AccountsService.load()
     self.settings = SettingsService()
-    self.gc = GCService(self)
     self.srt = SRTService()
     self.bot = TelegramBotService(self)
     self.ui = UIService()

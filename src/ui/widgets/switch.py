@@ -9,7 +9,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QPainter, QColor
 
-from src.ui.theme import CURRENT_THEME
+from ui.theme import CURRENT_THEME
 
 
 class _SwitchSlider(QWidget):

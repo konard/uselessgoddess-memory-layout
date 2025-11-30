@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from src.plugins import PluginBase
-from src.core.logging import get_logger
+from plugins import PluginBase
+from core.logging import get_logger
 
 logger = get_logger("example_plugin")
 

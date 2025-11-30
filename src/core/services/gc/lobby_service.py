@@ -41,13 +41,13 @@ class InviteTimeoutError(Exception):
 
 class LobbyService:
   match_warning: MatchWarning = MatchWarning()
-  invites: dict[
-    str, Tuple[CMsgClientChatInvite | None, asyncio.Event, float | None]
-  ] = {}
   ctx: Context
-  
+
   def __init__(self, ctx: Context):
     self.ctx = ctx
+    self.invites: dict[
+      str, Tuple[CMsgClientChatInvite | None, asyncio.Event, float | None]
+    ] = {}
 
   async def wait_for_invite(self, account: Account) -> CMsgClientChatInvite:
     """
@@ -161,7 +161,6 @@ class LobbyService:
   def process_offline_event(self, data: bytes, login: str):
     decoded_message: CMsgClientOfflineMessageNotification = decode_bytes(data)
     print(decoded_message)
-    
 
   def process_message(self, data: bytes, login: str, msg_id: int):
     """Обрабатывает входящие сообщения и ищет инвайты"""

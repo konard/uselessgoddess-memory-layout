@@ -9,8 +9,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 
 from core.services import srt
-from src.ui.widgets import Switch
-from src.ui.theme import CURRENT_THEME
+from ui.widgets import Switch
+from ui.theme import CURRENT_THEME
 
 
 class SortableItem(QTableWidgetItem):

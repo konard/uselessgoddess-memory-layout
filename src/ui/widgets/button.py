@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 from PyQt6.QtWidgets import QPushButton
-from src.ui.theme import CURRENT_THEME, ButtonType
+from ui.theme import CURRENT_THEME, ButtonType
 
 
 class Button(QPushButton):

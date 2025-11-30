@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from src.ui.align import Align
+from ui.align import Align
 
 
 class VStack(QWidget):

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtCore import Qt, QPoint
-from src.ui.theme import CURRENT_THEME
+from ui.theme import CURRENT_THEME
 
 
 class Tooltip(QLabel):

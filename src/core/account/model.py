@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict
 from enum import Enum
+
+from core.logging import get_logger
 from .lock import AccountsLock
+
+
+logger = get_logger("account.model")
 
 
 class FarmStatus(str, Enum):
@@ -11,6 +16,14 @@ class FarmStatus(str, Enum):
   CAN_BE_LOOTED = "can_be_looted"
   FARMED = "farmed"
   TRADED = "traded"
+
+
+status_map = {
+  FarmStatus.NEED_TO_FARM: FarmStatus.CAN_BE_LOOTED,
+  FarmStatus.CAN_BE_LOOTED: FarmStatus.FARMED,
+  FarmStatus.FARMED: FarmStatus.TRADED,
+  FarmStatus.TRADED: FarmStatus.NEED_TO_FARM,
+}
 
 
 class Metadata(Dict[str, Any]):
@@ -97,7 +110,13 @@ class AccountMetadata:
 
   @status.setter
   def status(self, value: FarmStatus) -> None:
+    current_status = self._data.get("status")
+    if status_map[current_status] != value:
+      logger.trace(f"Invalid status transition: {current_status} -> {value}")
+      return
+
     self._data["status"] = value
+
     if self._lock:
       self._lock.set_field(self._login, "status", value)
 

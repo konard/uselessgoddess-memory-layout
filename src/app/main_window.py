@@ -1,70 +1,21 @@
 import asyncio
 from PyQt6.QtWidgets import (
   QMainWindow,
-  QComboBox,
-  QLineEdit,
-  QWidget,
-  QHBoxLayout,
-  QVBoxLayout,
-  QLabel,
-  QGridLayout,
-  QTextEdit,
   QTabWidget,
 )
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QFont, QTextOption, QCloseEvent
+from PyQt6.QtGui import QFont, QCloseEvent
 
 from core.process_config import ConfigService
-from core.services.gc import start_gc_server
+from core.services.gc import GCService, start_gc_server
 from core.services.status_reset_service import StatusResetService
-from src.core.panel import StateManager, Message
+from core.panel import StateManager
 from core.logging import get_logger, logging
 from core.context import Context
-from core import utils
-
-from ui.theme import CURRENT_THEME, ButtonType
-from ui.widgets import Button, TitledPanel, Switch, VStack
-
-from .log_view import LogHandler
-from .settings import SettingsDialog
-from .srt_table import SRTTable
-
+from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
+from .log_view import LogHandler, QtLogHandler
 from .tabs import DashboardTab, SRTTab, GSITab
 
 logger = get_logger("ui.main")
-
-STYLESHEET = f"""
-  QWidget {{ 
-      background-color: {CURRENT_THEME.BACKGROUND}; 
-      color: {CURRENT_THEME.PRIMARY_TEXT}; 
-  }}
-  QTabWidget::pane {{ 
-      border: none; 
-      /* Если нужна тонкая линия сверху, раскомментируйте: */
-      /* border-top: 1px solid {CURRENT_THEME.BORDER}; */
-  }}
-  QTabBar::tab {{ 
-      background: {CURRENT_THEME.PANEL_BACKGROUND}; 
-      color: {CURRENT_THEME.SECONDARY_TEXT}; 
-      padding: 8px 20px; 
-      margin-right: 2px; 
-  }}
-  QTabBar::tab:selected {{ 
-      background: {CURRENT_THEME.INPUT_BACKGROUND}; 
-      color: {CURRENT_THEME.PRIMARY_TEXT}; 
-      border-bottom: 2px solid {CURRENT_THEME.ACCENT_BLUE}; 
-  }}
-
-"""
-
-
-class QtLogHandler(logging.Handler):
-  def __init__(self, widget: LogHandler):
-    super().__init__()
-    self.widget = widget
-
-  def emit(self, record):
-    QTimer.singleShot(0, lambda: self.widget.append(record))
 
 
 class MainWindow(QMainWindow):
@@ -77,10 +28,12 @@ class MainWindow(QMainWindow):
     )
 
     self.ctx = Context()
+
     self.manager = StateManager(self.ctx, callback=lambda: None)
+    self.gc = GCService(self.ctx)
 
     # FIXME: avoid this pls!
-    asyncio.create_task(start_gc_server(self.ctx.gc))
+    asyncio.create_task(start_gc_server(self.gc))
     asyncio.create_task(self.ctx.bot.start())
     self.ctx.gsi.start()
 
@@ -100,7 +53,7 @@ class MainWindow(QMainWindow):
     logger.debug("main window initialized.")
 
   def setup_ui(self):
-    self.setStyleSheet(STYLESHEET)
+    self.setStyleSheet(MAIN_WINDOW_STYLESHEET)
     self.tabs = QTabWidget()
     self.setCentralWidget(self.tabs)
 
