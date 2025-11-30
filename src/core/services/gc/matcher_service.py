@@ -1,31 +1,33 @@
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Tuple, Optional
 import asyncio
 
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientReserve
 
 from core.account import Account
 from core.logging import get_logger
-from core.services.gc.gc_parser import decode_gc_bytes
 
 logger = get_logger("sv.matcher")
 
 
 class MatcherService:
-  matches: dict[str, Tuple[int, asyncio.Event]] = {}
+  def __init__(self):
+    self.matches: dict[str, Tuple[Optional[int], asyncio.Event]] = {}
 
-  async def get_match_id(self, account: Account):
+  async def get_match_id(self, account: Account) -> Optional[int]:
     if account.login not in self.matches:
       new_event = asyncio.Event()
       self.matches[account.login] = (None, new_event)
 
-    match, event = self.matches[account.login]
+    _, event = self.matches[account.login]
 
     await event.wait()
     event.clear()
 
-    return match
+    match_id, _ = self.matches[account.login]
+
+    return match_id
 
   def set_match_id(self, login: str, match_id: int):
     if login in self.matches:
@@ -34,15 +36,12 @@ class MatcherService:
       event.set()
     else:
       event = asyncio.Event()
-      event.set()
       self.matches[login] = (match_id, event)
+      event.set()
 
     return True
 
   def process_message(self, data: bytes, login: str):
-
-
-
     decoded_message = MatchmakingClientReserve().parse(data[4:])
     match_id = decoded_message.reservation.match_id
 

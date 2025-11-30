@@ -66,4 +66,4 @@ class LaunchAccounts(State):
     await asyncio.sleep(5)
 
     if ctx.ss.farm_on_launch:
-      return MakeLobbies()
+      return MakeLobbies(None)

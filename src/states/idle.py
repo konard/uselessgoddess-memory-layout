@@ -133,10 +133,6 @@ class Idle(State):
       ),
     ]
 
-  async def execute(self, ctx: Context):
-    while True:
-      await asyncio.sleep(1)
-
   @handles(Farm)
   async def _on_start_farm(self, message: Farm, manager: StateManager):
     logger.debug(f"start farming {message.accounts}")

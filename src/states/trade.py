@@ -86,8 +86,9 @@ class ScanInventory(steam.Client):
             break
           except Exception as e:
             logger.error(
-              f"Failed to send trade offer, retry {count + 1}/5: {e}"
+              f"Failed to send trade offer, retry {count + 1}/5 in 10 seconds: {e}"
             )
+            await asyncio.sleep(10)
             count += 1
 
         self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
