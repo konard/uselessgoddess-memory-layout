@@ -478,7 +478,7 @@ class T:
       (1.5, [Key.W]),
       (3.0, [Key.W, Key.D]),
       (2.0, [Key.W]),
-      (0.5, [Key.S]),
+      (1.5, [Key.S, Key.D]),
       # todo!> provide by `infer_path` automatically
       maybe(
         recursive(
@@ -582,8 +582,8 @@ class CT:
       (6.0, [Key.W, Key.A]),
       (2.0, [Key.A]),
       (2.0, [Key.W, Key.A]),
-      (2.0, [Key.W, Key.D]),
-      (2.0, [Key.S, Key.D]),
+      (1.0, [Key.W, Key.D]),
+      (1.0, [Key.S, Key.D]),
       maybe(
         recursive(
           lambda _: [
@@ -614,9 +614,7 @@ class CT:
       (3.0, [Key.W]),
       (1.5, [Key.D]),
       (1.5, [Key.W, Key.D]),
-      (1.0, [Key.W, Key.A]),
-      (0.8, [Key.D]),
-      (1.0, [Key.A]),
+      (0.8, [Key.W, Key.A]),
       maybe(
         recursive(
           lambda _: [
