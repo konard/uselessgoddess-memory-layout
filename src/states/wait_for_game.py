@@ -1,9 +1,8 @@
 import asyncio
-from core.services.windows_service import WindowService
 import states
 from typing import Optional, Tuple
 from core.panel.state import State
-from core.services.cs_controller import CS2Controller
+from core.services import WindowService, CS2Controller
 from core.yass import Yass
 from core import game_constants
 from states.types import PartySchema
@@ -24,8 +23,7 @@ class WaitForGame(State):
 
     leaders = [party.leader for party in self.party_schema]
     while True:
-
-      if count >= ctx.ss.times_to_shuffle:
+      if count >= ctx.su.times_to_shuffle:
         return states.ShuffleLobby(self.party_schema)
 
       await Yass.press_resource_async(
@@ -33,15 +31,21 @@ class WaitForGame(State):
       )
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[0]):
-        await Yass.press_resource_single_async("resources/img/cancel_button_left_corner.png", leaders[1])
+        await Yass.press_resource_single_async(
+          "resources/img/cancel_button_left_corner.png", leaders[1]
+        )
         await asyncio.sleep(0.5)
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[1]):
-        await Yass.press_resource_single_async("resources/img/cancel_button_left_corner.png", leaders[0])
+        await Yass.press_resource_single_async(
+          "resources/img/cancel_button_left_corner.png", leaders[0]
+        )
         await asyncio.sleep(0.5)
 
-      await Yass.press_resource_async("resources/img/ready_button_left_corner.png", leaders)
-      
+      await Yass.press_resource_async(
+        "resources/img/ready_button_left_corner.png", leaders
+      )
+
       if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(
         leaders
       ):
@@ -61,4 +65,4 @@ class WaitForGame(State):
           await CS2Controller.click_async(
             **game_constants.accept_game_button, account=account
           )
-          return states.Idle()
+      break

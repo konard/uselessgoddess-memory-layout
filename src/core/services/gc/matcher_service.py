@@ -27,7 +27,10 @@ class MatcherService:
 
     return match
 
-  def set_match_id(self, login: str, match_id: int):
+  def set_match_id(self, login: str, match_id: int | None):
+    if match_id is None:
+      return
+
     if login in self.matches:
       _, event = self.matches[login]
       self.matches[login] = (match_id, event)
@@ -40,13 +43,10 @@ class MatcherService:
     return True
 
   def process_message(self, data: bytes, login: str):
-
-
-
     decoded_message = MatchmakingClientReserve().parse(data[4:])
     match_id = decoded_message.reservation.match_id
 
-    logger.trace(f"Got match_id {match_id} for {login}")
+    logger.trace(f"match_id from message {match_id} for {login}")
     self.set_match_id(login, match_id)
 
   async def wait_for_match_id(self, accounts: list[Account]):

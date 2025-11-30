@@ -27,7 +27,7 @@ class Theme:
 
   LOG_DEBUG: str = ACCENT_BLUE
   LOG_INFO: str = PRIMARY_TEXT
-  LOG_WARN: str = ACCENT_YELLOW
+  LOG_WARN: str = ACCENT_ORANGE
   LOG_ERROR: str = ACCENT_RED
 
 

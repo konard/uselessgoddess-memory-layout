@@ -181,7 +181,7 @@ class AimController(Action):
       for t in targets
       if t.confidence >= config.confidence and t.label == enemy_label
     ]
-    targets = filter_by_aspect(config.filter_aspect, targets)
+    # targets = filter_by_aspect(config.filter_aspect, targets)
 
     if self.model_timer.tick():
       self.targets = targets

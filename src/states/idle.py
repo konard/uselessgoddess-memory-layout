@@ -128,7 +128,7 @@ class Idle(State):
       ),
       Button(
         "Select Map",
-        on_click=lambda: dispatch(SelectMap()),
+        on_click=lambda: dispatch(SelectMap(None)),
         tooltip="Select map.",
       ),
     ]
