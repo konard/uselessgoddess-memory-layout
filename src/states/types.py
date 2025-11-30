@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from dataclasses import dataclass
 from core.account.model import RunningAccount
 from core.services.settings import FarmMode
@@ -22,3 +22,6 @@ class PartySchema:
   @property
   def all(self) -> List[RunningAccount]:
     return [self.leader, *self.members]
+
+
+GameSchema = Tuple[PartySchema, PartySchema]

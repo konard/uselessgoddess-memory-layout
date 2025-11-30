@@ -9,8 +9,8 @@ repos:
   hooks:
     - id: pytest
       name: pytest
-      # lmao what about linux))
-      entry: .venv/Scripts/uv.exe run pytest
-      language: system
+      # pre-commit downloads uv and runs pytest using project environment
+      entry: uv run pytest
+      language: python
+      additional_dependencies: [uv]
       pass_filenames: false
-
