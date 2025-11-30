@@ -9,7 +9,6 @@ from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
 from core import game_constants
 from states.select_accounts import SelectAccounts
-from states.select_map import SelectMap
 from states.types import PartySchema
 from utils.friend_code_generator import generate_friend_code
 from .generate_party_schema import generate_party_schema
@@ -44,9 +43,10 @@ class MakeLobbies(State):
     await asyncio.sleep(0.5)
 
   async def execute(self, ctx: Context):
+    from states.select_map import SelectMap
+
     launched_accounts = WindowService.scan_cs2_windows(ctx.accounts())
     farm_mode = ctx.settings.system.farm_mode
-
 
     if farm_mode_size.get(farm_mode) != len(launched_accounts):
       return SelectAccounts(farm_mode_size[farm_mode]).then(self)

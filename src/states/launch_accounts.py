@@ -63,7 +63,7 @@ class LaunchAccounts(State):
       )(account, ctx.settings.user, ctx.accounts())
       logger.info(f"{account.login} launched")
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(7)
 
     if ctx.ss.farm_on_launch:
       return MakeLobbies(None)

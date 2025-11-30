@@ -8,7 +8,6 @@ from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
 from core import game_constants
 from states.types import PartySchema
-from states.wait_for_game import WaitForGame
 
 logger = get_logger("state.select_map")
 
@@ -18,6 +17,8 @@ class SelectMap(State):
     self.party_schema = party_schema
 
   async def execute(self, ctx: Context):
+    from states.wait_for_game import WaitForGame
+
     logger.info("Selecting map")
 
     for party in self.party_schema:
@@ -34,10 +35,10 @@ class SelectMap(State):
         )
 
         await CS2Controller.click_bulk_async(
-          "resources/img/check.png", party.leader, 0.8
+          "resources/img/check.png", party.leader, 0.7
         )
 
-        await asyncio.sleep(0.3) 
+        await asyncio.sleep(0.3)
 
         CS2Controller.click_if_exists(
           "resources/img/inferno_badge.png", party.leader, 0.8

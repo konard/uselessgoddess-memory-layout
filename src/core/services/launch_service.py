@@ -65,6 +65,7 @@ class LaunchService:
         posX=0,
         posY=0,
       )
+      running_account.lock = account.lock
       while not WindowService.wait_for_window(
         counter_strike_2_title, timeout_sec=10
       ):
@@ -104,11 +105,19 @@ class LaunchService:
 
       WindowService.focus_window(running_account.win_cs_title)
       CS2Controller.click(**game_constants.play_button, account=running_account)
+
+      time.sleep(2)
+
       CS2Controller.wait_for_image("resources/img/play.png", running_account)
+
+      time.sleep(0.5)
 
       CS2Controller.click_if_exists(
         "resources/img/close_reward.png", running_account, 0.9, True
       )
+
+      time.sleep(0.5)
+
       return running_account
 
     except Exception:

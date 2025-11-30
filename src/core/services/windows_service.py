@@ -230,6 +230,7 @@ class WindowService:
               posY=rect[1],
               runner_pid=window_info.get("pid"),
             )
+            running[login].lock = acc.lock
         except Exception as e:
           print(e)
           pass

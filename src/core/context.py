@@ -8,6 +8,7 @@ from core.services import (
   UIService,
   WindowService,
   GSIService,
+  GCService,
 )
 from core.account import FarmStatus
 
@@ -28,6 +29,7 @@ class Context:
   ui: UIService
   ai: ai.InferenceService
   screen: ScreenCaptureService
+  gc: GCService
 
   def __init__(self):
     from core.services.bot import TelegramBotService
@@ -43,6 +45,7 @@ class Context:
     )  # TODO: make prebuilt configurable
     self.screen = ScreenCaptureService()
     self.gsi = GSIService(port=6969)  # TODO: avoid hardcoded ports
+    self.gc = GCService(self)
 
   def accounts(self) -> List[Account]:
     return sorted(list(self.account.accounts.values()), key=lambda x: x.login)

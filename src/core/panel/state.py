@@ -1,15 +1,14 @@
 from __future__ import annotations
-
 import asyncio
 
 from typing import Optional, Callable, Type, TYPE_CHECKING
 
-if TYPE_CHECKING:
-  from core.context import Context
-
 from core.logging import get_logger
 from core.utils import name_of, type_of
 from .message import Message
+
+if TYPE_CHECKING:
+  from core.context import Context
 
 logger = get_logger("state")
 
@@ -23,7 +22,7 @@ def handles(message_type: Type[Message]):
 
 
 class State:
-  async def execute(self, ctx: Context):
+  async def execute(self):
     pass
 
   async def react(self, manager: "StateManager", message: Message):

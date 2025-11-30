@@ -12,6 +12,7 @@ from core.panel.state import State
 from core.context import Context
 from core.account import Account
 from core.logging import get_logger
+import states
 from ui.widgets import Label, Progress
 
 logger = get_logger("state.trade")
@@ -202,6 +203,7 @@ class ScanAccounts(State):
     except Exception as e:
       logger.error(f"Failed to write report: {e}")
       self.status.set("Completed.")
-    import states
 
-    return states.Idle()
+    from states.idle import Idle
+
+    return Idle()
