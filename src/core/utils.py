@@ -76,11 +76,9 @@ def async_methods(cls):
 
 
 def resource_path(relative_path: str) -> str:
-  if hasattr(sys, "_MEIPASS"):
-    base_path = Path(sys._MEIPASS)
-  else:
-    base_path = Path(
-      __file__
-    ).parent.parent.parent  # yacsp/src/core/utils.py -> yacsp/
+  try:
+    base_path = sys._MEIPASS
+  except Exception:
+    base_path = Path(__file__).parent.parent.parent
 
-  return str(base_path / relative_path)
+  return str(Path(base_path) / "resources" / relative_path)

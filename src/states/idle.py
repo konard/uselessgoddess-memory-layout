@@ -11,6 +11,8 @@ from core.account import Account
 from core.logging import get_logger
 from core.panel import Message, State, StateManager, handles
 
+from constants import IS_DEV_MODE
+
 from states import (
   debug,
   MatchState,
@@ -83,7 +85,7 @@ class Idle(State):
 
       return inner
 
-    return [
+    buttons = [
       Button(
         "Start Farming",
         on_click=acquire_accounts(Farm),
@@ -122,12 +124,6 @@ class Idle(State):
         button_type=ButtonType.SPECIAL,
         tooltip="Manually run auto-match",
       ),
-      Button(
-        "Debug AI (Camera)",
-        on_click=lambda: dispatch(debug.AIState()),
-        button_type=ButtonType.SPECIAL,
-        tooltip="Open OpenCV window to see what bot sees",
-      ),
       HStack(
         Button(
           "Make Lobbies",
@@ -146,6 +142,18 @@ class Idle(State):
         tooltip="Continue farming.",
       ),
     ]
+
+    if IS_DEV_MODE:
+      buttons.append(
+        Button(
+          "Debug AI (Camera)",
+          on_click=lambda: dispatch(debug.AIState()),
+          button_type=ButtonType.SPECIAL,
+          tooltip="Open OpenCV window to see what bot sees",
+        )
+      )
+
+    return buttons
 
   async def execute(self, ctx: Context):
     while True:

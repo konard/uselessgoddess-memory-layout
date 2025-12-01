@@ -18,6 +18,8 @@ from app.main_window import MainWindow
 from states.idle import Idle
 import pyautogui
 
+from src.constants import IS_DEV_MODE
+
 pyautogui.FAILSAFE = False
 
 
@@ -47,6 +49,12 @@ def dev_deps():
 
 if __name__ == "__main__":
   dev_deps()
+
+  if not IS_DEV_MODE:
+    if sys.stderr is None:
+      sys.stderr = open(os.devnull, "w")
+    if sys.stdout is None:
+      sys.stdout = open(os.devnull, "w")
 
   # Проверяем права администратора и перезапускаем с правами админа, если нужно
   if not isUserAdmin():
