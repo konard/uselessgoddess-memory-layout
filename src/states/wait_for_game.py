@@ -63,6 +63,8 @@ class WaitForGame(State):
           count += 1
         continue
 
+      await asyncio.sleep(4)
+
       for party in self.party_schema:
         for account in party.all:
           await WindowService.focus_window_async(account.win_cs_title)

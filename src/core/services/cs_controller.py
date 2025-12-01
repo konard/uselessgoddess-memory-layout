@@ -3,6 +3,7 @@ import time
 import win32api
 import win32con
 import win32clipboard
+import pywintypes
 import pyautogui
 from pyscreeze import ImageNotFoundException
 from typing import TYPE_CHECKING
@@ -30,9 +31,17 @@ class CS2Controller:
   def move_mouse(x, y, account: Account):
     """Перемещает мышь"""
     logger.trace(f"Перемещает мышь: ({x}, {y})")
-    abs_x = account.posX + x
-    abs_y = account.posY + y
-    win32api.SetCursorPos((abs_x, abs_y))
+    abs_x = int(account.posX + x)
+    abs_y = int(account.posY + y)
+    try:
+      win32api.SetCursorPos((abs_x, abs_y))
+    except pywintypes.error as e:
+      if e.winerror == 0:
+        logger.debug(
+          f"SetCursorPos failed with error 0, ignoring. Coords: ({abs_x}, {abs_y})"
+        )
+      else:
+        raise
     logger.trace(f"Мышь перемещена: ({abs_x}, {abs_y})")
 
   @staticmethod
@@ -212,7 +221,7 @@ class CS2Controller:
     y_min = account.posY
 
     matches = list(pyautogui.locateAllOnScreen(image, confidence=confidence))
-
+    print(matches)
     for match in matches:
       if (
         match.left > x_min
