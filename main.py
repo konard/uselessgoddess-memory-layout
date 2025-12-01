@@ -6,6 +6,7 @@ import os
 import sys
 import asyncio
 import qasync
+import ctypes
 import subprocess
 from pyuac import isUserAdmin, runAsAdmin
 
@@ -47,6 +48,17 @@ def dev_deps():
   print("[+] scripts dependencies installed")
 
 
+def is_debugger_present():
+  is_debugger = ctypes.c_bool(False)
+  try:
+    ctypes.windll.kernel32.CheckRemoteDebuggerPresent(
+      ctypes.windll.kernel32.GetCurrentProcess(), ctypes.byref(is_debugger)
+    )
+    return is_debugger.value
+  except Exception:
+    return False
+
+
 if __name__ == "__main__":
   dev_deps()
 
@@ -59,6 +71,9 @@ if __name__ == "__main__":
   # Проверяем права администратора и перезапускаем с правами админа, если нужно
   if not isUserAdmin():
     runAsAdmin()
+    sys.exit(0)
+
+  if is_debugger_present():
     sys.exit(0)
 
   try:

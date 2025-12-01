@@ -1,24 +1,56 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 from typing import Dict, Optional, Any
 from tinydb import TinyDB, Query
 from core.logging import get_logger
-
+from core.security import EncryptedJSONStorage
 
 logger = get_logger("account.lock")
 
 
 class AccountsLock:
   def __init__(self, db_path: Path | str = "data/accounts.lock") -> None:
+    self._db_path = Path(db_path)
     if not os.path.isfile(db_path):
       with open(db_path, "w") as file:
         file.write("{}")
-    self._db_path = Path(db_path)
-    self._db = TinyDB(str(self._db_path))
+
+    self._migrate_if_plaintext()
+
+    self._db = TinyDB(str(self._db_path), storage=EncryptedJSONStorage)
     self._table = self._db.table("accounts")
     self._query = Query()
+
+  def _migrate_if_plaintext(self) -> None:
+    if not self._db_path.exists():
+      return
+    logger.trace("migrating from plain test")
+
+    try:
+      with open(self._db_path, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+
+      if not content:
+        return
+
+      data = json.loads(content)
+
+      logger.warning(
+        f"Detected plaintext storage at {self._db_path}. Migrating to encrypted storage..."
+      )
+
+      storage = EncryptedJSONStorage(str(self._db_path))
+      storage.write(data)
+      logger.info("Storage migration completed successfully.")
+
+    except (UnicodeDecodeError, json.JSONDecodeError):
+      logger.debug("storage appears to be encrypted already.")
+      pass
+    except Exception as e:
+      logger.error(f"error during storage migration check: {e}")
 
   def get_account_info(self, login: str) -> Dict[str, Any] | None:
     result = self._table.get(self._query.login == login)
