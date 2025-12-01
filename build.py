@@ -43,7 +43,12 @@ def build_executable():
     f"--windows-icon-from-ico={PROJECT_ROOT / ICON_PATH}",
     "--plugin-enable=pyqt6",
     f"--output-filename={EXE_NAME}",
+    "--windows-disable-console",
   ]
+
+  if True:
+    # this shit takes time from the moon to the earth
+    cmd.append("--lto=yes")
 
   for pkg in INCLUDE_PACKAGES:
     cmd.append(f"--include-package={pkg}")
