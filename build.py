@@ -12,9 +12,13 @@ ICON_PATH = "resources/icon.ico"
 INCLUDE_PACKAGES = [
   "PyQt6",
   "onnxruntime",
-  # "onnxruntime_directml",
   "src",
   "autoit",
+  "steam",
+  "steam.utils",
+  "steam.models",
+  "steam.media",
+  "google.protobuf",
 ]
 
 RESOURCE_DATA = [
