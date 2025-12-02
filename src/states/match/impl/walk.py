@@ -579,7 +579,6 @@ class CT:
       (3.0, [Key.D]),
       (2.0, [Key.W]),
       (6.0, [Key.W, Key.A]),
-      (2.0, [Key.A]),
       (2.0, [Key.W, Key.A]),
       (1.0, [Key.W, Key.D]),
       (1.0, [Key.S, Key.D]),
@@ -613,7 +612,7 @@ class CT:
       (3.0, [Key.W]),
       (1.5, [Key.D]),
       (1.5, [Key.W, Key.D]),
-      (0.5, [Key.A]),
+      (1.0, [Key.W, Key.A]),
       maybe(
         recursive(
           lambda _: [
