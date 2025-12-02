@@ -27,14 +27,6 @@ class SelectMap(State):
       await CS2Controller.click_async(
         **game_constants.play_button, account=party.leader
       )
-      await asyncio.sleep(0.3)
-      await CS2Controller.press_escape_async()
-      await asyncio.sleep(0.3)
-      await CS2Controller.press_escape_async()
-      await asyncio.sleep(0.3)
-      await CS2Controller.click_async(
-        **game_constants.play_button, account=party.leader
-      )
       await CS2Controller.wait_for_image_async(
         "resources/img/play.png", party.leader
       )
