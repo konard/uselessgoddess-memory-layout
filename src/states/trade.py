@@ -71,30 +71,28 @@ class ScanInventory(steam.Client):
 
     try:
       if self.identity_secret is not None:
-        count = 0
-        while count < 5:
-          try:
-            logger.info(f"Sending trade offer to {id64}")
-            trade_offer = TradeOffer(
-              sending=items_to_send,
-              receiving=[],
-              message="random message",
-              token=self.trade_url.token,
-            )
+        try:
+          logger.info(f"Sending trade offer to {id64}")
+          trade_offer = TradeOffer(
+            sending=items_to_send,
+            receiving=[],
+            message="random message",
+            token=self.trade_url.token,
+          )
 
-            target = await self.fetch_user(id64)
-            await target.send(trade=trade_offer)
-            break
-          except Exception as e:
-            logger.error(
-              f"Failed to send trade offer, retry {count + 1}/5 in 10 seconds: {e}"
-            )
-            await asyncio.sleep(10)
-            count += 1
+          target = await self.fetch_user(id64)
+          await target.send(trade=trade_offer)
 
-        self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
-        if not self.complete.done():
-          self.complete.set_result(("Trade sent", items_to_report))
+          self.account_lock.set_field(
+            self.username, "status", FarmStatus.TRADED
+          )
+          if not self.complete.done():
+            self.complete.set_result(("Trade sent", items_to_report))
+
+        except Exception as e:
+          logger.error(f"Failed to send trade offer: {e}")
+          if not self.complete.done():
+            self.complete.set_result(("Trade failed", items_to_report))
     except Exception as e:
       logger.error(f"Failed to send trade offer: {e}")
       if not self.complete.done():
@@ -162,15 +160,25 @@ class ScanAccounts(State):
 
         if send_trade_client.complete in done:
           message, sent_items = await send_trade_client.complete
-          logger.info(f"[{account.login}]: {message}")
-          self.status.set(f"{account.login}: {message}")
 
-          for data in sent_items:
-            name = data["name"]
-            price = data["price"]
-            if name not in self.trade_report:
-              self.trade_report[name] = {"price": price, "amount": 0}
-            self.trade_report[name]["amount"] += 1
+          if message == "Trade failed":
+            logger.warning(
+              f"[{account.login}]: Trade failed, appending to queue"
+            )
+            self.status.set(f"{account.login}: Trade failed, retrying later")
+            self.accounts.append(account)
+            self.progress.limit = len(self.accounts)
+
+          else:
+            logger.info(f"[{account.login}]: {message}")
+            self.status.set(f"{account.login}: {message}")
+
+            for data in sent_items:
+              name = data["name"]
+              price = data["price"]
+              if name not in self.trade_report:
+                self.trade_report[name] = {"price": price, "amount": 0}
+              self.trade_report[name]["amount"] += 1
         elif login_task in done:
           await login_task
           logger.error(

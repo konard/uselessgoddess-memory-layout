@@ -26,9 +26,9 @@ prices = json.load(
   open(resource_path("data/price.json"), "r", encoding="utf-8")
 )
 assembler = SkinAssembler(
-  prices,
-  load_csgo_english(resource_path("data/csgo_english.json")),
   load_items_game(resource_path("data/items_game.txt")),
+  load_csgo_english(resource_path("data/csgo_english.json")),
+  prices,
 )
 
 
