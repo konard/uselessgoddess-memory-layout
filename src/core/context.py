@@ -76,3 +76,7 @@ class Context:
 
   def window_size(self) -> Tuple[int, int]:
     return self.su.win_w, self.su.win_h
+
+  async def send_message(self, text: str, image=None):
+    for chat_id in self.su.telegram_whitelist:
+      await self.bot.send_message(chat_id, text, image)

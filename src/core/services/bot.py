@@ -1,12 +1,16 @@
 from __future__ import annotations
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
+import cv2
 import asyncio
+import numpy as np
+import getpass
 from telegram import (
   Update,
   ReplyKeyboardMarkup,
   BotCommand,
   InlineKeyboardMarkup,
   InlineKeyboardButton,
+  InputFile,
 )
 from telegram.ext import (
   Application,
@@ -162,3 +166,66 @@ class TelegramBotService:
       await self._cmd_screenshot(update, context)
     elif text == "❓ Help":
       await self._cmd_help(update, context)
+
+  async def send_message(
+    self,
+    chat_id: int | str,
+    text: str,
+    image: Optional[bytes] = None,
+    parse_mode: str = "Markdown",
+    reply_markup: Optional[InlineKeyboardMarkup] = None,
+  ):
+    if not self.running or not self.app or not self.app.bot:
+      logger.warning(
+        "Bot not running or application not initialized. Cannot send message."
+      )
+      return
+
+    text = f"<{getpass.getuser()}> {text}"
+
+    try:
+      if image:
+        image = encode_frame_to_bytes(image, "png")
+        await self.app.bot.send_photo(
+          chat_id=chat_id,
+          photo=InputFile(image),
+          caption=text,
+          parse_mode=parse_mode,
+          reply_markup=reply_markup,
+        )
+        logger.debug(f"sent photo message to {chat_id}")
+      else:
+        await self.app.bot.send_message(
+          chat_id=chat_id,
+          text=text,
+          parse_mode=parse_mode,
+          reply_markup=reply_markup,
+        )
+        logger.debug(f"sent text message to {chat_id}")
+    except Exception as e:
+      logger.error(f"Failed to send Telegram message to {chat_id}: {e}")
+
+
+def encode_frame_to_bytes(
+  frame_bgra: np.ndarray, ext: str = "png"
+) -> bytes | None:
+  if ext.lower() == "jpeg":
+    frame_bgr = frame_bgra[:, :, :3]
+  elif ext.lower() == "png":
+    frame_bgr = frame_bgra
+  else:
+    logger.debug(f"unsupported image format: {ext}")
+    return None
+
+  if ext.lower() == "jpeg":
+    encode_success, encoded_image = cv2.imencode(
+      ".jpg", frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90]
+    )
+  else:
+    encode_success, encoded_image = cv2.imencode(".png", frame_bgr)
+
+  if encode_success:
+    return encoded_image.tobytes()
+  else:
+    print("Error encoding image frame.")
+    return None

@@ -93,8 +93,8 @@ class DashboardTab(QWidget):
         button_type=ButtonType.DEFAULT,
       ),
       Button(
-        "Arrange Windows",
-        on_click=lambda _: self._arrange_now(),
+        "Telegram Test",
+        on_click=lambda _: self._test_telegram(),
         button_type=ButtonType.DEFAULT,
       ),
     )
@@ -102,11 +102,8 @@ class DashboardTab(QWidget):
     layout.addWidget(content_widget)
     return panel
 
-  def _arrange_now(self):
-    from core.services import WindowService
-
-    # TODO: arrange running accounts
-    WindowService.arrange_windows(self.ctx.accounts(), self.ctx.window_size())
+  def _test_telegram(self):
+    asyncio.create_task(self.ctx.send_message("Test notification."))
 
   def _create_accounts_panel(self) -> QWidget:
     self.accounts_container = TitledPanel("Accounts")

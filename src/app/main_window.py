@@ -1,3 +1,4 @@
+import sys
 import asyncio
 from PyQt6.QtWidgets import (
   QMainWindow,
@@ -103,3 +104,4 @@ class MainWindow(QMainWindow):
       logger.exception("error during gracefully shutdown")
     finally:
       event.accept()
+      sys.exit(0)
