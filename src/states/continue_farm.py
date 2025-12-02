@@ -7,6 +7,7 @@ from core.panel import state
 from core.services.cs_controller import CS2Controller
 from core.services.windows_service import WindowService
 from states.make_lobbies.generate_party_schema import generate_party_schema
+from states.start_unfarmed import StartUnfarmed
 from states.types import GameSchema
 
 logger = get_logger("state.continue_farm")
@@ -87,3 +88,5 @@ class ContinueFarm(state.State):
           await asyncio.sleep(0.3)
 
           return MakeLobbies(self.game_schema)
+    else:
+      return StartUnfarmed(self.game_schema)

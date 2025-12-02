@@ -25,6 +25,9 @@ class WaitForGame(State):
     count = 0
 
     leaders = [party.leader for party in self.party_schema]
+
+    print(leaders, "leaders")
+
     while True:
       if count >= ctx.su.times_to_shuffle:
         return states.ShuffleLobby(self.party_schema)
@@ -33,17 +36,22 @@ class WaitForGame(State):
         "resources/img/ready_button_left_corner.png", leaders
       )
 
+      print(1)
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[0]):
         await Yass.press_resource_single_async(
           "resources/img/cancel_button_left_corner.png", leaders[1]
         )
         await asyncio.sleep(0.5)
+      print(2)
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[1]):
         await Yass.press_resource_single_async(
           "resources/img/cancel_button_left_corner.png", leaders[0]
         )
         await asyncio.sleep(0.5)
+
+      await asyncio.sleep(1)
+      print(3)
 
       await Yass.press_resource_async(
         "resources/img/ready_button_left_corner.png", leaders

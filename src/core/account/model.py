@@ -60,6 +60,8 @@ class AccountMetadata:
 
   @lvl.setter
   def lvl(self, value: int) -> None:
+    if value > self._data.get("lvl", 0):
+      self._lock.set_field(self._login, "status", FarmStatus.FARMED)
     self._data["lvl"] = value
     if self._lock:
       self._lock.set_field(self._login, "lvl", value)

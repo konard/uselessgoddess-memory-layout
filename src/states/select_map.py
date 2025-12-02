@@ -22,10 +22,26 @@ class SelectMap(State):
     logger.info("Selecting map")
 
     for party in self.party_schema:
-      WindowService.focus_window(party.leader.win_cs_title)
+      await WindowService.focus_window_async(party.leader.win_cs_title)
 
-      CS2Controller.click(**game_constants.play_button, account=party.leader)
-      CS2Controller.click(**game_constants.real_games, account=party.leader)
+      await CS2Controller.click_async(
+        **game_constants.play_button, account=party.leader
+      )
+      await asyncio.sleep(0.3)
+      await CS2Controller.press_escape_async()
+      await asyncio.sleep(0.3)
+      await CS2Controller.press_escape_async()
+      await asyncio.sleep(0.3)
+      await CS2Controller.click_async(
+        **game_constants.play_button, account=party.leader
+      )
+      await CS2Controller.wait_for_image_async(
+        "resources/img/play.png", party.leader
+      )
+
+      await CS2Controller.click_async(
+        **game_constants.real_games, account=party.leader
+      )
 
       if party.farm_mode == FarmMode.TWO_BY_TWO:
         CS2Controller.click(**game_constants.real_games, account=party.leader)

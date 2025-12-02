@@ -165,6 +165,7 @@ class LobbyService:
   def process_message(self, data: bytes, login: str, msg_id: int):
     """Обрабатывает входящие сообщения и ищет инвайты"""
     if msg_id == 800:
+      logger.trace(f"Received chat invite for {login}")
       self.process_chat_invite(data)
     elif msg_id == 6612:
       self.process_match_warning(data, login)
