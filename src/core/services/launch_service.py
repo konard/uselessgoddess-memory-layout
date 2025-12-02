@@ -94,16 +94,18 @@ class LaunchService:
 
       time.sleep(5)  # sleep saves all
 
-      while (
-        not WindowService.get_window_info(running_account.win_cs_title).posX
+      while not (
+        WindowService.get_window_info(running_account.win_cs_title).get("posX")
         == next_x
-        and WindowService.get_window_info(running_account.win_cs_title).posY
+        and WindowService.get_window_info(running_account.win_cs_title).get(
+          "posY"
+        )
         == next_y
       ):
         WindowService.move_window_to_position(
           running_account.win_cs_title, next_x, next_y
         )
-
+        print("moving window")
         time.sleep(0.5)
 
       running_account.posX = next_x
