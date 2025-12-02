@@ -12,12 +12,24 @@ from core.logging import get_logger
 from ui.widgets import Progress, Label
 import states
 from steam.ext import csgo
-from steam.ext.csgo.price_analizator.assembler import SkinAssembler
+from steam.ext.csgo.price_analizator.assembler import (
+  SkinAssembler,
+  load_csgo_english,
+  load_items_game,
+)
+
+from core.utils import resource_path
 
 logger = get_logger("state.loot")
 
-prices = json.load(open("data/price.json", "r", encoding="utf-8"))
-assembler = SkinAssembler(prices)
+prices = json.load(
+  open(resource_path("data/price.json"), "r", encoding="utf-8")
+)
+assembler = SkinAssembler(
+  prices,
+  load_csgo_english(resource_path("data/csgo_english.json")),
+  load_items_game(resource_path("data/items_game.txt")),
+)
 
 
 class ClaimDrop(csgo.Client):

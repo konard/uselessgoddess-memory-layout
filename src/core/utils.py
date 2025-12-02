@@ -78,7 +78,6 @@ def async_methods(cls):
 def resource_path(relative_path: str) -> str:
   try:
     base_path = sys._MEIPASS
+    return str(Path(base_path) / "resources" / relative_path)
   except Exception:
-    base_path = Path(__file__).parent.parent.parent
-
-  return str(Path(base_path) / "resources" / relative_path)
+    return Path("resources") / relative_path

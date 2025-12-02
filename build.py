@@ -43,10 +43,10 @@ def build_executable():
     f"--windows-icon-from-ico={PROJECT_ROOT / ICON_PATH}",
     "--plugin-enable=pyqt6",
     f"--output-filename={EXE_NAME}",
-    "--windows-disable-console",
+    "--windows-console-mode=attach",
   ]
 
-  if True:
+  if False:
     # this shit takes time from the moon to the earth
     cmd.append("--lto=yes")
 

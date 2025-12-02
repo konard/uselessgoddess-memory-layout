@@ -361,6 +361,7 @@ def main() -> int:
   parser.add_argument("--login", type=str, help="Логин Steam")
   parser.add_argument("--w", type=int, default=360)
   parser.add_argument("--h", type=int, default=270)
+  parser.add_argument("--hook_dll", required=True)
   args = parser.parse_args()
 
   if not args.quiet:
@@ -403,7 +404,8 @@ def main() -> int:
     hook = subprocess.Popen(
       [
         "rundll32",
-        "src\\utils\\cs_runner\\NetHook2.dll,Inject",
+        # TODO: use core.utils.resource_path
+        f"{args.hook_dll},Inject",
         str(proc.pid),
         str(args.login),
       ],

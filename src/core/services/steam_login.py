@@ -1,3 +1,4 @@
+import os
 import time
 import base64
 import subprocess
@@ -22,6 +23,8 @@ def build_runner_launch_args(login: str, settings: UserSettings):
     settings.steam_path,
     "--login",
     login,
+    "--hook_dll",
+    f"{os.getcwd()}/resources/NetHook2.dll",
   ]
 
   logger.debug(f"run runner with args: {args}")
