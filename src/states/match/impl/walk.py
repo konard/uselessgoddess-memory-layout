@@ -477,8 +477,8 @@ class T:
       (0.5, [Key.S, Key.A]),
       (1.5, [Key.W]),
       (3.0, [Key.W, Key.D]),
-      (2.0, [Key.W]),
-      (1.5, [Key.S, Key.D]),
+      (2.4, [Key.W]),
+      (0.6, [Key.S, Key.D]),
       # todo!> provide by `infer_path` automatically
       maybe(
         recursive(
@@ -509,7 +509,6 @@ class T:
       (40.0, rotate(0, 5.0)),
       (3.0, [Key.W, Key.A]),
       (6.0, [Key.W, Key.D]),
-      shoot(),
       (1.0, [Key.S]),
       (1.0, [Key.D]),
       (4.5, [Key.W]),
@@ -614,7 +613,7 @@ class CT:
       (3.0, [Key.W]),
       (1.5, [Key.D]),
       (1.5, [Key.W, Key.D]),
-      (0.8, [Key.W, Key.A]),
+      (0.5, [Key.A]),
       maybe(
         recursive(
           lambda _: [
@@ -645,7 +644,7 @@ class CT:
       (1.0, [Key.A]),
       (0.5, [Key.S]),
       (3.0, [Key.S, Key.A]),
-      (2.0, [Key.W]),
+      (1.6, [Key.W]),
       (0.5, [Key.D]),
       maybe(
         [
