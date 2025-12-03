@@ -86,4 +86,6 @@ class WaitForGame(State):
           await asyncio.sleep(0.5)
       break
 
+    await ctx.send_message("Match found")
+
     return MatchState(self.party_schema)

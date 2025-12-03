@@ -36,8 +36,6 @@ class MatchState(State):
   async def execute(self, ctx: Context):
     from states.continue_farm import ContinueFarm
 
-    await ctx.send_message("Match started")
-
     launched_accounts = WindowService.scan_cs2_windows(
       ctx.accounts(), values=True
     )
