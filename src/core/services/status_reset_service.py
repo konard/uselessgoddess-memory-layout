@@ -21,8 +21,8 @@ LAST_RESET_KEY = "__last_status_reset_date__"
 class StatusResetService:
   """Сервис для автоматического сброса статусов аккаунтов каждую среду в 5:00 МСК."""
 
-  def __init__(self, account_lock: AccountsLock):
-    self.account_lock = account_lock
+  def __init__(self):
+    self.account_lock = AccountsLock()
     self._last_reset_date: Optional[date] = self._load_last_reset_date()
     self._running = False
 
