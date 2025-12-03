@@ -36,9 +36,11 @@ class SelectMap(State):
       )
 
       if party.farm_mode == FarmMode.TWO_BY_TWO:
-        CS2Controller.click(**game_constants.real_games, account=party.leader)
+        await CS2Controller.click_async(
+          **game_constants.real_games, account=party.leader
+        )
 
-        CS2Controller.click(
+        await CS2Controller.click_async(
           **game_constants.wingman_button, account=party.leader
         )
 
@@ -48,9 +50,9 @@ class SelectMap(State):
           "resources/img/check_2.png", party.leader, 0.8
         )
 
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(2)
 
-        CS2Controller.click_if_exists(
+        await CS2Controller.click_if_exists_async(
           "resources/img/inferno_badge.png", party.leader, 0.8
         )
 
