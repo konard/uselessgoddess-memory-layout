@@ -44,7 +44,7 @@ def setup_logger(name: str) -> logging.Logger:
     try:
       file_handler = HandlerType(
         filename=os.path.abspath("yacs.log"),
-        maxBytes=5 * 1024 * 1024,
+        maxBytes=5 * 1024 * 1024 * 1024,  # 5GB to avoid permissions issues
         backupCount=3,
         encoding="utf-8",
       )

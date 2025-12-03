@@ -606,6 +606,7 @@ class CT:
       (1.0, [Key.A]),
       (0.5, [Key.S]),
       (3.0, [Key.S, Key.A]),
+      (0.2, [Key.W, Key.A]),  # to avoid box stuck
       (2.5, [Key.W]),
       (1.5, [Key.W, Key.A]),
       (1.0, [Key.W, Key.D]),
