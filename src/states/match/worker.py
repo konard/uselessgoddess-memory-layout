@@ -182,7 +182,10 @@ class MatchWorker(threading.Thread):
 
     active_players = len(self.active_players())
     if self.ingame and active_players == 0:
-      self.score = score_from(map)
+      probe_score = score_from(map)
+      # avoid zero after match
+      if sum(probe_score.values()) > sum(self.score.values()):
+        self.score = score_from(map)
       self.running = False
     else:
       self.status_text = f"Waiting {active_players}/{len(self.accounts)}..."
