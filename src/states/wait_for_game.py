@@ -40,6 +40,12 @@ class WaitForGame(State):
         await Yass.press_resource_single_async(
           "resources/img/cancel_button_left_corner.png", leaders[1]
         )
+
+        await asyncio.sleep(0.5)
+
+        await Yass.press_resource_single_async(
+          "resources/img/ready_button_left_corner.png", leaders[0]
+        )
         print("Press 1")
         await asyncio.sleep(1)
 
@@ -47,6 +53,13 @@ class WaitForGame(State):
         await Yass.press_resource_single_async(
           "resources/img/cancel_button_left_corner.png", leaders[0]
         )
+
+        await asyncio.sleep(0.5)
+
+        await Yass.press_resource_single_async(
+          "resources/img/ready_button_left_corner.png", leaders[1]
+        )
+
         print("Press 2")
         await asyncio.sleep(1)
 
