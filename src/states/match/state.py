@@ -57,7 +57,7 @@ class MatchState(State):
         self.worker.stop()
       pass
 
-    score = self.worker.score.values()
+    score = list(self.worker.score.values())
     await ctx.send_message(f"Match finished with {score[0]}:{score[1]}")
 
     return ContinueFarm(self.game_schema)
