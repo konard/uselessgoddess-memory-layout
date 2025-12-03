@@ -66,6 +66,12 @@ class ContinueFarm(state.State):
 
         await asyncio.sleep(0.3)
 
+        await CS2Controller.wait_for_image_async(
+          "resources/img/friend_id_modal.png", account
+        )
+
+        await asyncio.sleep(0.3)
+
         if not await CS2Controller.check_if_exists_async(
           "resources/img/exit.png", account, 0.9
         ):

@@ -14,9 +14,7 @@ logger = get_logger("yass")
 @async_methods
 class Yass:
   @staticmethod
-  def press_resource(
-    resource: str, accounts: List[RunningAccount]
-  ):
+  def press_resource(resource: str, accounts: List[RunningAccount]):
     try:
       CS2Controller.move_mouse(4, 4, accounts[0])
       side_a_button = CS2Controller.check_if_exists(resource, accounts[0], 0.8)
@@ -49,19 +47,17 @@ class Yass:
       logger.error(f"Press button error: {e}")
 
   @staticmethod
-  def press_resource_single(
-    resource: str, account: RunningAccount
-  ):
+  def press_resource_single(resource: str, account: RunningAccount):
     side_a_button = CS2Controller.check_if_exists(resource, account, 0.8)
     while side_a_button:
       CS2Controller.move_mouse(5, 5, account)
       side_a_button = CS2Controller.check_if_exists(resource, account, 0.8)
       if side_a_button:
         WindowService.focus_window(account.win_cs_title)
+        time.sleep(0.5)
         CS2Controller.click_if_exists(resource, account, 0.8, True)
         time.sleep(0.5)
         CS2Controller.move_mouse(5, 5, account)
-
 
   async def press_resource_async(
     resource: str, accounts: List[RunningAccount]
@@ -70,4 +66,3 @@ class Yass:
   async def press_resource_single_async(
     resource: str, account: RunningAccount
   ): ...
-

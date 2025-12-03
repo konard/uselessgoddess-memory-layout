@@ -42,6 +42,8 @@ class SelectMap(State):
           **game_constants.wingman_button, account=party.leader
         )
 
+        await asyncio.sleep(2)
+
         await CS2Controller.click_bulk_async(
           "resources/img/check_2.png", party.leader, 0.8
         )

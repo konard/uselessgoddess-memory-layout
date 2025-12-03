@@ -36,26 +36,28 @@ class WaitForGame(State):
         "resources/img/ready_button_left_corner.png", leaders
       )
 
-      print(1)
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[0]):
         await Yass.press_resource_single_async(
           "resources/img/cancel_button_left_corner.png", leaders[1]
         )
-        await asyncio.sleep(0.5)
-      print(2)
+        print("Press 1")
+        await asyncio.sleep(1)
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[1]):
         await Yass.press_resource_single_async(
           "resources/img/cancel_button_left_corner.png", leaders[0]
         )
-        await asyncio.sleep(0.5)
+        print("Press 2")
+        await asyncio.sleep(1)
 
-      await asyncio.sleep(1)
-      print(3)
+      await asyncio.sleep(3)
+      print("Verif")
 
       await Yass.press_resource_async(
         "resources/img/ready_button_left_corner.png", leaders
       )
+
+      await asyncio.sleep(1)
 
       if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(
         leaders
