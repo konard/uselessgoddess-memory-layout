@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QCloseEvent
 
 from core.process_config import ConfigService
-from core.services.gc import GCService, start_gc_server
+from core.services.gc import start_gc_server
 from core.services.status_reset_service import StatusResetService
 from core.panel import StateManager
 from core.logging import get_logger, logging
@@ -15,6 +15,7 @@ from core.context import Context
 from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
 from .log_view import LogHandler, QtLogHandler
 from .tabs import DashboardTab, SRTTab, GSITab
+
 
 logger = get_logger("ui.main")
 
@@ -33,6 +34,8 @@ class MainWindow(QMainWindow):
     self.manager = StateManager(self.ctx, callback=lambda: None)
 
     # FIXME: avoid this pls!
+    status_reset_service = StatusResetService()
+    asyncio.create_task(status_reset_service.start())
     asyncio.create_task(start_gc_server(self.ctx.gc))
     asyncio.create_task(self.ctx.bot.start())
     self.ctx.gsi.start()
