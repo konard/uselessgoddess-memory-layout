@@ -36,8 +36,6 @@ class MatchState(State):
   async def execute(self, ctx: Context):
     from states.continue_farm import ContinueFarm
 
-    await ctx.send_message("Match started")
-
     launched_accounts = WindowService.scan_cs2_windows(
       ctx.accounts(), values=True
     )
@@ -57,7 +55,7 @@ class MatchState(State):
         self.worker.stop()
       pass
 
-    score = self.worker.score.values()
+    score = list(self.worker.score.values())
     await ctx.send_message(f"Match finished with {score[0]}:{score[1]}")
 
     return ContinueFarm(self.game_schema)

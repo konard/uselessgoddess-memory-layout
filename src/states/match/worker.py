@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from core.account import Account
 from core.context import Context
-from core.services.gsi.models import GameState, Team, RoundPhase
+from core.services.gsi.models import GameState, Team, RoundPhase, Map
 from core.services import WindowService, CS2Controller
 from core.services.capture import Region
 from core.logging import get_logger
@@ -46,6 +46,13 @@ class PlayerEntry:
   bomb: bool
   phase: RoundPhase
   win_cs_title: str
+
+
+def score_from(map: Map):
+  return {
+    Team.T: map.team_t.score,
+    Team.CT: map.team_ct.score,
+  }
 
 
 class MatchWorker(threading.Thread):
@@ -170,19 +177,12 @@ class MatchWorker(threading.Thread):
       self.round = map.round
       logger.debug(f"start new round {self.round}")
 
-      self.score = {
-        Team.T: map.team_t.score,
-        Team.CT: map.team_ct.score,
-      }
+      self.score = score_from(map)
       self.start_round(map.name, map.mode, self.score)
 
     active_players = len(self.active_players())
     if self.ingame and active_players == 0:
-      # hack to calculate final score manually before finish
-      if self.score[Team.T] > self.score[Team.CT]:
-        self.score[Team.T] += 1
-      elif self.score[Team.CT] > self.score[Team.T]:
-        self.score[Team.CT] += 1
+      self.score = score_from(map)
       self.running = False
     else:
       self.status_text = f"Waiting {active_players}/{len(self.accounts)}..."
