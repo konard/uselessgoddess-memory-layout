@@ -68,7 +68,6 @@ class PlayerInfoService:
         if neg and not in_wd_range:
           self.lock.set_field(login, "status", FarmStatus.NEED_TO_FARM)
           return
-        self.lock.set_field(login, "status", FarmStatus.FARMED)
         return
 
   def parse_player_stats(self, data: bytes, login: str):

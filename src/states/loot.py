@@ -64,12 +64,10 @@ class ClaimDrop(csgo.Client):
 
     if self.loot_report is not None:
       self.completion.set_result(self.loot_report)
-      self.account_lock.set_field(self.username, "status", FarmStatus.FARMED)
       return
 
     if rtime32_cur == -1:
       self.completion.set_result("No weekly reward available")
-      self.account_lock.set_field(self.username, "status", FarmStatus.FARMED)
       return
 
     if global_stats:
