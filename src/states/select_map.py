@@ -27,9 +27,7 @@ class SelectMap(State):
       await CS2Controller.click_async(
         **game_constants.play_button, account=party.leader
       )
-      await CS2Controller.wait_for_image_async(
-        "resources/img/play.png", party.leader
-      )
+      await CS2Controller.wait_for_image_async("img/play.png", party.leader)
 
       await CS2Controller.click_async(
         **game_constants.real_games, account=party.leader
@@ -47,13 +45,13 @@ class SelectMap(State):
         await asyncio.sleep(3)
 
         await CS2Controller.click_bulk_async(
-          "resources/img/check_2.png", party.leader, 0.8
+          "img/check_2.png", party.leader, 0.8
         )
 
         await asyncio.sleep(4)
 
         await CS2Controller.click_if_exists_async(
-          "resources/img/inferno_badge.png", party.leader, 0.8
+          "img/inferno_badge.png", party.leader, 0.8
         )
 
     return WaitForGame(self.party_schema)

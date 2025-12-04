@@ -74,7 +74,7 @@ class LaunchService:
         )
         WindowService.focus_window("Steam")
         CS2Controller.click_if_exists(
-          "resources/img/run_any_way.png", running_account, 0.9, True, True
+          "img/run_any_way.png", running_account, 0.9, True, True
         )
 
       while (
@@ -122,12 +122,12 @@ class LaunchService:
 
       time.sleep(2)
 
-      CS2Controller.wait_for_image("resources/img/play.png", running_account)
+      CS2Controller.wait_for_image("img/play.png", running_account)
 
       time.sleep(0.5)
 
       CS2Controller.click_if_exists(
-        "resources/img/close_reward.png", running_account, 0.9, True
+        "img/close_reward.png", running_account, 0.9, True
       )
 
       time.sleep(0.5)

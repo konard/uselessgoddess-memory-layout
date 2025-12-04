@@ -33,31 +33,31 @@ class WaitForGame(State):
         return states.ShuffleLobby(self.party_schema)
 
       await Yass.press_resource_async(
-        "resources/img/ready_button_left_corner.png", leaders
+        "img/ready_button_left_corner.png", leaders
       )
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[0]):
         await Yass.press_resource_single_async(
-          "resources/img/cancel_button_left_corner.png", leaders[1]
+          "img/cancel_button_left_corner.png", leaders[1]
         )
 
         await asyncio.sleep(0.5)
 
         await Yass.press_resource_single_async(
-          "resources/img/ready_button_left_corner.png", leaders[0]
+          "img/ready_button_left_corner.png", leaders[0]
         )
         print("Press 1")
         await asyncio.sleep(1)
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[1]):
         await Yass.press_resource_single_async(
-          "resources/img/cancel_button_left_corner.png", leaders[0]
+          "img/cancel_button_left_corner.png", leaders[0]
         )
 
         await asyncio.sleep(0.5)
 
         await Yass.press_resource_single_async(
-          "resources/img/ready_button_left_corner.png", leaders[1]
+          "img/ready_button_left_corner.png", leaders[1]
         )
 
         print("Press 2")
@@ -67,7 +67,7 @@ class WaitForGame(State):
       print("Verif")
 
       await Yass.press_resource_async(
-        "resources/img/ready_button_left_corner.png", leaders
+        "img/ready_button_left_corner.png", leaders
       )
 
       await asyncio.sleep(1)
@@ -78,7 +78,7 @@ class WaitForGame(State):
         logger.warn("Failed to get same match_ids for all accounts")
 
         await Yass.press_resource_async(
-          "resources/img/cancel_button_left_corner.png", leaders
+          "img/cancel_button_left_corner.png", leaders
         )
 
         await asyncio.sleep(1)

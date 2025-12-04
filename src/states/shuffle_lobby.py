@@ -39,9 +39,7 @@ class ShuffleLobby(State):
           **game_constants.open_side_bar, account=account
         )
         await asyncio.sleep(0.3)
-        await CS2Controller.click_if_exists_async(
-          "resources/img/exit.png", account, 0.9
-        )
+        await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9)
         await asyncio.sleep(0.3)
 
     return states.MakeLobbies(new_party_schema)

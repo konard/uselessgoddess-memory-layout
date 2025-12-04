@@ -43,19 +43,17 @@ class ContinueFarm(state.State):
     if show_must_go_on:
       all_lobbies = True
 
-      for party_schema in self.game_schema:
-        account = party_schema.leader
+      await asyncio.sleep(20)
 
+      for account in accounts:
         await WindowService.focus_window_async(account.win_cs_title)
 
         await asyncio.sleep(0.3)
 
-        await CS2Controller.wait_for_image_async(
-          "resources/img/play.png", account
-        )
+        await CS2Controller.wait_for_image_async("img/play.png", account)
 
         await CS2Controller.click_if_exists_async(
-          "resources/img/close_reward.png", account, 0.9, True
+          "img/close_reward.png", account, 0.9, True
         )
 
         await asyncio.sleep(0.3)
@@ -67,13 +65,13 @@ class ContinueFarm(state.State):
         await asyncio.sleep(0.3)
 
         await CS2Controller.wait_for_image_async(
-          "resources/img/friend_id_modal.png", account
+          "img/friend_id_modal.png", account
         )
 
         await asyncio.sleep(0.3)
 
         if not await CS2Controller.check_if_exists_async(
-          "resources/img/exit.png", account, 0.9
+          "img/exit.png", account, 0.9
         ):
           all_lobbies = False
 
@@ -88,7 +86,7 @@ class ContinueFarm(state.State):
           await asyncio.sleep(0.3)
 
           await CS2Controller.click_if_exists_async(
-            "resources/img/exit.png", account, 0.9, True
+            "img/exit.png", account, 0.9, True
           )
 
           await asyncio.sleep(0.3)

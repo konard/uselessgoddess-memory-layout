@@ -82,7 +82,7 @@ class MakeLobbies(State):
           )
           await asyncio.sleep(1)
           await CS2Controller.click_if_exists_async(
-            "resources/img/invite.png", party.leader, 0.9, True
+            "img/invite.png", party.leader, 0.9, True
           )
 
           try:

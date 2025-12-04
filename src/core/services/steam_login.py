@@ -131,7 +131,7 @@ def login_fallback(
   pyautogui.press("enter")
   logger.debug(f"[{login}] Enter pressed")
 
-  while pyautogui.locateOnScreen("resources/img/log-ru.jpg", confidence=0.9):
+  while pyautogui.locateOnScreen("img/log-ru.jpg", confidence=0.9):
     logger.debug(f"[{login}] Waiting for Guard window")
     time.sleep(1)
 

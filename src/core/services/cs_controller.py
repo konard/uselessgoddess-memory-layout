@@ -6,15 +6,23 @@ import win32clipboard
 import pywintypes
 import pyautogui
 from pyscreeze import ImageNotFoundException
-from typing import TYPE_CHECKING
+import io
+
 
 from core.account.model import RunningAccount
 from constants import win_w, win_h
 from core.logging import get_logger
 from core.account import Account
 from core.utils import async_methods
+from PIL import Image
+
+import resources
 
 logger = get_logger("yacs.cs_controller")
+
+
+def load_image(path: str) -> Image.Image:
+  return Image.open(io.BytesIO(resources.load(path)))
 
 
 class ZeroPosAccount:
@@ -136,9 +144,10 @@ class CS2Controller:
     y = account.posY + win_h
     print(x, y, account.posX, account.posY)
     try:
-      matches = pyautogui.locateAllOnScreen(image, confidence=confidence)
+      matches = pyautogui.locateAllOnScreen(
+        load_image(image), confidence=confidence
+      )
       for match in matches:
-        print(match)
         if (
           match[0] < x
           and match[1] < y
@@ -164,7 +173,9 @@ class CS2Controller:
     y = account.posY + win_h
 
     try:
-      matches = pyautogui.locateAllOnScreen(image, confidence=confidence)
+      matches = pyautogui.locateAllOnScreen(
+        load_image(image), confidence=confidence
+      )
       for match in matches:
         if (
           match[0] < x
@@ -191,7 +202,7 @@ class CS2Controller:
 
     while True:
       try:
-        matches = pyautogui.locateAllOnScreen(image, confidence=0.9)
+        matches = pyautogui.locateAllOnScreen(load_image(image), confidence=0.9)
         for match in matches:
           print(match)
           if (
@@ -220,7 +231,9 @@ class CS2Controller:
     x_min = account.posX
     y_min = account.posY
 
-    matches = list(pyautogui.locateAllOnScreen(image, confidence=confidence))
+    matches = list(
+      pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
+    )
     print(matches)
     for match in matches:
       if (
