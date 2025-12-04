@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
   if IS_DEV_MODE:
     # we need fresh resources every run
-    subprocess.run(["uv", "run", "pack.py"], check=True)
+    subprocess.run(["py", "pack.py"], check=True)
   else:
     if sys.stderr is None:
       sys.stderr = open(os.devnull, "w")
