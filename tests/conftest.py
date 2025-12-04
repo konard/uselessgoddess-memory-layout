@@ -3,15 +3,10 @@ from pathlib import Path
 
 
 @pytest.fixture(scope="session")
-def project_root():
-  return Path(__file__).parent.parent
+def model_path():
+  return "model.onnx"
 
 
 @pytest.fixture(scope="session")
-def model_path(project_root):
-  return project_root / "resources" / "model.onnx"
-
-
-@pytest.fixture(scope="session")
-def test_image_path(project_root):
-  return project_root / "resources" / "infer.png"
+def test_image_path():
+  return "infer.png"

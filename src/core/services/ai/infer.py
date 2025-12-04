@@ -8,6 +8,8 @@ import onnxruntime as ort
 from dataclasses import dataclass
 from core.logging import get_logger
 
+import resources
+
 
 logger = get_logger("vis.infer")
 
@@ -87,7 +89,9 @@ class InferenceService:
       logger.debug("CUDA detected (NVIDIA GPU acceleration enabled)")
 
     try:
-      session = ort.InferenceSession(model_path, providers=target_providers)
+      session = ort.InferenceSession(
+        resources.load(model_path), providers=target_providers
+      )
       logger.debug(f"Model loaded using providers: {session.get_providers()}")
       return session
     except Exception as e:

@@ -40,7 +40,7 @@ class Context:
     self.bot = TelegramBotService(self)
     self.ui = UIService()
     self.ai = ai.InferenceService(
-      "resources/model.onnx",
+      "model.onnx",
       ["ct", "t"],  # TODO: STRICT CONSTANT
     )  # TODO: make prebuilt configurable
     self.screen = ScreenCaptureService()

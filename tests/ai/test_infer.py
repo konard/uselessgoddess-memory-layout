@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from core.services.ai import InferenceService, Target
+import resources
 
 
 def test_scale():
@@ -33,9 +34,6 @@ LABELS = ["ct", "t"]
 
 @pytest.fixture(scope="module")
 def service(model_path):
-  if not model_path.exists():
-    pytest.skip(f"Model not found at {model_path}", allow_module_level=True)
-
   try:
     return InferenceService(str(model_path), LABELS)
   except Exception as e:
@@ -44,12 +42,9 @@ def service(model_path):
 
 @pytest.fixture(scope="module")
 def test_image(test_image_path):
-  if test_image_path.exists():
-    print(f"Loaded real image: {test_image_path}")
-    return cv2.imread(str(test_image_path))
-  else:
-    print("Generating random noise")
-    return np.random.randint(0, 255, (320, 320, 3), dtype=np.uint8)
+  print(f"Loaded real image: {test_image_path}")
+  np_bytes = np.frombuffer(resources.load(test_image_path), dtype=np.uint8)
+  return cv2.imdecode(np_bytes, cv2.IMREAD_COLOR)
 
 
 def test_provider_selection(service):

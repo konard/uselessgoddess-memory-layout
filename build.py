@@ -86,7 +86,7 @@ def build_executable():
 
 if __name__ == "__main__":
   # update resources for every build
-  subprocess.run(["uv", "run", "pack.py"])
+  subprocess.run(["uv", "run", "pack.py"], check=True)
 
   try:
     import nuitka
