@@ -72,3 +72,6 @@ proto/*
 
 main.build/*
 main.dist/*
+
+# Packed resources
+src/resources.py
