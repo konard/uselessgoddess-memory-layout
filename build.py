@@ -85,6 +85,9 @@ def build_executable():
 
 
 if __name__ == "__main__":
+  # update resources for every build
+  subprocess.run(["uv", "run", "pack.py"])
+
   try:
     import nuitka
   except ImportError:

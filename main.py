@@ -36,7 +36,7 @@ async def main():
 
 
 def dev_deps():
-  NODE_DIR = os.path.join(os.path.dirname(__file__), "resources", "scripts")
+  NODE_DIR = os.path.join(os.path.dirname(__file__), "data", "scripts")
   NODE_MODULES_DIR = os.path.join(NODE_DIR, "node_modules")
 
   if not os.path.exists(NODE_MODULES_DIR):
@@ -62,7 +62,10 @@ def is_debugger_present():
 if __name__ == "__main__":
   dev_deps()
 
-  if not IS_DEV_MODE:
+  if IS_DEV_MODE:
+    # we need fresh resources every run
+    subprocess.run(["uv", "run", "pack.py"])
+  else:
     if sys.stderr is None:
       sys.stderr = open(os.devnull, "w")
     if sys.stdout is None:

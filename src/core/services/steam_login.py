@@ -24,7 +24,7 @@ def build_runner_launch_args(login: str, settings: UserSettings):
     "--login",
     login,
     "--hook_dll",
-    f"{os.getcwd()}/resources/NetHook2.dll",
+    f"{os.getcwd()}/data/NetHook2.dll",
   ]
 
   logger.debug(f"run runner with args: {args}")
@@ -106,8 +106,7 @@ def login_qr(
   code = subprocess.run(
     [
       "node",
-      # todo!: better to use `scripts("script.js")`
-      "resources/scripts/approve_qr.js",
+      "data/scripts/approve_qr.js",
       login,
       password,
       shared_secret,
