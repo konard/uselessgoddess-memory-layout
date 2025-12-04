@@ -229,14 +229,14 @@ class CS2Controller:
         and match.top > y_min
         and match.top < y_max
       ):
-        time.sleep(0.4)
         CS2Controller.click(
           (match.left + match.width / 2).astype("int"),
           (match.top + match.height / 2).astype("int"),
           ZeroPosAccount(),
           True,
         )
-        continue
+        time.sleep(0.4)
+
     return True
 
   @staticmethod
