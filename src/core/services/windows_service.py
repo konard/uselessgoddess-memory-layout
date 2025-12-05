@@ -11,6 +11,7 @@ from constants import win_w, win_h
 from core.logging import get_logger
 from core.account import RunningAccount
 from core.account import Account
+from core.services.process import ProcessService
 from core.utils import async_methods
 
 logger = get_logger("window")
@@ -228,7 +229,7 @@ class WindowService:
               steam_id=acc.steam_id,
               posX=rect[0],
               posY=rect[1],
-              runner_pid=window_info.get("pid"),
+              runner_pid=ProcessService.get_runner_pid(window_info.get("pid")),
             )
             running[login].lock = acc.lock
         except Exception as e:

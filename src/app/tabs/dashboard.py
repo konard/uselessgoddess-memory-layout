@@ -11,8 +11,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QTextOption
 
 from core.context import Context
-from core.logging import get_logger, logging
+from core.logging import get_logger
 from core.panel import StateManager, Message
+from core.services.process import ProcessService
+from core.services.windows_service import WindowService
 from ui import Align
 from ui.theme import ButtonType
 from ui.widgets import Button, TitledPanel, Switch, VStack
@@ -97,10 +99,18 @@ class DashboardTab(QWidget):
         on_click=lambda _: self._test_telegram(),
         button_type=ButtonType.DEFAULT,
       ),
+      Button(
+        "Kill All Runners",
+        on_click=self._kill_all_runners,
+        button_type=ButtonType.DEFAULT,
+      ),
     )
     layout = QVBoxLayout(panel.container)
     layout.addWidget(content_widget)
     return panel
+
+  def _kill_all_runners(self):
+    ProcessService.kill_all_runners()
 
   def _test_telegram(self):
     asyncio.create_task(self.ctx.send_message("Test notification."))

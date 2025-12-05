@@ -341,7 +341,21 @@ def set_console_title(title: str) -> None:
       pass
 
 
+def hide_console_window() -> None:
+  """Скрывает окно консоли текущего процесса"""
+  if os.name == "nt":
+    try:
+      import ctypes
+
+      hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+      if hwnd:
+        ctypes.windll.user32.ShowWindow(hwnd, 0)
+    except Exception:
+      pass
+
+
 def main() -> int:
+  hide_console_window()
   print("runner started")
 
   parser = argparse.ArgumentParser(
@@ -384,6 +398,7 @@ def main() -> int:
     stderr=subprocess.DEVNULL,
     encoding="utf-8",
     errors="replace",
+    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
   )
   print(f"Steam процесс запущен с PID: {proc.pid}")
 
@@ -413,6 +428,7 @@ def main() -> int:
       stderr=subprocess.DEVNULL,
       encoding="utf-8",
       errors="replace",
+      creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
     )
     print(f"Hook запущен с PID: {hook.pid}")
   else:
