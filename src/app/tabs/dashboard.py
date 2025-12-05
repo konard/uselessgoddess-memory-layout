@@ -14,7 +14,6 @@ from core.context import Context
 from core.logging import get_logger
 from core.panel import StateManager, Message
 from core.services.process import ProcessService
-from core.services.windows_service import WindowService
 from ui import Align
 from ui.theme import ButtonType
 from ui.widgets import Button, TitledPanel, Switch, VStack

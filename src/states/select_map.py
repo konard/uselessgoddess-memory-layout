@@ -54,4 +54,6 @@ class SelectMap(State):
           "img/inferno_badge.png", party.leader, 0.8
         )
 
+        await asyncio.sleep(1)
+
     return WaitForGame(self.party_schema)

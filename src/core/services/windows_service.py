@@ -218,7 +218,9 @@ class WindowService:
           login = title.split("]")[0][1:]
           rect = win32gui.GetWindowRect(hwnd)
           print(rect, login)
-          window_info = WindowService.get_window_info(f"Runner-{login}")
+          window_info = WindowService.get_window_info(
+            RunningAccount.generate_window_title(login)
+          )
           if accounts_dict.get(login) is not None:
             acc = accounts_dict[login]
             running[login] = RunningAccount(
