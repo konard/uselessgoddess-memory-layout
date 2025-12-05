@@ -157,6 +157,11 @@ class MatchWorker(threading.Thread):
   def process_state(self, event: GameState):
     map, round, player = event.map, event.round, event.player
 
+    probe_score = score_from(map)
+    # avoid zero after match
+    if sum(probe_score.values()) > sum(self.score.values()):
+      self.score = probe_score
+
     contains_c4 = any(weapon.type == "C4" for weapon in player.weapons)
 
     for account in self.accounts:
@@ -182,10 +187,6 @@ class MatchWorker(threading.Thread):
 
     active_players = len(self.active_players())
     if self.ingame and active_players == 0:
-      probe_score = score_from(map)
-      # avoid zero after match
-      if sum(probe_score.values()) > sum(self.score.values()):
-        self.score = score_from(map)
       self.running = False
     else:
       self.status_text = f"Waiting {active_players}/{len(self.accounts)}..."

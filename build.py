@@ -21,10 +21,7 @@ INCLUDE_PACKAGES = [
   "google.protobuf",
 ]
 
-RESOURCE_DATA = [
-  ("src", "src"),
-  ("resources", "resources"),
-]
+RESOURCE_DATA = []
 
 
 def build_executable():
