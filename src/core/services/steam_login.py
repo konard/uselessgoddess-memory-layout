@@ -11,14 +11,15 @@ from pyzbar.pyzbar import decode
 from core.logging import get_logger
 from core.services import UserSettings
 from core.services.windows_service import WindowService
+from core.utils import data_path
+
 
 logger = get_logger("sv.launch")
 
 
 def build_runner_launch_args(login: str, settings: UserSettings):
   args = [
-    "py",
-    "src\\utils\\cs_runner\\matchid_sender.py",
+    data_path("matchid_sender.exe"),
     "--steamPath",
     settings.steam_path,
     "--login",
@@ -58,7 +59,7 @@ def steam_login(
   shared_secret: str,
   settings: UserSettings,
 ):
-  subprocess.Popen(
+  proc = subprocess.Popen(
     build_runner_launch_args(login, settings),
     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
     | subprocess.DETACHED_PROCESS,
@@ -73,6 +74,8 @@ def steam_login(
   if not login_qr(login, password, shared_secret, settings):
     logger.warn("failed to login. run fallback")
     login_fallback(login, password, shared_secret, settings)
+
+  return proc.pid
 
 
 def wait_qr() -> str:
