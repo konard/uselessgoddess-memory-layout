@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Tuple, TYPE_CHECKING
 import asyncio
 import time
 
 import struct
 import vdf
-from steam.protobufs.clientserver_mms import CMsgClientMMSLobbyData
+from steam.protobufs.clientserver_mms import (
+  CMsgClientMMSLobbyData,
+)
 from steam.protobufs.client_server_2 import CMsgClientOfflineMessageNotification
 
 if TYPE_CHECKING:
@@ -17,6 +20,7 @@ from steam.protobufs.client_server import CMsgClientChatInvite
 from core.account import Account
 from core.logging import get_logger
 from core.services.gc.match_warning import MatchWarning
+from core.services.gc.event_service import EventService
 
 logger = get_logger("lobby_service")
 
@@ -39,12 +43,18 @@ class InviteTimeoutError(Exception):
   pass
 
 
+class EventNames(str, Enum):
+  INVITE_RECEIVED = "invite_received"
+
+
 class LobbyService:
   match_warning: MatchWarning = MatchWarning()
+  event_service: EventService
   ctx: Context
 
   def __init__(self, ctx: Context):
     self.ctx = ctx
+    self.event_service = EventService()
     self.invites: dict[
       str, Tuple[CMsgClientChatInvite | None, asyncio.Event, float | None]
     ] = {}
@@ -162,6 +172,11 @@ class LobbyService:
     decoded_message: CMsgClientOfflineMessageNotification = decode_bytes(data)
     print(decoded_message)
 
+  def process_invite_received(self, data: bytes, login: str):
+    self.event_service.emit_event(
+      login, EventNames.INVITE_RECEIVED, "invite_received", ttl=30
+    )
+
   def process_message(self, data: bytes, login: str, msg_id: int):
     """Обрабатывает входящие сообщения и ищет инвайты"""
     if msg_id == 800:
@@ -171,5 +186,7 @@ class LobbyService:
       self.process_match_warning(data, login)
     elif msg_id == 7523:
       self.process_offline_event(data, login)
+    elif msg_id == 6604:
+      self.process_invite_received(data, login)
     else:
       pass

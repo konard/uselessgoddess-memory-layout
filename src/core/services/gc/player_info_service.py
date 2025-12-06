@@ -1,5 +1,6 @@
 import math
 import traceback
+from typing import TYPE_CHECKING
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientHello
 from core.account.lock import AccountsLock
 from core.account.model import FarmStatus
@@ -11,14 +12,18 @@ from utils.is_in_wednesday_range import is_in_wednesday_range
 from steam._const import READ_U32, CLEAR_PROTO_BIT
 from core.logging import get_logger
 
+if TYPE_CHECKING:
+  from core.context import Context
+
 logger = get_logger("player_info_service")
 
 
 class PlayerInfoService:
+  ctx: "Context"
   matcher_service: MatcherService = MatcherService()
 
-  def __init__(self, lock: AccountsLock):
-    self.lock = lock
+  def __init__(self, ctx: "Context"):
+    self.ctx = ctx
 
   def process_message(self, data: bytes, login: str):
     decoded_message = decode_bytes(data)
@@ -26,14 +31,6 @@ class PlayerInfoService:
     if hasattr(decoded_message, "payload"):
       emsg_id = CLEAR_PROTO_BIT(READ_U32(decoded_message.payload))
       match emsg_id:
-        case 4004:
-          logger.trace("parsing player farm status for login: %s", login)
-          try:
-            self.parse_player_farm_status(decoded_message.payload, login)
-          except Exception:
-            logger.error(
-              f"error parsing player farm status for login: {login}",
-            )
         case 9110:
           logger.trace("parsing player stats: %s", login)
           try:
@@ -72,5 +69,7 @@ class PlayerInfoService:
 
   def parse_player_stats(self, data: bytes, login: str):
     msg: MatchmakingClientHello = decode_gc_bytes(data)
-    self.lock.set_field(login, "lvl", msg.player_level)
-    self.lock.set_field(login, "xp", max(msg.player_cur_xp - 327680000, 0))
+    self.ctx.account.accounts[login].lock.lvl = msg.player_level
+    self.ctx.account.accounts[login].lock.xp = max(
+      msg.player_cur_xp - 327680000, 0
+    )

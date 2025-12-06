@@ -5,6 +5,7 @@ from core.panel import State
 from core.context import Context
 from core.logging import get_logger
 from core.services.cs_controller import CS2Controller
+from core.services.gc.lobby_service import EventNames
 from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
 from core import game_constants
@@ -41,6 +42,10 @@ class MakeLobbies(State):
     await asyncio.sleep(0.5)
     CS2Controller.click(**game_constants.accept_invite, account=account)
     await asyncio.sleep(0.5)
+
+    await ctx.gc.lobby_service.event_service.wait_for_event(
+      account, EventNames.INVITE_RECEIVED, timeout=10
+    )
 
   async def execute(self, ctx: Context):
     from states.select_map import SelectMap

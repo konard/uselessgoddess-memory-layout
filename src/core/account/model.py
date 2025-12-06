@@ -112,11 +112,6 @@ class AccountMetadata:
 
   @status.setter
   def status(self, value: FarmStatus) -> None:
-    current_status = self._data.get("status")
-    if status_map[current_status] != value:
-      logger.trace(f"Invalid status transition: {current_status} -> {value}")
-      return
-
     self._data["status"] = value
 
     if self._lock:

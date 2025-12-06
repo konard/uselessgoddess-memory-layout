@@ -58,7 +58,7 @@ class CS2Controller:
     if not immediate:
       time.sleep(1)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(0.1)
+    time.sleep(0.2)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
     logger.trace(f"Клик по ({x}, {y})")
 
@@ -247,7 +247,7 @@ class CS2Controller:
           ZeroPosAccount(),
           True,
         )
-        time.sleep(0.4)
+        time.sleep(0.5)
 
     return True
 
