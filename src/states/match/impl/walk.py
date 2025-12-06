@@ -581,7 +581,7 @@ class CT:
       (6.0, [Key.W, Key.A]),
       (2.0, [Key.W, Key.A]),
       (1.0, [Key.W, Key.D]),
-      (0.5, [Key.S, Key.D]),  # stuck in rat angle
+      (1.0, [Key.S, Key.D]),  # stuck in rat angle
       maybe(
         recursive(
           lambda _: [
