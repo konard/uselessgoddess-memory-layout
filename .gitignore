@@ -75,3 +75,6 @@ main.dist/*
 
 # Packed resources
 src/resources.py
+
+*.exe
+/*.dist

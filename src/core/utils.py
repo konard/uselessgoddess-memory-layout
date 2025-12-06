@@ -73,19 +73,3 @@ def async_methods(cls):
     setattr(cls, async_name, async_func)
 
   return cls
-
-
-def resource_path(relative_path: str) -> str:
-  try:
-    base_path = sys._MEIPASS
-    return str(Path(base_path) / "resources" / relative_path)
-  except Exception:
-    return Path("resources") / relative_path
-
-
-def data_path(relative_path: str) -> str:
-  try:
-    base_path = sys._MEIPASS
-    return str(Path(base_path) / "data" / relative_path)
-  except Exception:
-    return Path("data") / relative_path

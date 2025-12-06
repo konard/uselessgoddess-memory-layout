@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -8,6 +9,10 @@ PROJECT_ROOT = Path(__file__).parent
 ENTRY_POINT = "main.py"
 EXE_NAME = "yacsp"
 ICON_PATH = "resources/icon.ico"
+
+# use out src path
+RUNNER_SCRIPT = "src/utils/cs_runner/cs2_runner.py"
+RUNNER_EXE_NAME = "cs2_runner.exe"
 
 INCLUDE_PACKAGES = [
   "PyQt6",
@@ -21,7 +26,36 @@ INCLUDE_PACKAGES = [
   "google.protobuf",
 ]
 
-RESOURCE_DATA = []
+
+def build_runner():
+  print("--- Building CS2 Runner ---")
+
+  runner_source = PROJECT_ROOT / RUNNER_SCRIPT
+  if not runner_source.exists():
+    print(f"[ERROR] Runner script not found at {runner_source}")
+    sys.exit(1)
+
+  output_exe = PROJECT_ROOT / RUNNER_EXE_NAME
+
+  cmd = [
+    sys.executable,
+    "-m",
+    "nuitka",
+    "--onefile",
+    "--standalone",
+    f"--output-filename={output_exe}",
+    "--windows-console-mode=disable",
+    str(runner_source),
+  ]
+
+  print(f"[INFO] Runner build command: {' '.join(cmd)}")
+
+  try:
+    subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
+    print(f"[SUCCESS] Runner compiled to: {output_exe}")
+  except subprocess.CalledProcessError as e:
+    print(f"[ERROR] Failed to build runner: {e}")
+    sys.exit(1)
 
 
 def build_executable():
@@ -50,16 +84,6 @@ def build_executable():
   for pkg in INCLUDE_PACKAGES:
     cmd.append(f"--include-package={pkg}")
 
-  for source, dest in RESOURCE_DATA:
-    full_source_path = PROJECT_ROOT / source
-    if not full_source_path.exists():
-      print(
-        f"[WARNING] Resource folder not found: {full_source_path}. Skipping."
-      )
-      continue
-
-    cmd.append(f"--include-data-dir={full_source_path}={dest}")
-
   cmd.append(ENTRY_POINT)
 
   print(f"[INFO] Nuitka command: {' '.join(cmd[:15])}...")
@@ -82,13 +106,21 @@ def build_executable():
 
 
 if __name__ == "__main__":
-  # update resources for every build
-  subprocess.run(["py", "pack.py"], check=True)
+  parser = argparse.ArgumentParser(description="YACSP Build Tool")
+  parser.add_argument(
+    "--runner", action="store_true", help="Build ONLY the CS2 Runner"
+  )
+  parser.add_argument(
+    "--main", action="store_true", help="Build ONLY the Main Application"
+  )
+  args = parser.parse_args()
 
-  try:
-    import nuitka
-  except ImportError:
-    print("Nuitka is not installed. Please run: uv run nuitka")
-    sys.exit(1)
-
-  build_executable()
+  if args.runner:
+    build_runner()
+  elif args.main:
+    subprocess.run(["py", "pack.py"], check=True)
+    build_executable()
+  else:
+    subprocess.run(["py", "pack.py"], check=True)
+    build_runner()
+    build_executable()

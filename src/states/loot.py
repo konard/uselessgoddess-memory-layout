@@ -17,15 +17,14 @@ from steam.ext.csgo.price_analizator.assembler import (
   load_csgo_english,
   load_items_game,
 )
-
-from core.utils import data_path
+from pathlib import Path
 
 logger = get_logger("state.loot")
 
-prices = json.load(open(data_path("price.json"), "r", encoding="utf-8"))
+prices = json.load(open("data/price.json", "r", encoding="utf-8"))
 assembler = SkinAssembler(
-  load_items_game(data_path("items_game.txt")),
-  load_csgo_english(data_path("csgo_english.json")),
+  load_items_game(Path("data/items_game.txt")),
+  load_csgo_english(Path("data/csgo_english.json")),
   prices=prices,
 )
 

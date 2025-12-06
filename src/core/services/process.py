@@ -40,7 +40,7 @@ class ProcessService:
     try:
       proc = psutil.Process(pid)
       for parent in proc.parents():
-        if parent.name() == "matchid_sender.exe":
+        if parent.name() == "cs2_runner.exe":
           return parent.pid
     except Exception as e:
       logger.error(f"Error getting runner PID for {pid}: {e}")
@@ -52,7 +52,7 @@ class ProcessService:
     return [
       proc.pid
       for proc in psutil.process_iter()
-      if proc.name() == "matchid_sender.exe"
+      if proc.name() == "cs2_runner.exe"
     ]
 
   @staticmethod

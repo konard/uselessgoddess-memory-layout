@@ -329,7 +329,7 @@ def is_process_running(pid: int) -> bool:
     return False
 
 
-# python matchid_sender.py --cs2path "P:\steam\steamapps\common\Counter-Strike Global Offensive" --steamPath "P:\js\steam_bollerplate\steam.exe" --host 127.0.0.1 --port 9009 --quiet --w 360 --h 270
+# python cs_runner.py --cs2path "P:\steam\steamapps\common\Counter-Strike Global Offensive" --steamPath "P:\js\steam_bollerplate\steam.exe" --host 127.0.0.1 --port 9009 --quiet --w 360 --h 270
 def set_console_title(title: str) -> None:
   """Set console window title"""
   if os.name == "nt":
@@ -419,7 +419,6 @@ def main() -> int:
     hook = subprocess.Popen(
       [
         "rundll32",
-        # TODO: use core.utils.resource_path
         f"{args.hook_dll},Inject",
         str(proc.pid),
         str(args.login),

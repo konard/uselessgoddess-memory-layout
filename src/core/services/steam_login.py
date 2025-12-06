@@ -11,7 +11,6 @@ from pyzbar.pyzbar import decode
 from core.logging import get_logger
 from core.services import UserSettings
 from core.services.windows_service import WindowService
-from core.utils import data_path
 
 
 logger = get_logger("sv.launch")
@@ -19,7 +18,7 @@ logger = get_logger("sv.launch")
 
 def build_runner_launch_args(login: str, settings: UserSettings):
   args = [
-    data_path("matchid_sender.exe"),
+    "cs2_runner.exe",
     "--steamPath",
     settings.steam_path,
     "--login",
