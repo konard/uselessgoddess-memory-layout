@@ -193,7 +193,7 @@ class MatchWorker(threading.Thread):
 
   def start_round(self, map_name: str, mode: str, score: dict):
     maxround = self.mode.max_round - 2
-    reach_maxround = score[Team.T] == maxround or score[Team.CT] == maxround
+    reach_maxround = score[Team.T] >= maxround or score[Team.CT] >= maxround
 
     if abs(score[Team.T] - score[Team.CT]) > 5 or reach_maxround:
       team = Team.T if score[Team.T] < score[Team.CT] else Team.CT
