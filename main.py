@@ -63,8 +63,13 @@ if __name__ == "__main__":
   dev_deps()
 
   if IS_DEV_MODE:
+    from pathlib import Path
+
     # we need fresh resources every run
     subprocess.run(["py", "pack.py"], check=True)
+    # TODO: `cs2_runner.exe` should be constant
+    if not Path("cs2_runner.exe").exists():
+      subprocess.run(["py", "build.py", "--runner"])
   else:
     if sys.stderr is None:
       sys.stderr = open(os.devnull, "w")
