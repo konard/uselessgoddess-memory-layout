@@ -80,6 +80,9 @@ class StateManager:
   def acquire_state(self) -> Optional[State]:
     return self._current_state
 
+  def is_state_equal(self, state: State) -> bool:
+    return self._current_state is state
+
   def update_ui(self):
     self._update_ui()
 
