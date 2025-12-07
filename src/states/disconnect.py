@@ -29,9 +29,7 @@ class DisconnectState(State):
       await asyncio.sleep(1)
       await WindowService.focus_window_async(account.win_cs_title)
       await asyncio.sleep(0.5)
-      await CS2Controller.wait_for_image_async(
-        "img/disconnect.png", account, 0.9
-      )
+      await CS2Controller.wait_for_image_async("img/disconnected.png", account)
       await asyncio.sleep(0.5)
       await CS2Controller.click_if_exists_async("img/ok.png", account, 0.9)
       await asyncio.sleep(0.5)

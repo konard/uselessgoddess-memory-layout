@@ -90,7 +90,6 @@ class WindowService:
     """Проверить существование окна с указанным заголовком"""
     try:
       hwnd = win32gui.FindWindow(None, window_title)
-      print(hwnd, "hwnd")
       return hwnd != 0
     except Exception as e:
       logger.error(
@@ -217,7 +216,6 @@ class WindowService:
         try:
           login = title.split("]")[0][1:]
           rect = win32gui.GetWindowRect(hwnd)
-          print(rect, login)
           window_info = WindowService.get_window_info(
             RunningAccount.generate_window_title(login)
           )

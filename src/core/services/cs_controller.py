@@ -204,7 +204,6 @@ class CS2Controller:
       try:
         matches = pyautogui.locateAllOnScreen(load_image(image), confidence=0.9)
         for match in matches:
-          print(match)
           if (
             match.left > x_min
             and match.left < x_max
@@ -218,7 +217,6 @@ class CS2Controller:
       if count > 250:
         raise Exception(f"Изображение не найдено: {image}")
       count += 1
-      print(count)
       time.sleep(1)
 
   @staticmethod
@@ -234,7 +232,6 @@ class CS2Controller:
     matches = list(
       pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
     )
-    print(matches)
     for match in matches:
       if (
         match.left > x_min

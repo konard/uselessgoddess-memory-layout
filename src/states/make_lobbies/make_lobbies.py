@@ -60,7 +60,6 @@ class MakeLobbies(State):
       if self.party_schema is None:
         self.party_schema = generate_party_schema(launched_accounts, farm_mode)
 
-      print(game_constants)
       for party in self.party_schema:
         await WindowService.focus_window_async(party.leader.win_cs_title)
         await CS2Controller.move_mouse_async(

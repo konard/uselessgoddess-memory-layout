@@ -36,3 +36,4 @@ class DisconnectWorker:
             DisconnectState(DisconnectType.LOBBY, disconnected_accounts)
           )
           await asyncio.sleep(120)
+      await asyncio.sleep(3)

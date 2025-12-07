@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QCloseEvent
 
 from core.process_config import ConfigService
+from core.services.disconnect_worker import DisconnectWorker
 from core.services.gc import start_gc_server
 from core.services.status_reset_service import StatusResetService
 from core.panel import StateManager
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow):
     asyncio.create_task(status_reset_service.start())
     asyncio.create_task(start_gc_server(self.ctx.gc))
     asyncio.create_task(self.ctx.bot.start())
+    disconnect_worker = DisconnectWorker(self.manager, self.ctx)
+    asyncio.create_task(disconnect_worker.run())
     self.ctx.gsi.start()
 
     self.setup_ui()
