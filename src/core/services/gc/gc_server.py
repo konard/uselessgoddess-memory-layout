@@ -10,6 +10,8 @@ import pywintypes
 from dataclasses import dataclass
 from core.logging import get_logger
 
+from constants import IS_DEV_MODE
+
 from .gc_service import GCService
 
 logger = get_logger("gc.server")
@@ -147,7 +149,7 @@ class PipeServer:
     #   f"recv packet: id={msg_id} name={file_name}, login={client_name}, data=[{len(data)} bytes...]"
     # )
 
-    if data and len(data) > 0:
+    if IS_DEV_MODE and data and len(data) > 0:
       os.makedirs(f"proto/{client_name}", exist_ok=True)
       filename = f"proto/{client_name}/{file_name.lower()}.bin"
       with open(filename, "wb") as f:
