@@ -86,56 +86,56 @@ class Idle(State):
       return inner
 
     buttons = [
-      Button(
-        "Start Farming",
-        on_click=acquire_accounts(Farm),
-        tooltip="Starts farming for all selected accounts.",
-      ),
-      Button(
-        "Loot Selected",
-        on_click=acquire_accounts(Loot),
-        tooltip="Loot weakly drop of selected accounts.",
-      ),
+      # Button(
+      #   "Start Farming",
+      #   on_click=acquire_accounts(Farm),
+      #   tooltip="Starts farming for all selected accounts.",
+      # ),
       HStack(
+        Button(
+          "Loot Selected",
+          on_click=acquire_accounts(Loot),
+          tooltip="Loot weakly drop of selected accounts.",
+        ),
         Button(
           "Trade accounts",
           on_click=acquire_accounts(Trade),
           tooltip="Trade inventories to trade url.",
         ),
-        Button(
-          "Drop report",
-          on_click=acquire_accounts(Trade),
-          tooltip="Make drop report.",
-        ),
+        # Button(
+        #   "Drop report",
+        #   on_click=acquire_accounts(Trade),
+        #   tooltip="Make drop report.",
+        # ),
       ),
-      Button(
-        "Wait for Game",
-        on_click=launch(WaitForGame),
-        tooltip="Wait for game to start.",
-      ),
+      # Button(
+      #   "Wait for Game",
+      #   on_click=launch(WaitForGame),
+      #   tooltip="Wait for game to start.",
+      # ),
       Button(
         "Launch Accounts",
         on_click=acquire_accounts(LaunchAccounts),
         tooltip="Launch accounts.",
       ),
-      Button(
-        "Start match",
-        on_click=lambda: dispatch(MatchState(None)),
-        button_type=ButtonType.SPECIAL,
-        tooltip="Manually run auto-match",
-      ),
-      HStack(
-        Button(
-          "Make Lobbies",
-          on_click=lambda: dispatch(MakeLobbies(None)),
-          tooltip="Make lobbies.",
-        ),
-        Button(
-          "Select Map",
-          on_click=lambda: dispatch(SelectMap(None)),
-          tooltip="Select map.",
-        ),
-      ),
+      # Button(
+      #   "Start match",
+      #   on_click=lambda: dispatch(MatchState(None)),
+      #   button_type=ButtonType.SPECIAL,
+      #   tooltip="Manually run auto-match",
+      # ),
+      # HStack(
+      #   Button(
+      #     "Make Lobbies",
+      #     on_click=lambda: dispatch(MakeLobbies(None)),
+      #     tooltip="Make lobbies.",
+      #   ),
+      #   Button(
+      #     "Select Map",
+      #     on_click=lambda: dispatch(SelectMap(None)),
+      #     tooltip="Select map.",
+      #   ),
+      # ),
       Button(
         "Continue Farm",
         on_click=lambda: dispatch(ContinueFarmMsg()),
