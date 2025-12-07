@@ -232,6 +232,7 @@ class MatchWorker(threading.Thread):
           CS2Controller.press_button(scancode(35).value)
         if random.random() < 0.50:
           CS2Controller.press_button(scancode(37).value)
+      CS2Controller.press_button(Key.F3.value, sleep=0.5)
 
   def stop(self):
     self.exit()

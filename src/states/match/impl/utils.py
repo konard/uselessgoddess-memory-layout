@@ -28,6 +28,7 @@ class Key(Enum):
   W = 0x57
   K = 0x4B
   L = 0x4C
+  F3 = 0x72
 
 
 class Context:
