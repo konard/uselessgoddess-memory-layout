@@ -101,7 +101,7 @@ class DashboardTab(QWidget):
       Button(
         "Kill All Runners",
         on_click=self._kill_all_runners,
-        button_type=ButtonType.DEFAULT,
+        button_type=ButtonType.DANGER,
       ),
     )
     layout = QVBoxLayout(panel.container)

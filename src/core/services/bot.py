@@ -4,6 +4,7 @@ import cv2
 import asyncio
 import numpy as np
 import getpass
+import html
 from telegram import (
   Update,
   ReplyKeyboardMarkup,
@@ -21,6 +22,10 @@ from telegram.ext import (
   CallbackQueryHandler,
 )
 from core.logging import get_logger
+from core.services.windows_service import WindowService
+from core.account.model import FarmStatus
+
+import resources
 
 if TYPE_CHECKING:
   from core.context import Context
@@ -119,13 +124,13 @@ class TelegramBotService:
       return
 
     help_text = (
-      "*YACS Panel Bot Help*\n\n"
+      "<b>YACS Panel Bot Help</b>\n\n"
       "/start - Restart menu\n"
-      "/status - List active accounts\n"
+      "/status - List active running accounts\n"
       "/screenshot - Capture main window\n"
       "/help - Show this message"
     )
-    await update.message.reply_text(help_text, parse_mode="Markdown")
+    await update.message.reply_text(help_text, parse_mode="HTML")
 
   async def _cmd_status(
     self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -134,14 +139,39 @@ class TelegramBotService:
       await self._send_sales_message(update)
       return
 
-    accounts = self.ctx.accounts()
+    running_accounts = WindowService.scan_cs2_windows(
+      self.ctx.accounts(), values=True
+    )
 
-    # TODO: reply running accounts
-    msg = f"**Running Status ({len(accounts)})**:\n\n"
-    for acc in accounts[:10]:
-      msg += f"- `{acc.login}`: [lvl={acc.lock.lvl}; xp={acc.lock.xp}]\n"
+    if not running_accounts:
+      safe_user = html.escape(getpass.getuser())
+      await update.message.reply_text(
+        f"[<b>{safe_user}</b>] 💤 No accounts running.", parse_mode="HTML"
+      )
+      return
 
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    msg = f"<b>Active Sessions ({len(running_accounts)})</b>:\n\n"
+
+    for acc in running_accounts:
+      lvl = acc.lock.lvl or 0
+      xp = acc.lock.xp or 0
+      status = acc.lock.status or "unknown"
+
+      status_icon = "🟢"
+      if status == FarmStatus.FARMED:
+        status_icon = "✅"
+      elif status == FarmStatus.CAN_BE_LOOTED:
+        status_icon = "🎁"
+
+      safe_login = html.escape(acc.login)
+
+      msg += (
+        f"👤 <code>{safe_login}</code>\n"
+        f"├ Rank: {lvl} | XP: {xp}/5000\n"
+        f"└ Status: {status_icon} {status}\n\n"
+      )
+
+    await update.message.reply_text(msg, parse_mode="HTML")
 
   async def _cmd_screenshot(
     self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -149,9 +179,41 @@ class TelegramBotService:
     if not self._check_auth(update.effective_user.id):
       return
 
-    await update.message.reply_text(
-      "Screenshot functionality is not implemented yet."
+    chat_id = update.effective_chat.id
+
+    placeholder = resources.load("placeholder.jpg")
+    placeholder_msg = await context.bot.send_photo(
+      chat_id=chat_id,
+      photo=placeholder,
+      caption="📸 Capturing screen...",
     )
+
+    await asyncio.sleep(1.5)
+
+    try:
+      frame = self.ctx.screen.capture()
+
+      if frame is None or frame.size == 0:
+        await context.bot.delete_message(chat_id, placeholder_msg.message_id)
+        await update.message.reply_text(
+          "❌ Failed to capture screen (empty frame)."
+        )
+        return
+
+      await context.bot.delete_message(chat_id, placeholder_msg.message_id)
+
+      height, width = frame.shape[:2]
+      await self.send_message(
+        chat_id=chat_id, text=f"{height}x{width}", image=frame
+      )
+
+    except Exception as e:
+      logger.error(f"Screenshot error: {e}")
+      try:
+        await context.bot.delete_message(chat_id, placeholder_msg.message_id)
+      except Exception:
+        pass
+      await update.message.reply_text(f"❌ Error taking screenshot: {e}")
 
   async def _handle_text(
     self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -171,8 +233,8 @@ class TelegramBotService:
     self,
     chat_id: int | str,
     text: str,
-    image: Optional[bytes] = None,
-    parse_mode: str = "Markdown",
+    image: Optional[np.ndarray] = None,
+    parse_mode: str = "HTML",
     reply_markup: Optional[InlineKeyboardMarkup] = None,
   ):
     if not self.running or not self.app or not self.app.bot:
@@ -181,23 +243,27 @@ class TelegramBotService:
       )
       return
 
-    text = f"<{getpass.getuser()}> {text}"
+    safe_user = html.escape(getpass.getuser())
+    caption = f"[<b>{safe_user}</b>]: {text}"
 
     try:
-      if image:
-        image = encode_frame_to_bytes(image, "png")
-        await self.app.bot.send_photo(
-          chat_id=chat_id,
-          photo=InputFile(image),
-          caption=text,
-          parse_mode=parse_mode,
-          reply_markup=reply_markup,
-        )
-        logger.debug(f"sent photo message to {chat_id}")
+      if image is not None:
+        image_bytes = encode_frame_to_bytes(image, "png")
+        if image_bytes:
+          await self.app.bot.send_photo(
+            chat_id=chat_id,
+            photo=image_bytes,
+            caption=caption,
+            parse_mode=parse_mode,
+            reply_markup=reply_markup,
+          )
+          logger.debug(f"sent photo message to {chat_id}")
+        else:
+          logger.error("Failed to encode image for telegram")
       else:
         await self.app.bot.send_message(
           chat_id=chat_id,
-          text=text,
+          text=caption,
           parse_mode=parse_mode,
           reply_markup=reply_markup,
         )
@@ -209,23 +275,24 @@ class TelegramBotService:
 def encode_frame_to_bytes(
   frame_bgra: np.ndarray, ext: str = "png"
 ) -> bytes | None:
-  if ext.lower() == "jpeg":
-    frame_bgr = frame_bgra[:, :, :3]
-  elif ext.lower() == "png":
-    frame_bgr = frame_bgra
-  else:
-    logger.debug(f"unsupported image format: {ext}")
-    return None
+  try:
+    if ext.lower() == "jpeg":
+      if frame_bgra.shape[2] == 4:
+        frame_bgr = frame_bgra[:, :, :3]
+      else:
+        frame_bgr = frame_bgra
 
-  if ext.lower() == "jpeg":
-    encode_success, encoded_image = cv2.imencode(
-      ".jpg", frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90]
-    )
-  else:
-    encode_success, encoded_image = cv2.imencode(".png", frame_bgr)
+      encode_success, encoded_image = cv2.imencode(
+        ".jpg", frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90]
+      )
+    else:
+      encode_success, encoded_image = cv2.imencode(".png", frame_bgra)
 
-  if encode_success:
-    return encoded_image.tobytes()
-  else:
-    print("Error encoding image frame.")
+    if encode_success:
+      return encoded_image.tobytes()
+    else:
+      print("Error encoding image frame.")
+      return None
+  except Exception as e:
+    print(f"Encoding exception: {e}")
     return None
