@@ -61,7 +61,7 @@ class AccountMetadata:
   @lvl.setter
   def lvl(self, value: int) -> None:
     if value > self._data.get("lvl", 0):
-      self._lock.set_field(self._login, "status", FarmStatus.FARMED)
+      self._lock.set_field(self._login, "status", FarmStatus.CAN_BE_LOOTED)
     self._data["lvl"] = value
     if self._lock:
       self._lock.set_field(self._login, "lvl", value)
@@ -92,6 +92,8 @@ class AccountMetadata:
 
   @xp.setter
   def xp(self, value: int) -> None:
+    if value > self._data.get("xp", 0):
+      self._lock.set_field(self._login, "status", FarmStatus.CAN_BE_LOOTED)
     self._data["xp"] = value
     if self._lock:
       self._lock.set_field(self._login, "xp", value)
