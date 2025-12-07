@@ -62,6 +62,10 @@ class Context:
     )
     return list(unfarmed_accounts_list)
 
+  @property
+  def launched_accounts(self) -> List[Account]:
+    return WindowService.scan_cs2_windows(self.accounts(), values=True)
+
   @property  # shorthand to `settings`
   def s(self):
     return self.settings

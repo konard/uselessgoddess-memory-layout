@@ -55,10 +55,11 @@ class CS2Controller:
   def click(x, y, account: Account, immediate: bool = False):
     """Кликает в точку"""
     CS2Controller.move_mouse(x, y, account)
+    time.sleep(0.2)
     if not immediate:
       time.sleep(1)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(0.2)
+    time.sleep(0.05)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
     logger.trace(f"Клик по ({x}, {y})")
 
