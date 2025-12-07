@@ -100,9 +100,15 @@ class MouseMove(Action):
 
 
 class RotateAction(Action):
-  def __init__(self, target_rotation: float, precision: float = 5.0):
+  def __init__(
+    self,
+    target_rotation: float,
+    precision: float = 5.0,
+    max_angle: float = 100.0,
+  ):
     self.target_rotation = target_rotation
     self.precision = precision
+    self.max_angle = max_angle
     self.current_rotation = None
     self.detector = None
 
@@ -122,6 +128,11 @@ class RotateAction(Action):
 
       if abs(diff) <= self.precision or abs(diff - 360) <= self.precision:
         return True, None
+
+      turn_magnitude = diff if diff <= 180 else 360 - diff
+
+      if turn_magnitude > self.max_angle:
+        return True, ctx.team  # god pls
 
       smooth_rotate_to_target(
         current_rotation, self.target_rotation, 10 * ctx.delta
@@ -512,7 +523,7 @@ class T:
       (1.0, [Key.S]),
       (1.0, [Key.D]),
       (4.5, [Key.W]),
-      (1.5, [Key.A]),
+      (0.5, [Key.A]),
       maybe(
         recursive(
           lambda _: [

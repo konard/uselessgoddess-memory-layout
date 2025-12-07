@@ -204,7 +204,7 @@ class TelegramBotService:
 
       height, width = frame.shape[:2]
       await self.send_message(
-        chat_id=chat_id, text=f"{height}x{width}", image=frame
+        chat_id=chat_id, text=f"{width}x{height}", image=frame
       )
 
     except Exception as e:
