@@ -16,6 +16,7 @@ from ui.theme import CURRENT_THEME, ButtonType
 from ui.widgets import Button, Switch, Tooltip
 from core.context import Context
 from core.account.model import FarmStatus
+from app.import_dialog import ImportAccountsDialog
 
 
 enum_to_color = {
@@ -43,7 +44,23 @@ class AccountsPanel(QWidget):
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(5)
 
-    top_bar = QHBoxLayout()
+    actions_bar = QHBoxLayout()
+    actions_bar.setSpacing(5)
+
+    self.btn_import = Button("Import", button_type=ButtonType.SUCCESS)
+    actions_bar.addWidget(self.btn_import)
+
+    self.btn_all = Button("All", button_type=ButtonType.DEFAULT)
+    self.btn_select_4 = Button("4 Unfarmed", button_type=ButtonType.PRIMARY)
+    self.btn_select_10 = Button("10 Unfarmed", button_type=ButtonType.PRIMARY)
+    self.btn_clear = Button("Clear", button_type=ButtonType.DEFAULT)
+
+    actions_bar.addWidget(self.btn_all)
+    actions_bar.addWidget(self.btn_select_4)
+    actions_bar.addWidget(self.btn_select_10)
+    actions_bar.addWidget(self.btn_clear)
+
+    layout.addLayout(actions_bar)
 
     self.search_input = QLineEdit()
     self.search_input.setPlaceholderText("Search login...")
@@ -58,19 +75,7 @@ class AccountsPanel(QWidget):
     """)
     self.search_input.setFixedHeight(30)
 
-    top_bar.addWidget(self.search_input, stretch=2)
-
-    self.btn_all = Button("All", button_type=ButtonType.DEFAULT)
-    self.btn_select_4 = Button("4 Unfarmed", button_type=ButtonType.PRIMARY)
-    self.btn_select_10 = Button("10 Unfarmed", button_type=ButtonType.PRIMARY)
-    self.btn_clear = Button("Clear", button_type=ButtonType.DEFAULT)
-
-    top_bar.addWidget(self.btn_all, stretch=1)
-    top_bar.addWidget(self.btn_select_4, stretch=1)
-    top_bar.addWidget(self.btn_select_10, stretch=1)
-    top_bar.addWidget(self.btn_clear, stretch=1)
-
-    layout.addLayout(top_bar)
+    layout.addWidget(self.search_input)
 
     self.table = QTableWidget()
     self.table.setColumnCount(3)
@@ -111,6 +116,7 @@ class AccountsPanel(QWidget):
     layout.addWidget(self.table)
 
   def _connect_signals(self):
+    self.btn_import.clicked.connect(self._open_import_dialog)
     self.search_input.textChanged.connect(self._on_search_changed)
 
     self.btn_all.clicked.connect(self._select_all_visible)
@@ -120,6 +126,12 @@ class AccountsPanel(QWidget):
 
     self.ctx.ui.selection_changed.connect(self._update_toggles_from_state)
     self.table.cellEntered.connect(self._on_cell_hover)
+    self.ctx.ui.selection_changed.connect(self.refresh_table)
+
+  def _open_import_dialog(self):
+    dialog = ImportAccountsDialog(self.ctx, self)
+    if dialog.exec():
+      self.refresh_table()
 
   def refresh_table(self):
     accounts = self.ctx.accounts()
