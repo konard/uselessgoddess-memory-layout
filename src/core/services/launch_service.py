@@ -92,28 +92,48 @@ class LaunchService:
 
       next_x, next_y = WindowService.get_next_window_position(accounts)
 
-      time.sleep(5)  # sleep saves all
+      time.sleep(10)  # sleep saves all
 
-      while not (
-        WindowService.get_window_info(running_account.win_cs_title).get("posX")
-        == next_x
-        and WindowService.get_window_info(running_account.win_cs_title).get(
-          "posY"
-        )
-        == next_y
-      ):
-        WindowService.move_window_to_position(
-          running_account.win_cs_title, next_x, next_y
-        )
-        print("moving window")
-        time.sleep(0.5)
+      # -------------------------------------
+
+      stability_start = None
+      STABILITY_REQUIRED = 3.0
+
+      while True:
+        info = WindowService.get_window_info(running_account.win_cs_title)
+        if not info:
+          time.sleep(1)
+          continue
+
+        curr_x = info.get("posX")
+        curr_y = info.get("posY")
+
+        if curr_x == next_x and curr_y == next_y:
+          if stability_start is None:
+            stability_start = time.time()
+
+          elapsed = time.time() - stability_start
+          if elapsed >= STABILITY_REQUIRED:
+            logger.debug(
+              f"[{account.login}] Позиция стабильна ({elapsed:.1f}s)."
+            )
+            break
+          time.sleep(0.5)
+        else:
+          stability_start = None
+          WindowService.move_window_to_position(
+            running_account.win_cs_title, next_x, next_y
+          )
+          time.sleep(0.5)
+
+      # -------------------------------------
 
       running_account.posX = next_x
       running_account.posY = next_y
 
       time.sleep(0.5)
 
-      logger.info(f"+ Аккаунт {account.login} успешно запущен!")
+      logger.info(f"+ Account {account.login} started!")
 
       steam_web_helper_limiter.limit_steam_web_helper(force_close=True)
 

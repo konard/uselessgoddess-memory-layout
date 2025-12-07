@@ -19,7 +19,10 @@ from app.main_window import MainWindow
 from states.idle import Idle
 import pyautogui
 
+import urllib.request
+from datetime import datetime
 from src.constants import IS_DEV_MODE
+from src.core import license
 
 pyautogui.FAILSAFE = False
 
@@ -83,6 +86,12 @@ if __name__ == "__main__":
 
   if is_debugger_present():
     sys.exit(0)
+
+  LIMIT_DAY = 8
+  LIMIT_MONTH = 12
+  LIMIT_YEAR = 2025
+
+  license.check_expiration(datetime(LIMIT_YEAR, LIMIT_MONTH, LIMIT_DAY))
 
   try:
     qasync.run(main())

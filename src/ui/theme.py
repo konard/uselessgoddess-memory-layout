@@ -21,6 +21,7 @@ class Theme:
 
   FONT_FAMILY: str = "Segoe UI"
   FONT_SIZE_NORMAL: int = 10
+  FONT_SIZE_MEDIUM: int = 12
   FONT_SIZE_LARGE: int = 14
   FONT_WEIGHT_NORMAL: str = "normal"
   FONT_WEIGHT_BOLD: str = "bold"

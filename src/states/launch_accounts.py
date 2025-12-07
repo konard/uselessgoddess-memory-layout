@@ -62,6 +62,7 @@ class LaunchAccounts(State):
         LaunchService.launch_account_with_steam
       )(account, ctx.settings.user, ctx.accounts())
       logger.info(f"{account.login} launched")
+      await asyncio.sleep(1)
 
     await asyncio.sleep(7)
 
