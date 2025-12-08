@@ -92,7 +92,7 @@ class AccountMetadata:
 
   @xp.setter
   def xp(self, value: int) -> None:
-    if value > self._data.get("xp", 0):
+    if value < self._data.get("xp", 0):
       self._lock.set_field(self._login, "status", FarmStatus.CAN_BE_LOOTED)
     self._data["xp"] = value
     if self._lock:
