@@ -5,6 +5,7 @@ from core.logging import get_logger
 from core.services.settings import FarmMode
 from states.types import GameSchema
 from states.launch_accounts import LaunchAccounts
+from states.loot import LootAccounts
 
 logger = get_logger("state.template")
 
@@ -25,12 +26,12 @@ class StartUnfarmed(State):
 
     if self.game_schema[0].farm_mode == FarmMode.TWO_BY_TWO:
       if len(unfarmed_accounts) < 4:
-        raise ValueError("Not enough accounts to start farming")
+        return LootAccounts(ctx.accounts())
       return LaunchAccounts(unfarmed_accounts[:4])
 
     elif self.game_schema[0].farm_mode == FarmMode.FIVE_BY_FIVE:
       if len(unfarmed_accounts) < 10:
-        raise ValueError("Not enough accounts to start farming")
+        return LootAccounts(ctx.accounts())
       return LaunchAccounts(unfarmed_accounts[10:])
     else:
       raise ValueError(f"Invalid farm mode: {self.game_schema[0].farm_mode}")
