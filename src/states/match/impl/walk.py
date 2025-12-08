@@ -407,7 +407,11 @@ def alt_shoot(duration: float = 0.1, hold: bool = False) -> Edge:
 
 
 def rotate(target_rotation: float, precision: float = 5.0) -> Action:
-  return RotateAction(target_rotation, precision)
+  # 2 actions to handle changing of team
+  return [
+    RotateAction(target_rotation, precision),
+    RotateAction(target_rotation, precision),
+  ]
 
 
 def inspect(hold: bool = False) -> Action:
