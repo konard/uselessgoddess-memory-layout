@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
   LIMIT_DAY = 17
   LIMIT_MONTH = 12
-  LIMIT_YEAR = 2025
+  LIMIT_YEAR = 2026
 
   license_old.check_expiration(datetime(LIMIT_YEAR, LIMIT_MONTH, LIMIT_DAY))
 

@@ -118,12 +118,12 @@ class Idle(State):
         on_click=acquire_accounts(LaunchAccounts),
         tooltip="Launch accounts.",
       ),
-      # Button(
-      #   "Start match",
-      #   on_click=lambda: dispatch(MatchState(None)),
-      #   button_type=ButtonType.SPECIAL,
-      #   tooltip="Manually run auto-match",
-      # ),
+      Button(
+        "Start match",
+        on_click=lambda: dispatch(MatchState(None)),
+        button_type=ButtonType.SPECIAL,
+        tooltip="Manually run auto-match",
+      ),
       # HStack(
       #   Button(
       #     "Make Lobbies",

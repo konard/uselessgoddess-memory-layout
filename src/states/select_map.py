@@ -21,7 +21,9 @@ class SelectMap(State):
 
     logger.info("Selecting map")
 
-    for party in self.party_schema:
+    party_retries = 0
+    while party_retries < len(self.party_schema):
+      party = self.party_schema[party_retries]
       await WindowService.focus_window_async(party.leader.win_cs_title)
 
       await CS2Controller.click_async(
@@ -55,5 +57,14 @@ class SelectMap(State):
         )
 
         await asyncio.sleep(1)
+
+        matches = await CS2Controller.count_matches_async(
+          "img/check_2.png", party.leader, 0.8
+        )
+        print(matches)
+        if matches != 1:
+          continue
+
+        party_retries += 1
 
     return WaitForGame(self.party_schema)
