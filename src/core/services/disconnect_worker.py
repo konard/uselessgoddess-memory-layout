@@ -30,10 +30,10 @@ class DisconnectWorker:
           await self.stateManager.into_state(
             DisconnectState(DisconnectType.MATCH, disconnected_accounts)
           )
-          await asyncio.sleep(120)
+          await asyncio.sleep(60)
         else:
           await self.stateManager.into_state(
             DisconnectState(DisconnectType.LOBBY, disconnected_accounts)
           )
-          await asyncio.sleep(120)
+          await asyncio.sleep(60)
       await asyncio.sleep(3)

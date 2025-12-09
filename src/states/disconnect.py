@@ -8,6 +8,7 @@ from core.account import Account
 from core.logging import get_logger
 from core.services.cs_controller import CS2Controller
 from core.services.windows_service import WindowService
+from core.keys import Key
 
 logger = get_logger("state.disconnect")
 
@@ -44,6 +45,11 @@ class DisconnectState(State):
           )
           await asyncio.sleep(1)
 
-          return states.MatchState(None)
+        for account in ctx.launched_accounts:
+          await WindowService.focus_window_async(account.win_cs_title)
+          await asyncio.sleep(0.5)
+          await CS2Controller.press_key_async(Key.CTRL)
+          await asyncio.sleep(0.5)
+        return states.MatchState(None)
       case DisconnectType.LOBBY:
         return states.ContinueFarm(None)

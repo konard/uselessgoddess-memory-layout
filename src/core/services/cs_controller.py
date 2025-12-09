@@ -16,6 +16,7 @@ from core.utils import async_methods
 from PIL import Image
 
 import resources
+from core.keys import Key
 
 logger = get_logger("yacs.cs_controller")
 
@@ -115,6 +116,15 @@ class CS2Controller:
     win32api.keybd_event(win32con.VK_BACK, 0, win32con.KEYEVENTF_KEYUP, 0)
     time.sleep(0.1)
     logger.trace("Нажата кнопка Delete")
+
+  @staticmethod
+  def press_key(key: Key, delay: float = 0.25):
+    """Нажимает кнопку"""
+    win32api.keybd_event(key.value, 0, 0, 0)
+    time.sleep(delay)
+    win32api.keybd_event(key.value, 0, win32con.KEYEVENTF_KEYUP, 0)
+    time.sleep(0.1)
+    logger.trace(f"Нажата кнопка: {key}")
 
   @staticmethod
   def press_escape():
@@ -250,7 +260,39 @@ class CS2Controller:
     return True
 
   @staticmethod
+  def count_matches(
+    image: str, account: RunningAccount, confidence: float = 0.9
+  ):
+    x_max = account.posX + win_w
+    y_max = account.posY + win_h
+
+    x_min = account.posX
+    y_min = account.posY
+
+    matches = list(
+      pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
+    )
+
+    count = 0
+
+    for match in matches:
+      if (
+        match.left > x_min
+        and match.left < x_max
+        and match.top > y_min
+        and match.top < y_max
+      ):
+        count += 1
+
+    return count
+
+  @staticmethod
   def click_bulk_async(
+    image: str, account: RunningAccount, confidence: float = 0.9
+  ): ...
+
+  @staticmethod
+  def count_matches_async(
     image: str, account: RunningAccount, confidence: float = 0.9
   ): ...
 
