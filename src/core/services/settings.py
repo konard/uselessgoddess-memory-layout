@@ -64,6 +64,7 @@ class Settings:
 
 @dataclass
 class UserSettings(Settings):
+  license_key: str = ""
   trade_url: str = ""
   steam_path: str = ""
   cs_path: str = ""

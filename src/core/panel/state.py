@@ -5,10 +5,14 @@ from typing import Optional, Callable, Type, TYPE_CHECKING
 
 from core.logging import get_logger
 from core.utils import name_of, type_of
+from core.services.license import LicenseKind
 from .message import Message
 
 if TYPE_CHECKING:
   from core.context import Context
+  from states import LicenseState
+
+from constants import CHECK_LICENSE
 
 logger = get_logger("state")
 
@@ -86,7 +90,37 @@ class StateManager:
   def update_ui(self):
     self._update_ui()
 
-  async def into_state(self, state: State):
+  async def into_state(self, state: State, check: bool = True):
+    logger.trace(
+      f"is license valid {self.context.lic.is_working()}: {self.context.lic.state()}"
+    )
+
+    if CHECK_LICENSE and check and not self.context.lic.is_working():
+      title = "Work Paused"
+      desc = "Unknown reason"
+
+      state = self.context.lic.state()
+
+      if state == LicenseKind.PAUSED_NETWORK:
+        title = "Connection Lost"
+        desc = "Internet connection is unstable. Waiting for recovery..."
+      elif state == LicenseKind.PAUSED_LIMIT:
+        title = "Session Limit Reached"
+        desc = "Too many active sessions. Close other instances or wait."
+      elif state == LicenseKind.INVALID:
+        title = "License expired"
+        desc = "Please renew your license"
+
+      logger.warning(
+        f"License suspended ({state.value}). Please enter new license."
+      )
+      import states
+
+      await self.into_state(
+        states.LicenseState(state, title, desc), check=False
+      )
+      return
+
     if self._current_task and not self._current_task.done():
       self._current_task.cancel()
       try:

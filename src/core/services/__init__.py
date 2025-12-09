@@ -9,3 +9,4 @@ from .capture import ScreenCaptureService, Region
 from .ui import UIService
 from .gsi import GSIService
 from .cs_controller import CS2Controller
+from .license import LicenseService, LicenseKind

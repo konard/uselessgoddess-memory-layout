@@ -22,7 +22,7 @@ logger = get_logger("ui.main")
 
 
 class MainWindow(QMainWindow):
-  def __init__(self, parent=None):
+  def __init__(self, context, parent=None):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
     self.resize(1100, 800)
@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
       QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
     )
 
-    self.ctx = Context()
+    self.ctx = context
 
     self.manager = StateManager(self.ctx, callback=lambda: None)
 
@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
     asyncio.create_task(self.ctx.bot.start())
     disconnect_worker = DisconnectWorker(self.manager, self.ctx)
     asyncio.create_task(disconnect_worker.run())
+    asyncio.create_task(self.ctx.lic.start())
     self.ctx.gsi.start()
 
     self.setup_ui()

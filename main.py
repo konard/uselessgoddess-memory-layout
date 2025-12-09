@@ -13,7 +13,7 @@ from pyuac import isUserAdmin, runAsAdmin
 # Add src to sys.path to allow imports from core, app, etc.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from app.main_window import MainWindow
 from states.idle import Idle
@@ -21,16 +21,66 @@ import pyautogui
 
 import urllib.request
 from datetime import datetime
-from src.constants import IS_DEV_MODE
-from src.core import license
+from src.constants import IS_DEV_MODE, CHECK_LICENSE
+from src.core import license_old
+from src.core.context import Context
+from core.services.license import LicenseKind
+from app.license_dialog import LicenseInputDialog
+
 
 pyautogui.FAILSAFE = False
 
 
-async def main():
-  _app = QApplication.instance() or QApplication(sys.argv)
+async def bootstrap(app: QApplication):
+  ctx = Context()
 
-  window = MainWindow()
+  if not ctx.su.license_key:
+    dialog = LicenseInputDialog()
+    if dialog.exec():
+      ctx.lic.update_key(dialog.key)
+      ctx.settings.save(ctx.settings.user)
+    else:
+      return None
+
+  print("[Bootstrap] Verifying license...")
+
+  asyncio.create_task(ctx.lic.start())
+
+  for _ in range(30):
+    if not CHECK_LICENSE:
+      break
+    if ctx.lic.state() == LicenseKind.VALID:
+      break
+    if ctx.lic.state() == LicenseKind.BANNED:
+      QMessageBox.critical(
+        None, "License Error", "License is banned or invalid."
+      )
+      return None
+    if ctx.lic.state() == LicenseKind.PAUSED_LIMIT:
+      QMessageBox.warning(None, "Limit Reached", "Session limit reached.")
+      return None
+    if ctx.lic.state() == LicenseKind.PAUSED_NETWORK:
+      QMessageBox.warning(None, "Network error", "Check your connection.")
+      return None
+
+    await asyncio.sleep(0.5)
+  else:
+    QMessageBox.warning(
+      None,
+      "Network Error",
+      "Could not connect to license server.\nPlease check your connection!\nOr contact us (t.me/y_a_c_s_p)",
+    )
+    return None
+
+  return MainWindow(context=ctx)
+
+
+async def main():
+  app = QApplication.instance() or QApplication(sys.argv)
+
+  window = await bootstrap(app)
+  if not window:
+    sys.exit(0)
   window.show()
 
   await window.manager.into_state(Idle())
@@ -91,7 +141,7 @@ if __name__ == "__main__":
   LIMIT_MONTH = 12
   LIMIT_YEAR = 2025
 
-  license.check_expiration(datetime(LIMIT_YEAR, LIMIT_MONTH, LIMIT_DAY))
+  license_old.check_expiration(datetime(LIMIT_YEAR, LIMIT_MONTH, LIMIT_DAY))
 
   try:
     qasync.run(main())
