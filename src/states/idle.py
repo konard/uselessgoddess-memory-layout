@@ -53,6 +53,11 @@ class ContinueFarmMsg(Message):
   game_schema: GameSchema = None
 
 
+@dataclass
+class LaunchAccountsMsg(Message):
+  accounts: list[Account] = field(default_factory=list)
+
+
 class Idle(State):
   def layout(self, ctx: Context, dispatch):
     def acquire_accounts(mtype):
@@ -116,7 +121,7 @@ class Idle(State):
       # ),
       Button(
         "Launch Accounts",
-        on_click=acquire_accounts(LaunchAccounts),
+        on_click=acquire_accounts(LaunchAccountsMsg),
         tooltip="Launch accounts.",
       ),
       Button(
@@ -231,4 +236,10 @@ class Idle(State):
   async def _on_continue_farm(self, state, manager: StateManager):
     await manager.into_state(
       ContinueFarm(state.game_schema).then(self),
+    )
+
+  @handles(LaunchAccountsMsg)
+  async def _on_launch_accounts(self, state, manager: StateManager):
+    await manager.into_state(
+      LaunchAccounts(state.accounts).then(self),
     )
