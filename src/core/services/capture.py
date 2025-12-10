@@ -51,6 +51,9 @@ class ScreenCaptureService:
       rect = self
 
     if region:
+      if region.x + region.w > self.w or region.y + region.h > self.h:
+        return np.zeros((rect.h, rect.w, 3), dtype=np.uint8)
+
       region = (
         region.x,
         region.y,

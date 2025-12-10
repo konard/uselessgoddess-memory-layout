@@ -22,7 +22,8 @@ logger = get_logger("sv.license")
 
 # TODO: эво кодим сервачок
 # TODO: obfuscate pls
-API_URL = "http://localhost:3000/api/heartbeat"
+# API_URL = "http://localhost:3000/api/heartbeat"
+API_URL = "http://188.127.224.201:3000/api/heartbeat"
 CLIENT_SECRET = "7f8a9d0e1b2c3d4e5f6g7h8i9j0k1l2m"
 
 

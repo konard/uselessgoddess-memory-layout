@@ -31,3 +31,4 @@ class LicenseState(State):
     while not ctx.lic.is_working():
       await asyncio.sleep(1.0)
       pass
+    return self.next_state

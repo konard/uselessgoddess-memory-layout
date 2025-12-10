@@ -3,6 +3,7 @@ import threading
 import time
 import cv2
 import numpy as np
+import pyautogui
 from dataclasses import dataclass
 
 from core.panel import State
@@ -36,7 +37,8 @@ class DebugWorker(threading.Thread):
     while self.running:
       _loop_start = time.perf_counter()
 
-      frame = self.ctx.screen.capture(Region(0, 0, 320, 320))
+      x, y = pyautogui.position()
+      frame = self.ctx.screen.capture(Region(x, y, 320, 320))
       if frame is None:
         time.sleep(0.001)
         continue

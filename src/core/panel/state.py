@@ -99,20 +99,20 @@ class StateManager:
       title = "Work Paused"
       desc = "Unknown reason"
 
-      state = self.context.lic.state()
+      kind = self.context.lic.state()
 
-      if state == LicenseKind.PAUSED_NETWORK:
+      if kind == LicenseKind.PAUSED_NETWORK:
         title = "Connection Lost"
         desc = "Internet connection is unstable. Waiting for recovery..."
-      elif state == LicenseKind.PAUSED_LIMIT:
+      elif kind == LicenseKind.PAUSED_LIMIT:
         title = "Session Limit Reached"
         desc = "Too many active sessions. Close other instances or wait."
-      elif state == LicenseKind.INVALID:
+      elif kind == LicenseKind.INVALID:
         title = "License expired"
         desc = "Please renew your license"
 
       logger.warning(
-        f"License suspended ({state.value}). Please enter new license."
+        f"License suspended ({kind.value}). Please enter new license."
       )
       import states
 
