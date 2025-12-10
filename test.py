@@ -1,3 +1,12 @@
-from core.services.cs_controller import CS2Controller, ZeroPosAccount
+from core.context import Context
+from core.services.windows_service import WindowService
 
-CS2Controller.click_if_exists("img/play.png", ZeroPosAccount(), 0.8, True)
+context = Context()
+
+accounts = context.accounts()
+
+running_accounts = WindowService.scan_cs2_windows(accounts)
+
+x, y = WindowService.get_next_window_position(running_accounts)
+
+print(x, y)

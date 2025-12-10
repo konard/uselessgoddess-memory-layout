@@ -1,4 +1,5 @@
 import re
+from typing import Optional, List
 from PyQt6.QtWidgets import (
   QWidget,
   QVBoxLayout,
@@ -8,14 +9,24 @@ from PyQt6.QtWidgets import (
   QHeaderView,
   QTableWidgetItem,
   QLabel,
+  QStackedWidget,
+  QListWidget,
+  QInputDialog,
+  QMessageBox,
+  QMenu,
+  QListWidgetItem,
+  QDialog,
+  QDialogButtonBox,
+  QAbstractItemView,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QBrush, QCursor
 
 from ui.theme import CURRENT_THEME, ButtonType
-from ui.widgets import Button, Switch, Tooltip
+from ui.widgets import Button, Switch, Tooltip, TitledPanel
 from core.context import Context
 from core.account.model import FarmStatus
+from core.services.presets import GameSchema
 from app.import_dialog import ImportAccountsDialog
 
 
@@ -27,16 +38,97 @@ enum_to_color = {
 }
 
 
-class AccountsPanel(QWidget):
+class AccountSelectionDialog(QDialog):
+  def __init__(self, accounts: List[str], parent=None):
+    super().__init__(parent)
+    self.setWindowTitle("Select Account")
+    self.accounts = accounts
+    self.selected_account = None
+    self.setFixedWidth(400)
+    self.setFixedHeight(500)
+    self._setup_ui()
+    self._setup_styles()
+
+  def _setup_styles(self):
+    self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {CURRENT_THEME.BACKGROUND};
+                color: {CURRENT_THEME.PRIMARY_TEXT};
+            }}
+            QListWidget {{
+                background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+                border: 1px solid {CURRENT_THEME.BORDER};
+                border-radius: 4px;
+                color: {CURRENT_THEME.PRIMARY_TEXT};
+            }}
+            QListWidget::item:selected {{
+                background-color: {CURRENT_THEME.ACCENT_BLUE}40;
+                border: 1px solid {CURRENT_THEME.ACCENT_BLUE};
+            }}
+            QLineEdit {{
+                background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+                color: {CURRENT_THEME.PRIMARY_TEXT};
+                border: 1px solid {CURRENT_THEME.BORDER};
+                border-radius: 4px;
+                padding: 4px;
+            }}
+        """)
+
+  def _setup_ui(self):
+    layout = QVBoxLayout(self)
+
+    self.search_input = QLineEdit()
+    self.search_input.setPlaceholderText("Search...")
+    self.search_input.textChanged.connect(self._filter_list)
+    layout.addWidget(self.search_input)
+
+    self.list_widget = QListWidget()
+    self.list_widget.addItems(self.accounts)
+    self.list_widget.setSelectionMode(
+      QAbstractItemView.SelectionMode.SingleSelection
+    )
+    self.list_widget.itemDoubleClicked.connect(self.accept)
+    layout.addWidget(self.list_widget)
+
+    buttons = QDialogButtonBox(
+      QDialogButtonBox.StandardButton.Ok
+      | QDialogButtonBox.StandardButton.Cancel
+    )
+    buttons.accepted.connect(self.accept)
+    buttons.rejected.connect(self.reject)
+    layout.addWidget(buttons)
+
+  def _filter_list(self, text):
+    text = text.lower()
+    for i in range(self.list_widget.count()):
+      item = self.list_widget.item(i)
+      item.setHidden(text not in item.text().lower())
+
+  def accept(self):
+    current_item = self.list_widget.currentItem()
+    if current_item:
+      self.selected_account = current_item.text()
+      super().accept()
+    else:
+      # If no item selected but only one visible, select it
+      visible_items = []
+      for i in range(self.list_widget.count()):
+        item = self.list_widget.item(i)
+        if not item.isHidden():
+          visible_items.append(item)
+
+      if len(visible_items) == 1:
+        self.selected_account = visible_items[0].text()
+        super().accept()
+
+
+class AccountsTable(QWidget):
   def __init__(self, ctx: Context, parent=None):
     super().__init__(parent)
     self.ctx = ctx
-
     self.tooltip = Tooltip(self)
-
     self._setup_ui()
     self._connect_signals()
-
     self.refresh_table()
 
   def _setup_ui(self):
@@ -65,14 +157,14 @@ class AccountsPanel(QWidget):
     self.search_input = QLineEdit()
     self.search_input.setPlaceholderText("Search login...")
     self.search_input.setStyleSheet(f"""
-        QLineEdit {{
-            background-color: {CURRENT_THEME.INPUT_BACKGROUND};
-            color: {CURRENT_THEME.PRIMARY_TEXT};
-            border: 1px solid {CURRENT_THEME.BORDER};
-            border-radius: 4px;
-            padding: 4px;
-        }}
-    """)
+            QLineEdit {{
+                background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+                color: {CURRENT_THEME.PRIMARY_TEXT};
+                border: 1px solid {CURRENT_THEME.BORDER};
+                border-radius: 4px;
+                padding: 4px;
+            }}
+        """)
     self.search_input.setFixedHeight(30)
 
     layout.addWidget(self.search_input)
@@ -303,3 +395,326 @@ class AccountsPanel(QWidget):
         to_select.append(acc.login)
 
     self.ctx.ui.set_selection(to_select)
+
+
+class DraggableListWidget(QListWidget):
+  itemDropped = pyqtSignal()
+
+  def __init__(self, parent=None):
+    super().__init__(parent)
+    self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+    self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+    self.setAcceptDrops(True)
+    self.setDragEnabled(True)
+    self.setDropIndicatorShown(True)
+
+  def dropEvent(self, event):
+    super().dropEvent(event)
+    self.itemDropped.emit()
+
+
+class PresetsView(QWidget):
+  def __init__(self, ctx: Context, parent=None):
+    super().__init__(parent)
+    self.ctx = ctx
+    self._setup_ui()
+    self._connect_signals()
+    self.refresh_presets()
+
+  def _setup_ui(self):
+    layout = QHBoxLayout(self)
+    layout.setContentsMargins(0, 0, 0, 0)
+
+    # Left side: Presets List
+    left_widget = QWidget()
+    left_layout = QVBoxLayout(left_widget)
+    left_layout.setContentsMargins(0, 0, 0, 0)
+
+    self.preset_list = QListWidget()
+    self.preset_list.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+                border: 1px solid {CURRENT_THEME.BORDER};
+                border-radius: 4px;
+                color: {CURRENT_THEME.PRIMARY_TEXT};
+            }}
+            QListWidget::item {{
+                padding: 5px;
+            }}
+            QListWidget::item:selected {{
+                background-color: {CURRENT_THEME.ACCENT_BLUE}40;
+                border: 1px solid {CURRENT_THEME.ACCENT_BLUE};
+            }}
+        """)
+
+    self.btn_create = Button("Create", button_type=ButtonType.SUCCESS)
+    self.btn_delete = Button("Delete", button_type=ButtonType.DANGER)
+
+    btns_layout = QHBoxLayout()
+    btns_layout.addWidget(self.btn_create)
+    btns_layout.addWidget(self.btn_delete)
+
+    left_layout.addWidget(QLabel("Presets"))
+    left_layout.addWidget(self.preset_list)
+    left_layout.addLayout(btns_layout)
+
+    # Right side: Accounts in Preset
+    right_widget = QWidget()
+    right_layout = QVBoxLayout(right_widget)
+    right_layout.setContentsMargins(0, 0, 0, 0)
+
+    self.account_list = DraggableListWidget()
+    self.account_list.setStyleSheet(self.preset_list.styleSheet())
+
+    self.btn_add_acc = Button("Add Account", button_type=ButtonType.PRIMARY)
+    self.btn_remove_acc = Button("Remove", button_type=ButtonType.DANGER)
+
+    acc_btns_layout = QHBoxLayout()
+    acc_btns_layout.addWidget(self.btn_add_acc)
+    acc_btns_layout.addWidget(self.btn_remove_acc)
+
+    right_layout.addWidget(QLabel("Accounts in Preset (Drag to reorder)"))
+    right_layout.addWidget(self.account_list)
+    right_layout.addLayout(acc_btns_layout)
+
+    layout.addWidget(left_widget, 1)
+    layout.addWidget(right_widget, 2)
+
+  def _connect_signals(self):
+    self.btn_create.clicked.connect(self._create_preset)
+    self.btn_delete.clicked.connect(self._delete_preset)
+    self.btn_add_acc.clicked.connect(self._add_account)
+    self.btn_remove_acc.clicked.connect(self._remove_account)
+
+    self.preset_list.currentItemChanged.connect(self._on_preset_selected)
+    self.account_list.itemDropped.connect(self._on_accounts_reordered)
+
+  def refresh_presets(self):
+    current_row = self.preset_list.currentRow()
+    self.preset_list.clear()
+
+    presets = self.ctx.presets.get_all_presets()
+    for preset in presets:
+      status = preset.get_status(self.ctx)
+      color = enum_to_color.get(status, CURRENT_THEME.PRIMARY_TEXT)
+
+      # Text label: Name (N/10)
+      count = len(preset.accounts)
+      text = f"{preset.name} ({count})"
+      if not preset.is_valid:
+        text += " ⚠️"
+
+      item = QListWidgetItem(text)
+      item.setData(Qt.ItemDataRole.UserRole, preset)
+      item.setForeground(QBrush(QColor(color)))
+
+      self.preset_list.addItem(item)
+
+    if current_row >= 0 and current_row < self.preset_list.count():
+      self.preset_list.setCurrentRow(current_row)
+
+  def _create_preset(self):
+    name, ok = QInputDialog.getText(self, "Create Preset", "Preset Name:")
+    if ok and name:
+      if self.ctx.presets.create_preset(name):
+        self.refresh_presets()
+      else:
+        QMessageBox.warning(self, "Error", "Preset already exists!")
+
+  def _delete_preset(self):
+    item = self.preset_list.currentItem()
+    if not item:
+      return
+
+    preset: GameSchema = item.data(Qt.ItemDataRole.UserRole)
+    confirm = QMessageBox.question(
+      self,
+      "Confirm",
+      f"Delete preset '{preset.name}'?",
+      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+    )
+
+    if confirm == QMessageBox.StandardButton.Yes:
+      self.ctx.presets.delete_preset(preset.name)
+      self.refresh_presets()
+      self.account_list.clear()
+      self.ctx.ui.clear_selection()
+
+  def _on_preset_selected(self, current, previous):
+    self.account_list.clear()
+    if not current:
+      return
+
+    preset: GameSchema = current.data(Qt.ItemDataRole.UserRole)
+    for i, login in enumerate(preset.accounts):
+      role = ""
+      if len(preset.accounts) == 4:  # 2x2 logic
+        if i == 0:
+          role = " [Leader A]"
+        elif i == 1:
+          role = " [Member A]"
+        elif i == 2:
+          role = " [Leader B]"
+        elif i == 3:
+          role = " [Member B]"
+      elif len(preset.accounts) == 10:  # 5x5 logic
+        if i == 0:
+          role = " [Leader A]"
+        elif 1 <= i <= 4:
+          role = " [Member A]"
+        elif i == 5:
+          role = " [Leader B]"
+        elif 6 <= i <= 9:
+          role = " [Member B]"
+
+      item_text = f"{login}{role}"
+      item = QListWidgetItem(item_text)
+      item.setData(Qt.ItemDataRole.UserRole, login)  # Store raw login
+      self.account_list.addItem(item)
+
+    # Select accounts globally for launch
+    self.ctx.ui.set_selection(preset.accounts)
+
+  def _on_accounts_reordered(self):
+    item = self.preset_list.currentItem()
+    if not item:
+      return
+    preset: GameSchema = item.data(Qt.ItemDataRole.UserRole)
+
+    new_accounts = []
+    for i in range(self.account_list.count()):
+      login = self.account_list.item(i).data(Qt.ItemDataRole.UserRole)
+      if login:
+        new_accounts.append(login)
+
+    self.ctx.presets.update_preset_accounts(preset.name, new_accounts)
+
+    # Refresh to update labels
+    # We need to temporarily block signals or restore selection carefully
+    # Simple approach: call _on_preset_selected again
+    self._on_preset_selected(item, None)
+
+  def _add_account(self):
+    item = self.preset_list.currentItem()
+    if not item:
+      QMessageBox.warning(self, "Warning", "Select a preset first.")
+      return
+
+    preset: GameSchema = item.data(Qt.ItemDataRole.UserRole)
+
+    # Filter available accounts (not in any preset)
+    available = []
+    all_accounts = self.ctx.accounts()  # List[Account]
+
+    for acc in all_accounts:
+      used_in = self.ctx.presets.get_preset_by_account(acc.login)
+      if not used_in:  # Not used anywhere
+        available.append(acc.login)
+
+    if not available:
+      QMessageBox.information(
+        self, "Info", "No available accounts found (all are used in presets)."
+      )
+      return
+
+    dialog = AccountSelectionDialog(available, self)
+    if dialog.exec() and dialog.selected_account:
+      login = dialog.selected_account
+      if self.ctx.presets.add_account(preset.name, login):
+        # Refresh account list and presets (for count update)
+        self.refresh_presets()
+        # Restore selection
+        for i in range(self.preset_list.count()):
+          if (
+            self.preset_list.item(i).data(Qt.ItemDataRole.UserRole).name
+            == preset.name
+          ):
+            self.preset_list.setCurrentRow(i)
+            break
+      else:
+        QMessageBox.warning(
+          self, "Error", "Failed to add account (maybe full?)."
+        )
+
+  def _remove_account(self):
+    preset_item = self.preset_list.currentItem()
+    acc_item = self.account_list.currentItem()
+
+    if not preset_item or not acc_item:
+      return
+
+    preset: GameSchema = preset_item.data(Qt.ItemDataRole.UserRole)
+    login = acc_item.data(Qt.ItemDataRole.UserRole)
+
+    self.ctx.presets.remove_account(preset.name, login)
+
+    # Refresh UI
+    self.refresh_presets()
+    for i in range(self.preset_list.count()):
+      if (
+        self.preset_list.item(i).data(Qt.ItemDataRole.UserRole).name
+        == preset.name
+      ):
+        self.preset_list.setCurrentRow(i)
+        break
+
+
+class AccountsPanel(QWidget):
+  def __init__(self, ctx: Context, parent=None):
+    super().__init__(parent)
+    self.ctx = ctx
+    self._setup_ui()
+    self._connect_signals()
+
+  def _setup_ui(self):
+    layout = QVBoxLayout(self)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(5)
+
+    # Mode Switcher
+    mode_layout = QHBoxLayout()
+    mode_layout.setSpacing(0)
+
+    self.btn_mode_accounts = Button(
+      "All Accounts", button_type=ButtonType.PRIMARY
+    )
+    self.btn_mode_presets = Button("Presets", button_type=ButtonType.DEFAULT)
+
+    # Styling for "tabs" look
+    self.btn_mode_accounts.setFixedSize(100, 30)
+    self.btn_mode_presets.setFixedSize(100, 30)
+
+    mode_layout.addWidget(self.btn_mode_accounts)
+    mode_layout.addWidget(self.btn_mode_presets)
+    mode_layout.addStretch()
+
+    layout.addLayout(mode_layout)
+
+    self.stack = QStackedWidget()
+
+    self.accounts_view = AccountsTable(self.ctx)
+    self.presets_view = PresetsView(self.ctx)
+
+    self.stack.addWidget(self.accounts_view)
+    self.stack.addWidget(self.presets_view)
+
+    layout.addWidget(self.stack)
+
+  def _connect_signals(self):
+    self.btn_mode_accounts.clicked.connect(lambda: self._set_mode(0))
+    self.btn_mode_presets.clicked.connect(lambda: self._set_mode(1))
+
+  def _set_mode(self, index: int):
+    self.stack.setCurrentIndex(index)
+
+    if index == 0:
+      self.btn_mode_accounts._apply_style(ButtonType.PRIMARY)
+      self.btn_mode_presets._apply_style(ButtonType.DEFAULT)
+      self.ctx.ui.clear_selection()
+    else:
+      self.btn_mode_accounts._apply_style(ButtonType.DEFAULT)
+      self.btn_mode_presets._apply_style(ButtonType.PRIMARY)
+      # Trigger selection update for current preset
+      self.presets_view._on_preset_selected(
+        self.presets_view.preset_list.currentItem(), None
+      )

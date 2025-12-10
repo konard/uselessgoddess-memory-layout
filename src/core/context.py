@@ -10,6 +10,7 @@ from core.services import (
   GSIService,
   GCService,
   LicenseService,
+  PresetsService,
 )
 from core.account import FarmStatus
 
@@ -32,6 +33,7 @@ class Context:
   screen: ScreenCaptureService
   gc: GCService
   lic: LicenseService
+  presets: PresetsService
 
   def __init__(self):
     from core.services.bot import TelegramBotService
@@ -49,6 +51,7 @@ class Context:
     self.gsi = GSIService(port=6969)  # TODO: avoid hardcoded ports
     self.gc = GCService(self)
     self.lic = LicenseService(self.settings.user)
+    self.presets = PresetsService()
 
   def accounts(self) -> List[Account]:
     return sorted(list(self.account.accounts.values()), key=lambda x: x.login)

@@ -58,6 +58,7 @@ data/mafiles
 data/settings.lock
 data/accounts.lock
 settings.json
+presets.json
 
 # Local trash
 pyuac.*

@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 
 from states.continue_farm import ContinueFarm
+from states.launch_accounts import LaunchAccounts
 from ui import ButtonType
 from states.select_map import SelectMap
 from ui.widgets import Button, HStack
@@ -18,7 +19,7 @@ from states import (
   MatchState,
   MakeLobbies,
   WaitForGame,
-  LaunchAccounts,
+  StartFarm,
 )
 
 from states.types import GameSchema
@@ -86,11 +87,11 @@ class Idle(State):
       return inner
 
     buttons = [
-      # Button(
-      #   "Start Farming",
-      #   on_click=acquire_accounts(Farm),
-      #   tooltip="Starts farming for all selected accounts.",
-      # ),
+      Button(
+        "Start Farming",
+        on_click=acquire_accounts(Farm),
+        tooltip="Starts farming for all selected accounts.",
+      ),
       HStack(
         Button(
           "Loot Selected",
@@ -163,7 +164,7 @@ class Idle(State):
   async def _on_start_farm(self, message: Farm, manager: StateManager):
     logger.debug(f"start farming {message.accounts}")
     await manager.into_state(
-      states.LaunchAccounts(message.accounts).then(self),
+      states.StartFarm(message.accounts).then(self),
     )
 
   @handles(Loot)
@@ -196,13 +197,13 @@ class Idle(State):
       states.WaitForGame(message.accounts).then(self),
     )
 
-  @handles(LaunchAccounts)
+  @handles(StartFarm)
   async def _on_launch_accounts(
-    self, message: LaunchAccounts, manager: StateManager
+    self, message: StartFarm, manager: StateManager
   ):
     logger.debug(f"launch accounts {message.accounts_to_launch}")
     await manager.into_state(
-      states.LaunchAccounts(message.accounts_to_launch).then(self),
+      states.StartFarm(message.accounts_to_launch).then(self),
     )
 
   @handles(MatchState)
