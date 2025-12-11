@@ -23,7 +23,6 @@ class VirtualCursor:
   def move(self, dx, dy):
     self.x += dx
     self.y += dy
-
     self.x = max(0, min(self.w, self.x))
     self.y = max(0, min(self.h, self.y))
 
@@ -82,9 +81,7 @@ class MovingTarget:
     if sp_x2 > self.sw or sp_y2 > self.sh or x2_c <= x1_c or y2_c <= y1_c:
       return None
 
-    _roi = frame[y1_c:y2_c, x1_c:x2_c]
     sprite_roi = self.sprite[sp_y1:sp_y2, sp_x1:sp_x2]
-
     frame[y1_c:y2_c, x1_c:x2_c] = sprite_roi
     return (x1, y1, x2, y2)
 
@@ -92,19 +89,20 @@ class MovingTarget:
 def run_benchmark():
   W, H = 800, 600
 
-  print("[INIT] Loading AI...")
+  MODEL_SIZE = getattr(config, "model_input", 320)
+
+  print(f"[INIT] Loading AI (Input Size: {MODEL_SIZE}x{MODEL_SIZE})...")
   ai = InferenceService("model.onnx", ["ct", "t"])
 
   aim = AimController(direction=0, burst=False)
-
   v_mouse = VirtualCursor(W, H)
   target_gen = MovingTarget(W, H, "resources/enemy.png")
-
   trail = deque(maxlen=50)
 
+  SENSITIVITY = 0.25
+
   def mock_move(dx, dy):
-    scale = 0.5
-    v_mouse.move(dx * scale, dy * scale)
+    v_mouse.move(dx * SENSITIVITY, dy * SENSITIVITY)
 
   import states.match.impl.aim as aim_module
 
@@ -118,9 +116,7 @@ def run_benchmark():
 
   mode = "circle"
 
-  print("--- 2D CURSOR BENCHMARK ---")
-  print("Green Cross = Your Aim")
-  print("Enemy = Target")
+  print("--- DUAL VIEW BENCHMARK ---")
   print("Controls: [1] Circle [2] Strafe [3] Jiggle [Q] Quit")
 
   while True:
@@ -132,7 +128,6 @@ def run_benchmark():
     targets = ai.infer(frame)
 
     aim.center = (v_mouse.x, v_mouse.y)
-
     aim.step("ct", targets, delta=0.016)
 
     mx, my = int(v_mouse.x), int(v_mouse.y)
@@ -178,7 +173,31 @@ def run_benchmark():
       1,
     )
 
-    cv2.imshow("Aim Sandbox", frame)
+    cv2.imshow("Aim Sandbox (Playground)", frame)
+
+    ai_frame = cv2.resize(frame, (MODEL_SIZE, MODEL_SIZE))
+
+    scale_x = MODEL_SIZE / W
+    scale_y = MODEL_SIZE / H
+
+    for t in targets:
+      sx1 = int((t.mid_x - t.width / 2) * scale_x)
+      sy1 = int((t.mid_y - t.height / 2) * scale_y)
+      sx2 = int((t.mid_x + t.width / 2) * scale_x)
+      sy2 = int((t.mid_y + t.height / 2) * scale_y)
+
+      cv2.rectangle(ai_frame, (sx1, sy1), (sx2, sy2), (0, 255, 0), 1)
+      cv2.putText(
+        ai_frame,
+        f"{t.confidence:.2f}",
+        (sx1, sy1 - 2),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.4,
+        (0, 255, 0),
+        1,
+      )
+
+    cv2.imshow(f"AI Vision ({MODEL_SIZE}x{MODEL_SIZE})", ai_frame)
 
     key = cv2.waitKey(1)
     if key & 0xFF == ord("q"):
