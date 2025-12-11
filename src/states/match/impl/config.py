@@ -37,5 +37,7 @@ class Config:
   rotation_speed: float = 100.0
   rotation_interval: float = 3.0
 
+  target_persistence: float = 0.2
+
 
 config = Config()

@@ -15,6 +15,7 @@ from .config import config
 from .detector import MinimapDirectionDetector
 from .rotation import rotate_step
 from .utils import Key, Action, Context, Step
+from .math import SimpleKalmanFilter
 
 logger = get_logger("match.aim")
 
@@ -136,6 +137,10 @@ def filter_by_aspect(
 
 model_multiplier = 3  # TODO: research
 
+Kp = 0.4
+Kd = 0.2
+Ki = 0.0
+
 
 class AimController(Action):
   def __init__(self, direction: float, burst: bool = True):
@@ -152,10 +157,20 @@ class AimController(Action):
     self.cooldown_timer = Timer(0)
     self.rotation_timer = Timer(0)
 
+    self.last_known_target: Optional[Target] = None
+    self.grace_timer = Timer(config.target_persistence)
+
     self.targets = []
     self.target = None
     # try to hs on this round
     self.headshot = random.random() < config.headshot_chance
+
+    # filter
+    self.kalman_x = SimpleKalmanFilter(R=0.1, Q=1.0)
+    self.kalman_y = SimpleKalmanFilter(R=0.1, Q=1.0)
+
+    self.last_error_x = 0
+    self.last_error_y = 0
 
   def execute(self, ctx: Context) -> Step:
     self.step(
@@ -181,15 +196,57 @@ class AimController(Action):
       for t in targets
       if t.confidence >= config.confidence and t.label == enemy_label
     ]
+
     # targets = filter_by_aspect(config.filter_aspect, targets)
 
     if self.model_timer.tick():
       self.targets = targets
       self.target = choose_target(self.targets, self.center)
 
+    current_target = None
+
+    if targets:
+      current_target = choose_target(targets, self.center)
+
+      self.last_known_target = current_target
+      self.grace_timer = Timer(config.target_persistence)
+    else:
+      is_grace_period = not self.grace_timer.tick(delta)
+
+      if is_grace_period and self.last_known_target is not None:
+        current_target = self.last_known_target
+      else:
+        current_target = None
+        self.last_known_target = None
+
+    self.target = current_target
+
     if self.target is not None:
-      dx, dy = compute_mouse_move(self.target, self.center, headshot)
-      maybe_move_mouse(dx, dy)
+      smoothed_mx = self.kalman_x.update(self.target.mid_x)
+      smoothed_my = self.kalman_y.update(self.target.mid_y)
+
+      cx, cy = self.center
+
+      box_height = self.target.height
+      headshot_offset = box_height * (0.38 if headshot else 0.2)
+      target_y = smoothed_my - headshot_offset
+
+      error_x = smoothed_mx - cx
+      error_y = target_y - cy
+
+      move_x = (error_x * Kp) + ((error_x - self.last_error_x) * Kd)
+      move_y = (error_y * Kp) + ((error_y - self.last_error_y) * Kd)
+
+      if abs(move_x) < 1.0:
+        move_x = 0
+      if abs(move_y) < 1.0:
+        move_y = 0
+
+      self.last_error_x = error_x
+      self.last_error_y = error_y
+
+      if move_x != 0 or move_y != 0:
+        maybe_move_mouse(move_x, move_y)
 
       self.burst_fire(
         should_shoot(self.target, self.center),
