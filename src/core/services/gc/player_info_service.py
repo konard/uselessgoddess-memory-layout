@@ -59,12 +59,7 @@ class PlayerInfoService:
         in_wd_range = is_in_wednesday_range(data.generation_time)
         neg = any(map(lambda x: x < 0, data.items))
         logger.trace("generation time: %s, neg: %s", data.generation_time, neg)
-        if not neg and in_wd_range:
-          self.lock.set_field(login, "status", FarmStatus.CAN_BE_LOOTED)
-          return
-        if neg and not in_wd_range:
-          self.lock.set_field(login, "status", FarmStatus.NEED_TO_FARM)
-          return
+        print(in_wd_range)
         return
 
   def parse_player_stats(self, data: bytes, login: str):

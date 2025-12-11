@@ -274,7 +274,6 @@ class CS2Controller:
     )
 
     count = 0
-
     for match in matches:
       if (
         match.left > x_min

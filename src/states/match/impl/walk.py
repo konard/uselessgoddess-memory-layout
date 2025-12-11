@@ -7,12 +7,12 @@ from typing import List, Tuple, Union
 from abc import ABC, abstractmethod
 
 from core.logging import get_logger
+from core.keys import Key
 from .rotation import rotate_step, smooth_rotate_to_target
 from .detector import MinimapConfig, MinimapDirectionDetector
 from .aim import AimController
 from .utils import (
   Action,
-  Key,
   Context,
   Step,
   Team,

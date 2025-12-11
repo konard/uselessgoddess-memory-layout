@@ -1,6 +1,5 @@
 from typing import Tuple, Union
 from abc import ABC, abstractmethod
-from core.keys import Key
 
 from core.services.gsi import Team
 
