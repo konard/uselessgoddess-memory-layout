@@ -54,7 +54,6 @@ class StartUnfarmed(State):
 
       status = preset.get_status(ctx)
       if status == FarmStatus.NEED_TO_FARM:
-        # Собираем объекты аккаунтов для запуска
         accounts_to_launch = []
         for login in preset.accounts:
           acc = ctx.account.accounts.get(login)

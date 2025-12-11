@@ -12,9 +12,11 @@ from core.context import Context
 from core.services.gsi.models import GameState, Team, RoundPhase, Map
 from core.services import WindowService, CS2Controller
 from core.services.capture import Region
+from core.keys import Key
 from core.logging import get_logger
+from states.match.impl.walk import scancode
 
-from .impl import infer_path, config, Path, Key, scancode
+from .impl import infer_path, config, Path
 
 logger = get_logger("match.worker")
 

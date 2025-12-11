@@ -32,7 +32,7 @@ class DisconnectState(State):
       await asyncio.sleep(0.5)
       await CS2Controller.wait_for_image_async("img/disconnected.png", account)
       await asyncio.sleep(0.5)
-      await CS2Controller.click_if_exists_async("img/ok.png", account, 0.9)
+      await CS2Controller.click_if_exists_async("img/ok.png", account, 0.95)
       await asyncio.sleep(0.5)
 
     match self.disconnect_type:

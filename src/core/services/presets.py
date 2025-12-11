@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING
 from pathlib import Path
 
 from core.logging import get_logger
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 logger = get_logger("sv.presets")
 
-PRESETS_FILE = "presets.json"
+PRESETS_FILE = Path("data/presets.json")
 
 
 @dataclass
@@ -36,19 +36,6 @@ class PartyPreset:
 @dataclass
 class GameSchema:
   name: str
-  # accounts is no longer just a flat list for storage, but we can maintain backward compatibility
-  # or migrate. Let's stick to flat list for simple storage but rely on order.
-  # New logic:
-  # 2x2 mode (4 accounts):
-  #   accounts[0] -> Leader Party A
-  #   accounts[1] -> Member Party A
-  #   accounts[2] -> Leader Party B
-  #   accounts[3] -> Member Party B
-  # 5x5 mode (10 accounts):
-  #   accounts[0] -> Leader Party A
-  #   accounts[1..4] -> Members Party A
-  #   accounts[5] -> Leader Party B
-  #   accounts[6..9] -> Members Party B
 
   accounts: List[str] = field(default_factory=list)
 

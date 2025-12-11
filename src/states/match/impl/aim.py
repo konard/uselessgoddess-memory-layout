@@ -10,11 +10,12 @@ import win32con
 
 from core.logging import get_logger
 from core.services.ai import Target, InferenceService
+from core.keys import Key
 
 from .config import config
 from .detector import MinimapDirectionDetector
 from .rotation import rotate_step
-from .utils import Key, Action, Context, Step
+from .utils import Action, Context, Step
 from .math import SimpleKalmanFilter
 
 logger = get_logger("match.aim")

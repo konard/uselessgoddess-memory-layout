@@ -4,9 +4,12 @@ from core.panel.state import StateManager
 from core.services.cs_controller import CS2Controller
 from states.disconnect import DisconnectState, DisconnectType
 from states.match.state import MatchState
+from core.logging import get_logger
 
 if TYPE_CHECKING:
   from core.context import Context
+
+logger = get_logger("sv.disconnect")
 
 
 class DisconnectWorker:
@@ -25,6 +28,7 @@ class DisconnectWorker:
           disconnected_accounts.append(account)
 
       if len(disconnected_accounts) > 0:
+        logger.trace(f"Disconnected accounts: {disconnected_accounts}")
         current_state = self.stateManager.acquire_state()
         if isinstance(current_state, MatchState):
           await self.stateManager.into_state(
