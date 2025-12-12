@@ -7,11 +7,11 @@ import math
 
 @dataclass
 class MinimapConfig:
-  scale: int = 1
+  scale: int = 2
   x: int = 97
   y: int = 97
   radius: int = 42
-  threshold: int = 180
+  threshold: int = 230
 
 
 class MinimapDirectionDetector:
@@ -22,84 +22,64 @@ class MinimapDirectionDetector:
     self, frame: np.ndarray, visuals=False
   ) -> Optional[float]:
     height, width = frame.shape[:2]
+
     x = min(width, self.config.x)
     y = min(height, self.config.y)
 
-    frame = frame[0:y, 0:x].copy()
-    frame = cv2.resize(
-      frame, (x * self.config.scale, y * self.config.scale), cv2.INTER_CUBIC
-    )
-    height, width = frame.shape[:2]
-    center_x, center_y = width // 2, height // 2
-
-    roi_radius = 10
-
-    x1 = center_x - roi_radius
-    y1 = center_y - roi_radius
-    x2 = center_x + roi_radius
-    y2 = center_y + roi_radius
-
-    if x1 < 0 or y1 < 0 or x2 > width or y2 > height:
-      return None
-
-    roi = frame[y1:y2, x1:x2]
-
-    scale_factor = 16
-    roi_big = cv2.resize(
-      roi,
-      (0, 0),
-      fx=scale_factor,
-      fy=scale_factor,
-      interpolation=cv2.INTER_LANCZOS4,
+    minimap = frame[0:y, 0:x].copy()
+    minimap = cv2.resize(
+      minimap, (x * self.config.scale, y * self.config.scale), cv2.INTER_CUBIC
     )
 
-    gray = cv2.cvtColor(roi_big, cv2.COLOR_BGR2GRAY)
-    _, mask = cv2.threshold(gray, self.config.threshold, 255, cv2.THRESH_BINARY)
+    h, w = minimap.shape[:2]
+    center = (w // 2, h // 2)
 
-    contours, _ = cv2.findContours(
-      mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    minimap = cv2.circle(
+      minimap, center, self.config.radius * self.config.scale, 0, -1
     )
+
+    white_mask = np.all(minimap > self.config.threshold, axis=-1)
+    channels = minimap.shape[2] if len(minimap.shape) > 2 else 1
+
+    if channels == 4:
+      minimap[~white_mask] = [0, 0, 0, 0]
+    else:
+      minimap[~white_mask] = [0, 0, 0]
+
+    pixels = np.argwhere(white_mask)
+    pixels = sorted(pixels, key=lambda p: p[0] + p[1])
+    pixels.reverse()
+
+    angle_position = None
+    if len(pixels) > 0:
+      angle_position = (int(pixels[0][1]), int(pixels[0][0]))
+
+    angle = None
+    if angle_position is not None:
+      angle = math.atan2(
+        angle_position[1] - center[1], angle_position[0] - center[0]
+      )
+      angle = angle * 180 / math.pi + 180
+
     if visuals:
-      cv2.imshow("ROI", roi_big)
+      if angle is not None:
+        minimap = cv2.line(minimap, center, angle_position, (0, 0, 255, 255), 2)
+        # minimap = debug_label(minimap, f"{angle:.1f}", center)
+      cv2.imshow("Minimap", minimap)
 
-    if not contours:
-      return None
+    return angle
 
-    arrow_contour = max(contours, key=cv2.contourArea)
-    if visuals:
-      debug_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-      cv2.drawContours(debug_img, [arrow_contour], -1, (0, 255, 0), 1)
-      cv2.imshow("Detector Logic", debug_img)
 
-    if cv2.contourArea(arrow_contour) < 500:
-      return None
-
-    h_big, w_big = roi_big.shape[:2]
-    center_big_x, center_big_y = w_big // 2, h_big // 2
-
-    max_dist = 0
-    nose_point = None
-
-    for point in arrow_contour:
-      px, py = point[0]
-      dist = (px - center_big_x) ** 2 + (py - center_big_y) ** 2
-
-      if dist > max_dist:
-        max_dist = dist
-        nose_point = (px, py)
-
-    if nose_point is None:
-      return None
-
-    dy = nose_point[1] - center_big_y
-    dx = nose_point[0] - center_big_x
-
-    angle_rad = math.atan2(dy, dx)
-    angle_deg = math.degrees(angle_rad)
-
-    # correction
-    final_angle = angle_deg + 180
-
-    final_angle = (final_angle + 360) % 360
-
-    return final_angle
+def debug_label(image, label, center):
+  text_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+  font_face = (center[0] - text_size[0] // 2, center[1] + text_size[1] + 5)
+  return cv2.putText(
+    image,
+    label,
+    font_face,
+    cv2.FONT_HERSHEY_SIMPLEX,
+    0.6,
+    (0, 255, 0, 255),
+    2,
+    cv2.LINE_AA,
+  )
