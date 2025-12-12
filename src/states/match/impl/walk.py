@@ -656,8 +656,7 @@ class CT:
       (1.0, [Key.A]),
       (0.5, [Key.S]),
       (3.0, [Key.S, Key.A]),
-      (1.6, [Key.W]),
-      (0.5, [Key.D]),
+      (1.25, [Key.W]),
       maybe(
         [
           shoot(),
@@ -681,7 +680,8 @@ class CT:
       # todo!> use list of keys
       key(Key.CTRL, hold=True),
       key(Key.E, hold=True),
-      (3.5, [Key.W]),
+      (0.5, [Key.W]),
+      (3.0, [Key.W, Key.D]),
       Select(
         [
           [wait(10.0)],
