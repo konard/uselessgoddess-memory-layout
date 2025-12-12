@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from typing import Optional
 from core import context, game_constants
 from core.account.model import FarmStatus
@@ -6,6 +7,7 @@ from core.logging import get_logger
 from core.panel import state
 from core.services.cs_controller import CS2Controller
 from core.services.windows_service import WindowService
+import states
 from states.make_lobbies.generate_party_schema import generate_party_schema
 from states.start_unfarmed import StartUnfarmed
 from states.types import GameSchema
@@ -47,16 +49,40 @@ class ContinueFarm(state.State):
 
     accounts = [account for party in self.game_schema for account in party.all]
 
+    # Завершение фарма в определенное время, эво пора на работу
+    if ctx.settings.user.farm_until:
+      try:
+        now = datetime.datetime.шт()
+        t = datetime.datetime.strptime(
+          ctx.settings.user.farm_until, "%H:%M"
+        ).time()
+        target_min = t.hour * 60 + t.minute
+        now_min = now.hour * 60 + now.minute
+        if 0 <= (now_min - target_min) % 1440 <= 120:
+          for account in accounts:
+            account.stop_account()
+          return states.Idle()
+      except ValueError:
+        pass
+
     for account in accounts:
       logger.info(f"account: {account.login} is {account.lock.status}")
       if account.lock.status == FarmStatus.NEED_TO_FARM:
         show_must_go_on = True
         break
 
+      # Врубить перефаом аккаунтов
+      if ctx.settings.user.overfarm is not None:
+        show_must_go_on = True
+        if (
+          account.lock.xp >= ctx.settings.user.overfarm
+          and account.lock.status != FarmStatus.NEED_TO_FARM
+        ):
+          show_must_go_on = False
+
     logger.info(f"show_must_go_on: {show_must_go_on}")
     if show_must_go_on:
       all_lobbies = True
-
       for account in accounts:
         await WindowService.focus_window_async(account.win_cs_title)
 

@@ -12,7 +12,6 @@ from core.services.gc import start_gc_server
 from core.services.status_reset_service import StatusResetService
 from core.panel import StateManager
 from core.logging import get_logger, logging
-from core.context import Context
 from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
 from .log_view import LogHandler, QtLogHandler
 from .tabs import DashboardTab, SRTTab, GSITab

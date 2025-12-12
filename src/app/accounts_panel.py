@@ -515,7 +515,7 @@ class PresetsView(QWidget):
 
   def _create_preset(self):
     name, ok = QInputDialog.getText(self, "Create Preset", "Preset Name:")
-    if ok and name:
+    if ok:
       if self.ctx.presets.create_preset(name):
         self.refresh_presets()
       else:

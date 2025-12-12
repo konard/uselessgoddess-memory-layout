@@ -5,6 +5,7 @@ from pathlib import Path
 
 from core.logging import get_logger
 from core.account.model import FarmStatus, RunningAccount
+from utils.name_generator import generate_preset_name
 
 if TYPE_CHECKING:
   from core.context import Context
@@ -140,7 +141,13 @@ class PresetsService:
     except Exception as e:
       logger.error(f"Failed to save presets: {e}")
 
-  def create_preset(self, name: str) -> bool:
+  def create_preset(self, name: Optional[str] = None) -> bool:
+    if not name:
+      while True:
+        name = generate_preset_name()
+        if name not in self.presets:
+          break
+
     if name in self.presets:
       return False
     self.presets[name] = Preset(name=name)
