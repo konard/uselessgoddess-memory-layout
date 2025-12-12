@@ -14,6 +14,7 @@ from core.context import Context
 from core.logging import get_logger
 from core.panel import StateManager, Message
 from core.services.process import ProcessService
+import states
 from ui import Align
 from ui.theme import ButtonType
 from ui.widgets import Button, TitledPanel, Switch, VStack
@@ -110,6 +111,7 @@ class DashboardTab(QWidget):
 
   def _kill_all_runners(self):
     ProcessService.kill_all_runners()
+    self.manager.into_state(states.Idle())
 
   def _test_telegram(self):
     asyncio.create_task(self.ctx.send_message("Test notification."))

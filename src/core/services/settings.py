@@ -76,6 +76,7 @@ class UserSettings(Settings):
 
   # farm settings
   times_to_shuffle: int = 3
+  times_to_brute_force: int = 3
 
   def path_of(self, settings: "SettingsService"):
     return settings.user_file

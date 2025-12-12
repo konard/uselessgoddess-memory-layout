@@ -52,4 +52,4 @@ class DisconnectState(State):
           await asyncio.sleep(0.5)
         return states.MatchState(None)
       case DisconnectType.LOBBY:
-        return states.ContinueFarm(None)
+        return states.ContinueFarm(None, delay=5)

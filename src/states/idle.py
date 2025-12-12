@@ -235,7 +235,7 @@ class Idle(State):
   @handles(ContinueFarmMsg)
   async def _on_continue_farm(self, state, manager: StateManager):
     await manager.into_state(
-      ContinueFarm(state.game_schema).then(self),
+      ContinueFarm(state.game_schema, delay=3).then(self),
     )
 
   @handles(LaunchAccountsMsg)

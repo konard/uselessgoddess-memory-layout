@@ -26,7 +26,7 @@ from ui.theme import CURRENT_THEME, ButtonType
 from ui.widgets import Button, Switch, Tooltip, TitledPanel
 from core.context import Context
 from core.account.model import FarmStatus
-from core.services.presets import GameSchema
+from core.services.presets import Preset
 from app.import_dialog import ImportAccountsDialog
 
 
@@ -526,7 +526,7 @@ class PresetsView(QWidget):
     if not item:
       return
 
-    preset: GameSchema = item.data(Qt.ItemDataRole.UserRole)
+    preset: Preset = item.data(Qt.ItemDataRole.UserRole)
     confirm = QMessageBox.question(
       self,
       "Confirm",
@@ -545,7 +545,7 @@ class PresetsView(QWidget):
     if not current:
       return
 
-    preset: GameSchema = current.data(Qt.ItemDataRole.UserRole)
+    preset: Preset = current.data(Qt.ItemDataRole.UserRole)
     for i, login in enumerate(preset.accounts):
       role = ""
       if len(preset.accounts) == 4:  # 2x2 logic
@@ -579,7 +579,7 @@ class PresetsView(QWidget):
     item = self.preset_list.currentItem()
     if not item:
       return
-    preset: GameSchema = item.data(Qt.ItemDataRole.UserRole)
+    preset: Preset = item.data(Qt.ItemDataRole.UserRole)
 
     new_accounts = []
     for i in range(self.account_list.count()):
@@ -600,7 +600,7 @@ class PresetsView(QWidget):
       QMessageBox.warning(self, "Warning", "Select a preset first.")
       return
 
-    preset: GameSchema = item.data(Qt.ItemDataRole.UserRole)
+    preset: Preset = item.data(Qt.ItemDataRole.UserRole)
 
     # Filter available accounts (not in any preset)
     available = []
@@ -643,7 +643,7 @@ class PresetsView(QWidget):
     if not preset_item or not acc_item:
       return
 
-    preset: GameSchema = preset_item.data(Qt.ItemDataRole.UserRole)
+    preset: Preset = preset_item.data(Qt.ItemDataRole.UserRole)
     login = acc_item.data(Qt.ItemDataRole.UserRole)
 
     self.ctx.presets.remove_account(preset.name, login)

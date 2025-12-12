@@ -1,4 +1,5 @@
 import asyncio
+import time
 from core.services.windows_service import WindowService
 import states
 from typing import Tuple
@@ -9,13 +10,17 @@ from core import game_constants
 from states.types import PartySchema
 from core.context import Context
 from core.logging import get_logger
+from utils.name_generator import generate_preset_name
 
 logger = get_logger("state.wait_for_game")
 
 
 class WaitForGame(State):
-  def __init__(self, party_schema: Tuple[PartySchema, PartySchema]):
+  def __init__(
+    self, party_schema: Tuple[PartySchema, PartySchema], retries: int = 0
+  ):
     self.party_schema = party_schema
+    self.retries = retries
 
   async def execute(self, ctx: Context):
     from states.match.state import MatchState
@@ -30,7 +35,7 @@ class WaitForGame(State):
 
     while True:
       if count >= ctx.su.times_to_shuffle:
-        return states.ShuffleLobby(self.party_schema)
+        return states.ShuffleLobby(self.party_schema, retries=self.retries + 1)
 
       await Yass.press_resource_async(
         "img/ready_button_left_corner.png", leaders
@@ -102,5 +107,32 @@ class WaitForGame(State):
       break
 
     await ctx.send_message("Match found")
+
+    current_logins = []
+    for party in self.party_schema:
+      current_logins.extend([acc.login for acc in party.all])
+
+    found_preset = ctx.presets.find_preset_by_accounts(current_logins)
+
+    if found_preset:
+      if found_preset.has_error:
+        found_preset.has_error = False
+        ctx.presets.save()
+        logger.info(f"Cleared error flag for preset {found_preset.name}")
+    else:
+      new_preset_name = generate_preset_name()
+
+      logger.info(
+        f"Current match accounts not in any preset. Creating {new_preset_name}"
+      )
+
+      for login in current_logins:
+        old_preset_name = ctx.presets.get_preset_by_account(login)
+        if old_preset_name:
+          ctx.presets.remove_account(old_preset_name, login)
+
+      if ctx.presets.create_preset(new_preset_name):
+        ctx.presets.update_preset_accounts(new_preset_name, current_logins)
+        await ctx.send_message(f"Saved new preset: {new_preset_name}")
 
     return MatchState(self.party_schema)

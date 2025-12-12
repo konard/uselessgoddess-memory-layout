@@ -14,15 +14,15 @@ logger = get_logger("state.continue_farm")
 
 
 class ContinueFarm(state.State):
-  def __init__(self, game_schema: Optional[GameSchema]):
+  def __init__(self, game_schema: Optional[GameSchema], delay: int = 20):
     self.game_schema = game_schema
+    self.delay = delay
 
   async def execute(self, ctx: context.Context):
     from states.make_lobbies.make_lobbies import MakeLobbies
     from states.select_map import SelectMap
-    from states.types import PartySchema
 
-    await asyncio.sleep(20)
+    await asyncio.sleep(self.delay)
 
     if self.game_schema is None:
       launched_accounts = WindowService.scan_cs2_windows(
@@ -31,24 +31,12 @@ class ContinueFarm(state.State):
 
       preset_applied = False
       if launched_accounts:
-        first_login = launched_accounts[0].login
-        preset_name = ctx.presets.get_preset_by_account(first_login)
-
-        if preset_name:
-          preset = ctx.presets.get_preset(preset_name)
-          if preset:
-            launched_map = {acc.login: acc for acc in launched_accounts}
-            if all(login in launched_map for login in preset.accounts):
-              preset_parties = preset.get_party_schema()
-              new_schema = []
-              for p in preset_parties:
-                leader = launched_map[p.leader]
-                members = [launched_map[m] for m in p.members]
-                new_schema.append(PartySchema(leader=leader, members=members))
-
-              if new_schema:
-                self.game_schema = new_schema
-                preset_applied = True
+        new_schema = ctx.presets.get_schema_for_launched_accounts(
+          launched_accounts
+        )
+        if new_schema:
+          self.game_schema = new_schema
+          preset_applied = True
 
       if not preset_applied:
         self.game_schema = generate_party_schema(

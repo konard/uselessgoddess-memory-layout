@@ -60,11 +60,16 @@ class AccountMetadata:
 
   @lvl.setter
   def lvl(self, value: int) -> None:
+    updates = {}
     if value > self._data.get("lvl", 0):
-      self._lock.set_field(self._login, "status", FarmStatus.CAN_BE_LOOTED)
+      self._data["status"] = FarmStatus.CAN_BE_LOOTED
+      updates["status"] = FarmStatus.CAN_BE_LOOTED
+
     self._data["lvl"] = value
+    updates["lvl"] = value
+
     if self._lock:
-      self._lock.set_field(self._login, "lvl", value)
+      self._lock.set_account_info(self._login, **updates)
 
   @property
   def xp(self) -> int | None:
@@ -92,11 +97,16 @@ class AccountMetadata:
 
   @xp.setter
   def xp(self, value: int) -> None:
+    updates = {}
     if value < self._data.get("xp", 0):
-      self._lock.set_field(self._login, "status", FarmStatus.CAN_BE_LOOTED)
+      self._data["status"] = FarmStatus.CAN_BE_LOOTED
+      updates["status"] = FarmStatus.CAN_BE_LOOTED
+
     self._data["xp"] = value
+    updates["xp"] = value
+
     if self._lock:
-      self._lock.set_field(self._login, "xp", value)
+      self._lock.set_account_info(self._login, **updates)
 
   @property
   def invite(self) -> str | None:

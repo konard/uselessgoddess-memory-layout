@@ -4,10 +4,11 @@ from typing import Dict, List, Optional, TYPE_CHECKING
 from pathlib import Path
 
 from core.logging import get_logger
-from core.account.model import FarmStatus
+from core.account.model import FarmStatus, RunningAccount
 
 if TYPE_CHECKING:
   from core.context import Context
+  from states.types import GameSchema
 
 logger = get_logger("sv.presets")
 
@@ -15,65 +16,77 @@ PRESETS_FILE = Path("data/presets.json")
 
 
 @dataclass
-class PartyPreset:
-  leader: str
-  members: List[str]
-
-  def to_json(self) -> dict:
-    return {"leader": self.leader, "members": self.members}
-
-  @staticmethod
-  def from_json(data: dict) -> "PartyPreset":
-    return PartyPreset(
-      leader=data.get("leader", ""), members=data.get("members", [])
-    )
-
-  @property
-  def all(self) -> List[str]:
-    return [self.leader] + self.members
-
-
-@dataclass
-class GameSchema:
+class Preset:
   name: str
 
   accounts: List[str] = field(default_factory=list)
+  has_error: bool = False
 
   def to_json(self) -> dict:
-    return {"name": self.name, "accounts": self.accounts}
+    return {
+      "name": self.name,
+      "accounts": self.accounts,
+      "has_error": self.has_error,
+    }
 
   @staticmethod
-  def from_json(data: dict) -> "GameSchema":
-    return GameSchema(name=data["name"], accounts=data.get("accounts", []))
+  def from_json(data: dict) -> "Preset":
+    p = Preset(name=data["name"], accounts=data.get("accounts", []))
+    p.has_error = data.get("has_error", False)
+    return p
 
   @property
   def is_valid(self) -> bool:
     return len(self.accounts) in [4, 10]
 
-  def get_party_schema(self) -> List[PartyPreset]:
+  def get_party_schema(
+    self, launched_accounts: List[RunningAccount]
+  ) -> Optional["GameSchema"]:
     """
     Splits accounts into 2 parties based on specific indices.
     """
+    from states.types import PartySchema
+
     if not self.is_valid:
-      return []
+      return None
+
+    # Map launched accounts by login for easy lookup
+    launched_map = {acc.login: acc for acc in launched_accounts}
+
+    # Verify all preset accounts are present in launched_accounts
+    if not all(login in launched_map for login in self.accounts):
+      logger.warning("Not all preset accounts are launched")
+      return None
 
     n = len(self.accounts)
 
     if n == 4:
       # Party A: 0 (Leader), 1
-      party_a = PartyPreset(leader=self.accounts[0], members=[self.accounts[1]])
+      leader_a = launched_map[self.accounts[0]]
+      members_a = [launched_map[self.accounts[1]]]
+      party_a = PartySchema(leader=leader_a, members=members_a)
+
       # Party B: 2 (Leader), 3
-      party_b = PartyPreset(leader=self.accounts[2], members=[self.accounts[3]])
-      return [party_a, party_b]
+      leader_b = launched_map[self.accounts[2]]
+      members_b = [launched_map[self.accounts[3]]]
+      party_b = PartySchema(leader=leader_b, members=members_b)
+
+      return (party_a, party_b)
 
     elif n == 10:
       # Party A: 0 (Leader), 1-4
-      party_a = PartyPreset(leader=self.accounts[0], members=self.accounts[1:5])
-      # Party B: 5 (Leader), 6-9
-      party_b = PartyPreset(leader=self.accounts[5], members=self.accounts[6:])
-      return [party_a, party_b]
+      leader_a = launched_map[self.accounts[0]]
+      members_a = [launched_map[acc] for acc in self.accounts[1:5]]
+      party_a = PartySchema(leader=leader_a, members=members_a)
 
-    return []
+      # Party B: 5 (Leader), 6-9
+      leader_b = launched_map[self.accounts[5]]
+      members_b = [launched_map[acc] for acc in self.accounts[6:]]
+      party_b = PartySchema(leader=leader_b, members=members_b)
+
+      return (party_a, party_b)
+
+    return None
 
   def get_status(self, ctx: "Context") -> FarmStatus:
     """
@@ -105,7 +118,7 @@ class GameSchema:
 
 class PresetsService:
   def __init__(self):
-    self.presets: Dict[str, GameSchema] = {}
+    self.presets: Dict[str, Preset] = {}
     self.load()
 
   def load(self):
@@ -114,7 +127,7 @@ class PresetsService:
         with open(PRESETS_FILE, "r", encoding="utf-8") as f:
           data = json.load(f)
           for name, schema_data in data.items():
-            self.presets[name] = GameSchema.from_json(schema_data)
+            self.presets[name] = Preset.from_json(schema_data)
         logger.info(f"Loaded {len(self.presets)} presets")
     except Exception as e:
       logger.error(f"Failed to load presets: {e}")
@@ -130,7 +143,7 @@ class PresetsService:
   def create_preset(self, name: str) -> bool:
     if name in self.presets:
       return False
-    self.presets[name] = GameSchema(name=name)
+    self.presets[name] = Preset(name=name)
     self.save()
     return True
 
@@ -139,7 +152,7 @@ class PresetsService:
       del self.presets[name]
       self.save()
 
-  def get_preset(self, name: str) -> Optional[GameSchema]:
+  def get_preset(self, name: str) -> Optional[Preset]:
     return self.presets.get(name)
 
   def is_account_used(self, login: str) -> bool:
@@ -197,5 +210,41 @@ class PresetsService:
       self.presets[preset_name].accounts = new_accounts
       self.save()
 
-  def get_all_presets(self) -> List[GameSchema]:
+  def mark_preset_error(self, name: str):
+    if name in self.presets:
+      self.presets[name].has_error = True
+      self.save()
+
+  def get_next_available_preset(self, ctx: "Context") -> Optional[Preset]:
+    for preset in self.presets.values():
+      if not preset.has_error and preset.is_valid:
+        if preset.get_status(ctx) == FarmStatus.NEED_TO_FARM:
+          return preset
+    return None
+
+  def find_preset_by_accounts(self, accounts: List[str]) -> Optional[Preset]:
+    """Find a preset that contains exactly the given accounts (order ignored)."""
+    target_set = set(accounts)
+    for preset in self.presets.values():
+      if set(preset.accounts) == target_set:
+        return preset
+    return None
+
+  def get_schema_for_launched_accounts(
+    self, launched_accounts: List[RunningAccount]
+  ) -> Optional["GameSchema"]:
+    if not launched_accounts:
+      return None
+
+    first_login = launched_accounts[0].login
+    preset_name = self.get_preset_by_account(first_login)
+
+    if preset_name:
+      preset = self.get_preset(preset_name)
+      if preset:
+        return preset.get_party_schema(launched_accounts)
+
+    return None
+
+  def get_all_presets(self) -> List[Preset]:
     return list(self.presets.values())
