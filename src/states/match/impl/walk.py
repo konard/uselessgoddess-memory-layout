@@ -169,9 +169,7 @@ class Path:
     self.timer = 0
     self.team = team
 
-  def step(
-    self, frame, targets: List, delta: float
-  ) -> Tuple[bool, Team | None]:
+  def step(self, frame, ai, delta: float) -> Tuple[bool, Team | None]:
     if len(self.edges) == 0:
       return True, None
 
@@ -195,7 +193,7 @@ class Path:
 
     team = None
 
-    ctx = Context(self.team, frame, targets, delta)
+    ctx = Context(self.team, frame, ai, delta)
     release, change_team = action.execute(ctx)
     if change_team is not None:
       team = change_team

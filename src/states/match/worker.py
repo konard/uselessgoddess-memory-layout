@@ -104,11 +104,9 @@ class MatchWorker(threading.Thread):
             if self.state != State.Round:
               continue
 
-            targets = self.ctx.ai.infer(frame)
-
             stop, team = self.path.step(
               frame,
-              targets,
+              self.ctx.ai,
               curr - last_time,
             )
             if stop:

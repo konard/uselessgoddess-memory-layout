@@ -5,10 +5,10 @@ from core.services.gsi import Team
 
 
 class Context:
-  def __init__(self, team, frame, targets, delta):
+  def __init__(self, team, frame, model, delta):
     self.team = team
     self.frame = frame
-    self.targets = targets
+    self.model = model
     self.delta = delta
 
 

@@ -176,7 +176,8 @@ class AimController(Action):
   def execute(self, ctx: Context) -> Step:
     self.step(
       ctx.team.enemy().label(),
-      ctx.targets,
+      ctx.frame,
+      ctx.model,
       ctx.delta,
       headshot=self.headshot,
     )
@@ -188,10 +189,13 @@ class AimController(Action):
   def step(
     self,
     enemy_label: str,
-    targets: List[Target],
+    frame,
+    model,
     delta: float,
     headshot=False,
   ):
+    targets = model.infer(frame)
+
     raw_targets = [t for t in targets if t.label == enemy_label]
     tracked_targets = self.tracker.update(raw_targets)
 
