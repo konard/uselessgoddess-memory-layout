@@ -1,5 +1,4 @@
 import asyncio
-import time
 from core.services.windows_service import WindowService
 import states
 from typing import Tuple
@@ -133,6 +132,7 @@ class WaitForGame(State):
 
       if ctx.presets.create_preset(new_preset_name):
         ctx.presets.update_preset_accounts(new_preset_name, current_logins)
-        await ctx.send_message(f"Saved new preset: {new_preset_name}")
+
+      await ctx.metrics.send("srt", {"routes": ctx.srt.get_allowed_routes()})
 
     return MatchState(self.party_schema)

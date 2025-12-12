@@ -11,6 +11,7 @@ from core.services import (
   GCService,
   LicenseService,
   PresetsService,
+  MetricsService,
 )
 from core.account import FarmStatus
 
@@ -34,6 +35,7 @@ class Context:
   gc: GCService
   lic: LicenseService
   presets: PresetsService
+  metrics: MetricsService
 
   def __init__(self):
     from core.services.bot import TelegramBotService
@@ -52,6 +54,8 @@ class Context:
     self.gc = GCService(self)
     self.lic = LicenseService(self.settings.user)
     self.presets = PresetsService()
+    self.metrics = MetricsService()
+    self.srt.bind(self.metrics)
 
   def accounts(self) -> List[Account]:
     return sorted(list(self.account.accounts.values()), key=lambda x: x.login)

@@ -11,7 +11,6 @@ from telegram import (
   BotCommand,
   InlineKeyboardMarkup,
   InlineKeyboardButton,
-  InputFile,
 )
 from telegram.ext import (
   Application,

@@ -1,12 +1,9 @@
 import asyncio
-import json
 import uuid
-import platform
 import subprocess
 import hashlib
 import random
 import requests
-from typing import Optional
 from dataclasses import dataclass
 from enum import Enum
 

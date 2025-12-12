@@ -11,3 +11,4 @@ from .gsi import GSIService
 from .cs_controller import CS2Controller
 from .license import LicenseService, LicenseKind
 from .presets import PresetsService
+from .metrics import MetricsService

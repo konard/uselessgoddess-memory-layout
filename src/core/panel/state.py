@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import time
 
 from typing import Optional, Callable, Type, TYPE_CHECKING
 
@@ -80,6 +81,7 @@ class StateManager:
     self._current_state: Optional[State] = None
     self._current_task: Optional[asyncio.Task] = None
     self._update_ui = callback
+    self._state_start_time = time.time()
 
   def acquire_state(self) -> Optional[State]:
     return self._current_state
@@ -120,6 +122,16 @@ class StateManager:
         states.LicenseState(state, title, desc), check=False
       )
       return
+
+    if self._current_state:
+      duration = time.time() - self._state_start_time
+      payload = {
+        "state": name_of(self._current_state),
+        "duration": duration,
+      }
+      asyncio.create_task(self.context.metrics.send("state", payload))
+
+    self._state_start_time = time.time()
 
     if self._current_task and not self._current_task.done():
       self._current_task.cancel()

@@ -2,9 +2,8 @@ import asyncio
 import json
 import urllib.request
 import win32com.client
-import re
-from typing import List, Dict, Optional
-from dataclasses import dataclass, field
+from typing import List, Optional
+from dataclasses import dataclass
 from icmplib import async_ping
 
 from core.logging import get_logger
@@ -45,6 +44,9 @@ class SRTService:
   def __init__(self):
     self.routes: List[Route] = []
     self._fw_policy = None
+
+  def get_allowed_routes(self) -> List[str]:
+    return [r.name for r in self.routes if not r.blocked]
 
   def load_routes(self) -> List[Route]:
     logger.debug("load srt routes")
