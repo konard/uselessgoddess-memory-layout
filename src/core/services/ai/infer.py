@@ -7,6 +7,7 @@ import onnxruntime as ort
 
 from dataclasses import dataclass
 from core.logging import get_logger
+from .recorder import DataRecorder
 
 import resources
 
@@ -73,6 +74,8 @@ class InferenceService:
 
     self.input_name = self.session.get_inputs()[0].name
     self.output_name = self.session.get_outputs()[0].name
+    self.recorder = DataRecorder(active=True)
+    self.frame_counter = 0
 
   def _init_session(self, model_path: str) -> ort.InferenceSession:
     providers = ort.get_available_providers()
@@ -196,4 +199,15 @@ class InferenceService:
       [self.output_name], {self.input_name: input_tensor}
     )
 
-    return self.postprocess(outputs[0], frame.shape)
+    targets = self.postprocess(outputs[0], frame.shape)
+
+    if self.recorder.active:
+      self.frame_counter += 1
+
+      is_hard_example = any(0.35 < t.confidence < 0.75 for t in targets)
+      is_interval = self.frame_counter % 30 == 0
+
+      if is_interval or is_hard_example:
+        self.recorder.save(frame, targets)
+
+    return targets
