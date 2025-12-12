@@ -12,7 +12,7 @@ class Config:
   screenshot_height = 270
 
   # Autoaim mouse movement amplifier
-  aa_movement_amp: float = 3.0
+  aa_movement_amp: float = 5.0
 
   # Person Class Confidence
   confidence: float = 0.0  # TODO: research
