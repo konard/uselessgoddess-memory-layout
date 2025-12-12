@@ -16,7 +16,8 @@ from .config import config
 from .detector import MinimapDirectionDetector
 from .rotation import rotate_step
 from .utils import Action, Context, Step
-from .math import SimpleKalmanFilter
+
+from core.services.ai.tracker import ByteTracker
 
 logger = get_logger("match.aim")
 
@@ -140,7 +141,6 @@ model_multiplier = 3  # TODO: research
 
 Kp = 0.4
 Kd = 0.2
-Ki = 0.0
 
 
 class AimController(Action):
@@ -166,12 +166,12 @@ class AimController(Action):
     # try to hs on this round
     self.headshot = random.random() < config.headshot_chance
 
-    # filter
-    self.kalman_x = SimpleKalmanFilter(R=0.1, Q=1.0)
-    self.kalman_y = SimpleKalmanFilter(R=0.1, Q=1.0)
-
+    # persistent
     self.last_error_x = 0
     self.last_error_y = 0
+
+    self.tracker = ByteTracker(track_thresh=0.5, match_thresh=0.8)
+    self.locked_track_id = None
 
   def execute(self, ctx: Context) -> Step:
     self.step(
@@ -192,59 +192,65 @@ class AimController(Action):
     delta: float,
     headshot=False,
   ):
-    targets = [
-      t
-      for t in targets
-      if t.confidence >= config.confidence and t.label == enemy_label
-    ]
+    raw_targets = [t for t in targets if t.label == enemy_label]
+    tracked_targets = self.tracker.update(raw_targets)
 
     # targets = filter_by_aspect(config.filter_aspect, targets)
 
-    if self.model_timer.tick():
-      self.targets = targets
-      self.target = choose_target(self.targets, self.center)
-
     current_target = None
+    if self.locked_track_id is not None:
+      for t in tracked_targets:
+        if getattr(t, "track_id", -1) == self.locked_track_id:
+          current_target = t
+          break
 
-    if targets:
-      current_target = choose_target(targets, self.center)
+    if current_target is None:
+      if tracked_targets:
+        current_target = choose_target(tracked_targets, self.center)
+        if current_target:
+          self.locked_track_id = getattr(current_target, "track_id", None)
 
+    # if self.model_timer.tick():
+    #   self.targets = targets
+    #   self.target = choose_target(self.targets, self.center)
+
+    if current_target is not None:
       self.last_known_target = current_target
       self.grace_timer = Timer(config.target_persistence)
     else:
-      is_grace_period = not self.grace_timer.tick(delta)
-
-      if is_grace_period and self.last_known_target is not None:
+      if self.last_known_target is not None and not self.grace_timer.tick(
+        delta
+      ):
         current_target = self.last_known_target
       else:
-        current_target = None
         self.last_known_target = None
+        self.locked_track_id = None
 
     self.target = current_target
 
     if self.target is not None:
-      smoothed_mx = self.kalman_x.update(self.target.mid_x)
-      smoothed_my = self.kalman_y.update(self.target.mid_y)
+      target_x = self.target.mid_x
+      target_y = self.target.mid_y
 
       cx, cy = self.center
 
       box_height = self.target.height
       headshot_offset = box_height * (0.38 if headshot else 0.2)
-      target_y = smoothed_my - headshot_offset
+      aim_y = target_y - headshot_offset
 
-      error_x = smoothed_mx - cx
-      error_y = target_y - cy
+      error_x = target_x - cx
+      error_y = aim_y - cy
 
       move_x = (error_x * Kp) + ((error_x - self.last_error_x) * Kd)
       move_y = (error_y * Kp) + ((error_y - self.last_error_y) * Kd)
+
+      self.last_error_x = error_x
+      self.last_error_y = error_y
 
       if abs(move_x) < 1.0:
         move_x = 0
       if abs(move_y) < 1.0:
         move_y = 0
-
-      self.last_error_x = error_x
-      self.last_error_y = error_y
 
       if move_x != 0 or move_y != 0:
         maybe_move_mouse(move_x, move_y)
@@ -253,6 +259,8 @@ class AimController(Action):
         should_shoot(self.target, self.center),
         delta,
       )
+
+      self.rotation_timer = Timer(config.rotation_interval)
     else:
       if config.enable_rotation:
         should_force_rotate = self.rotation_timer.tick(delta)

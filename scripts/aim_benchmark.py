@@ -3,6 +3,7 @@ import numpy as np
 import time
 import math
 import sys
+import random
 from pathlib import Path
 from collections import deque
 
@@ -11,6 +12,9 @@ sys.path.append(str(Path(__file__).parents[1] / "src"))
 from core.services.ai import InferenceService
 from states.match.impl.aim import AimController
 from states.match.impl.config import config
+
+SENSITIVITY = 1
+MODEL_INPUT_SIZE = getattr(config, "model_input", 320)
 
 
 class VirtualCursor:
@@ -42,8 +46,25 @@ class MovingTarget:
 
     self.sw, self.sh = self.sprite.shape[1], self.sprite.shape[0]
 
-  def get_pos(self, mode="circle"):
+    self.visible = True
+    self.flicker_enabled = False
+    self.flicker_timer = 0
+
+  def update(self, mode="circle"):
     self.t += 0.03
+
+    if self.flicker_enabled:
+      self.flicker_timer -= 1
+      if self.flicker_timer <= 0:
+        self.visible = not self.visible
+        if self.visible:
+          self.flicker_timer = random.randint(30, 90)
+        else:
+          self.flicker_timer = random.randint(5, 20)
+    else:
+      self.visible = True
+
+  def get_pos(self, mode="circle"):
     center_x, center_y = self.w // 2, self.h // 2
 
     if mode == "circle":
@@ -61,17 +82,15 @@ class MovingTarget:
 
     return x, y
 
-  def draw(self, frame, x, y):
+  def draw(self, frame, x, y, force_ghost=False):
     x1 = int(x - self.sw // 2)
     y1 = int(y - self.sh // 2)
     x2 = x1 + self.sw
     y2 = y1 + self.sh
 
     h, w = frame.shape[:2]
-    x1_c = max(0, x1)
-    y1_c = max(0, y1)
-    x2_c = min(w, x2)
-    y2_c = min(h, y2)
+    x1_c, y1_c = max(0, x1), max(0, y1)
+    x2_c, y2_c = min(w, x2), min(h, y2)
 
     sp_x1 = x1_c - x1
     sp_y1 = y1_c - y1
@@ -81,25 +100,29 @@ class MovingTarget:
     if sp_x2 > self.sw or sp_y2 > self.sh or x2_c <= x1_c or y2_c <= y1_c:
       return None
 
-    sprite_roi = self.sprite[sp_y1:sp_y2, sp_x1:sp_x2]
-    frame[y1_c:y2_c, x1_c:x2_c] = sprite_roi
+    sprite_part = self.sprite[sp_y1:sp_y2, sp_x1:sp_x2]
+    bg_part = frame[y1_c:y2_c, x1_c:x2_c]
+
+    if force_ghost:
+      blended = cv2.addWeighted(bg_part, 0.5, sprite_part, 0.5, 0)
+      frame[y1_c:y2_c, x1_c:x2_c] = blended
+    else:
+      frame[y1_c:y2_c, x1_c:x2_c] = sprite_part
+
     return (x1, y1, x2, y2)
 
 
 def run_benchmark():
   W, H = 800, 600
 
-  MODEL_SIZE = getattr(config, "model_input", 320)
-
-  print(f"[INIT] Loading AI (Input Size: {MODEL_SIZE}x{MODEL_SIZE})...")
+  print(f"[INIT] AI Model: {MODEL_INPUT_SIZE}x{MODEL_INPUT_SIZE}")
   ai = InferenceService("model.onnx", ["ct", "t"])
-
   aim = AimController(direction=0, burst=False)
+
   v_mouse = VirtualCursor(W, H)
   target_gen = MovingTarget(W, H, "resources/enemy.png")
-  trail = deque(maxlen=50)
 
-  SENSITIVITY = 0.25
+  trail = deque(maxlen=50)
 
   def mock_move(dx, dy):
     v_mouse.move(dx * SENSITIVITY, dy * SENSITIVITY)
@@ -108,109 +131,133 @@ def run_benchmark():
 
   aim_module.maybe_move_mouse = mock_move
 
-  background = np.zeros((H, W, 3), dtype=np.uint8)
-  for y in range(0, H, 100):
-    cv2.line(background, (0, y), (W, y), (30, 30, 30), 1)
-  for x in range(0, W, 100):
-    cv2.line(background, (x, 0), (x, H), (30, 30, 30), 1)
+  bg_grid = np.zeros((H, W, 3), dtype=np.uint8)
+  for y in range(0, H, 50):
+    color = (40, 40, 40) if y % 100 != 0 else (60, 60, 60)
+    cv2.line(bg_grid, (0, y), (W, y), color, 1)
+  for x in range(0, W, 50):
+    color = (40, 40, 40) if x % 100 != 0 else (60, 60, 60)
+    cv2.line(bg_grid, (x, 0), (x, H), color, 1)
 
   mode = "circle"
+  manual_hide = False
 
-  print("--- DUAL VIEW BENCHMARK ---")
-  print("Controls: [1] Circle [2] Strafe [3] Jiggle [Q] Quit")
+  print("--- ULTIMATE AIM BENCHMARK ---")
+  print(" [1-3] Movement Modes")
+  print(" [F]   Toggle Auto-Flicker (Simulate bad neural network)")
+  print(" [SPC] Hold to Hide Target (Simulate wall)")
+  print(" [Q]   Quit")
 
   while True:
-    frame = background.copy()
-
+    target_gen.update(mode)
     tx, ty = target_gen.get_pos(mode)
-    target_gen.draw(frame, tx, ty)
 
-    targets = ai.infer(frame)
+    is_visible_for_ai = target_gen.visible and not manual_hide
+
+    frame_ai_clean = bg_grid.copy()
+
+    if is_visible_for_ai:
+      target_gen.draw(frame_ai_clean, tx, ty, force_ghost=False)
+
+    targets = ai.infer(frame_ai_clean)
 
     aim.center = (v_mouse.x, v_mouse.y)
     aim.step("ct", targets, delta=0.016)
 
+    display_frame = frame_ai_clean.copy()
+
+    if not is_visible_for_ai:
+      target_gen.draw(display_frame, tx, ty, force_ghost=True)
+
     mx, my = int(v_mouse.x), int(v_mouse.y)
-
-    cv2.line(frame, (mx - 20, my), (mx + 20, my), (0, 255, 0), 2)
-    cv2.line(frame, (mx, my - 20), (mx, my + 20), (0, 255, 0), 2)
-    cv2.circle(frame, (mx, my), 2, (0, 255, 0), -1)
-
-    cv2.line(frame, (mx, my), (int(tx), int(ty)), (0, 255, 255), 1)
 
     trail.append((mx, my))
     for i in range(1, len(trail)):
-      cv2.line(frame, trail[i - 1], trail[i], (0, 100, 0), 1)
+      intensity = int(255 * (i / len(trail)))
+      cv2.line(display_frame, trail[i - 1], trail[i], (0, intensity, 0), 2)
 
     for t in targets:
       x1 = int(t.mid_x - t.width / 2)
       y1 = int(t.mid_y - t.height / 2)
       cv2.rectangle(
-        frame,
+        display_frame,
         (x1, y1),
         (x1 + int(t.width), y1 + int(t.height)),
-        (100, 100, 100),
+        (0, 255, 255),
         1,
       )
+
+    cv2.line(display_frame, (mx, my), (int(tx), int(ty)), (50, 50, 50), 1)
+
+    cross_color = (0, 255, 0)  # Green (Default)
+    status_text = "SEARCHING"
+    status_color = (255, 255, 255)
+
+    if aim.target:
+      if is_visible_for_ai:
+        status_text = "LOCKED (LIVE)"
+        status_color = (0, 255, 0)
+        cross_color = (0, 255, 0)
+      else:
+        status_text = "LOCKED (MEMORY)"
+        status_color = (0, 255, 255)
+        cross_color = (0, 255, 255)
+    else:
+      status_text = "SEARCHING"
+      status_color = (0, 0, 255)
+      cross_color = (0, 0, 255)
+
+    cv2.line(display_frame, (mx - 20, my), (mx + 20, my), cross_color, 2)
+    cv2.line(display_frame, (mx, my - 20), (mx, my + 20), cross_color, 2)
+    cv2.circle(display_frame, (mx, my), 3, cross_color, -1)
+
+    y_off = 30
+
+    def draw_ui(text, col=(200, 200, 200)):
+      nonlocal y_off
+      cv2.putText(
+        display_frame, text, (10, y_off), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2
+      )
+      y_off += 25
+
+    draw_ui(f"Status: {status_text}", status_color)
 
     dist = math.sqrt((tx - mx) ** 2 + (ty - my) ** 2)
-    cv2.putText(
-      frame,
-      f"Error: {dist:.1f} px",
-      (10, 30),
-      cv2.FONT_HERSHEY_SIMPLEX,
-      0.7,
-      (255, 255, 255),
-      2,
-    )
-    cv2.putText(
-      frame,
-      f"Mode: {mode}",
-      (10, 60),
-      cv2.FONT_HERSHEY_SIMPLEX,
-      0.7,
-      (200, 200, 200),
-      1,
+    draw_ui(f"Error:  {dist:.1f} px")
+    draw_ui(f"Mode:   {mode}")
+
+    flicker_state = "ON" if target_gen.flicker_enabled else "OFF"
+    draw_ui(
+      f"Flicker: {flicker_state} [F]",
+      (100, 255, 100) if target_gen.flicker_enabled else (100, 100, 100),
     )
 
-    cv2.imshow("Aim Sandbox (Playground)", frame)
+    if manual_hide:
+      draw_ui("HIDDEN [Space]", (0, 0, 255))
 
-    ai_frame = cv2.resize(frame, (MODEL_SIZE, MODEL_SIZE))
+    ai_debug = cv2.resize(frame_ai_clean, (MODEL_INPUT_SIZE, MODEL_INPUT_SIZE))
+    cv2.imshow("AI Input", ai_debug)
 
-    scale_x = MODEL_SIZE / W
-    scale_y = MODEL_SIZE / H
-
-    for t in targets:
-      sx1 = int((t.mid_x - t.width / 2) * scale_x)
-      sy1 = int((t.mid_y - t.height / 2) * scale_y)
-      sx2 = int((t.mid_x + t.width / 2) * scale_x)
-      sy2 = int((t.mid_y + t.height / 2) * scale_y)
-
-      cv2.rectangle(ai_frame, (sx1, sy1), (sx2, sy2), (0, 255, 0), 1)
-      cv2.putText(
-        ai_frame,
-        f"{t.confidence:.2f}",
-        (sx1, sy1 - 2),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.4,
-        (0, 255, 0),
-        1,
-      )
-
-    cv2.imshow(f"AI Vision ({MODEL_SIZE}x{MODEL_SIZE})", ai_frame)
+    cv2.imshow("Aim Sandbox", display_frame)
 
     key = cv2.waitKey(1)
     if key & 0xFF == ord("q"):
       break
-    elif key & 0xFF == ord("1"):
+    if key & 0xFF == ord("1"):
       mode = "circle"
       trail.clear()
-    elif key & 0xFF == ord("2"):
+    if key & 0xFF == ord("2"):
       mode = "strafe"
       trail.clear()
-    elif key & 0xFF == ord("3"):
+    if key & 0xFF == ord("3"):
       mode = "jiggle"
       trail.clear()
+    if key & 0xFF == ord("f"):
+      target_gen.flicker_enabled = not target_gen.flicker_enabled
+
+    import win32api
+
+    manual_hide = win32api.GetKeyState(0x20) < 0  # 0x20 = VK_SPACE
 
   cv2.destroyAllWindows()
 

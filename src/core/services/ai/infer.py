@@ -26,6 +26,7 @@ class Target:
   label: str
   laidx: int
   headshot: bool = False
+  track_id: int = -1
 
   def scale_to(self, input_x: int, input_y: int):
     scale_x, scale_y = (input_x / self.input_x, input_y / self.input_y)
