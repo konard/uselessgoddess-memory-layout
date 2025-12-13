@@ -1,5 +1,5 @@
 import asyncio
-from typing import Tuple
+from typing import Optional, Tuple
 from core.panel.state import State
 from core.context import Context
 from core.logging import get_logger
@@ -13,8 +13,13 @@ logger = get_logger("state.select_map")
 
 
 class SelectMap(State):
-  def __init__(self, party_schema: Tuple[PartySchema, PartySchema]):
+  def __init__(
+    self,
+    party_schema: Tuple[PartySchema, PartySchema],
+    retries: Optional[int] = None,
+  ):
     self.party_schema = party_schema
+    self.retries: Optional[int] = retries
 
   async def execute(self, ctx: Context):
     from states.wait_for_game import WaitForGame

@@ -54,8 +54,10 @@ class MatchState(State):
         ctx.gsi.unlisten_raw(self.worker.on_game_state)
         self.worker.stop()
       pass
-
-    score = list(self.worker.score.values())
-    await ctx.send_message(f"Match finished with {score[0]}:{score[1]}")
+    try:
+      score = list(self.worker.score.values())
+      await ctx.send_message(f"Match finished with {score[0]}:{score[1]}")
+    except:  # noqa: E722
+      pass
 
     return ContinueFarm(self.game_schema)

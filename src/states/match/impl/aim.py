@@ -137,7 +137,7 @@ def filter_by_aspect(
   return filtered
 
 
-model_multiplier = 3  # TODO: research
+model_multiplier = 5  # TODO: research
 
 Kp = 0.4
 Kd = 0.2

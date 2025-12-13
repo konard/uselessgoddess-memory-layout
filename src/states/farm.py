@@ -9,7 +9,7 @@ from core.context import Context
 from core.account import Account
 from core.logging import get_logger
 from core.process_config import ConfigService
-from core.services import LaunchService, WindowService
+from core.services import LaunchService
 from core import utils
 from states.make_lobbies import MakeLobbies
 

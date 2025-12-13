@@ -1,7 +1,7 @@
 import asyncio
 from core.services.windows_service import WindowService
 import states
-from typing import Tuple
+from typing import Optional, Tuple
 from core.panel.state import State
 from core.services import CS2Controller
 from core.yass import Yass
@@ -16,10 +16,12 @@ logger = get_logger("state.wait_for_game")
 
 class WaitForGame(State):
   def __init__(
-    self, party_schema: Tuple[PartySchema, PartySchema], retries: int = 0
+    self,
+    party_schema: Tuple[PartySchema, PartySchema],
+    retries: Optional[int] = None,
   ):
     self.party_schema = party_schema
-    self.retries = retries
+    self.retries = retries or 0
 
   async def execute(self, ctx: Context):
     from states.match.state import MatchState
@@ -107,11 +109,7 @@ class WaitForGame(State):
 
     await ctx.send_message("Match found")
 
-    current_logins = []
-    for party in self.party_schema:
-      current_logins.extend([acc.login for acc in party.all])
-
-    found_preset = ctx.presets.find_preset_by_accounts(current_logins)
+    found_preset = ctx.presets.find_preset_by_game_schema(self.party_schema)
 
     if found_preset:
       if found_preset.has_error:
@@ -119,6 +117,10 @@ class WaitForGame(State):
         ctx.presets.save()
         logger.info(f"Cleared error flag for preset {found_preset.name}")
     else:
+      current_logins = []
+      for party in self.party_schema:
+        current_logins.extend([acc.login for acc in party.all])
+
       new_preset_name = generate_preset_name()
 
       logger.info(

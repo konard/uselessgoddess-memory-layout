@@ -25,8 +25,13 @@ farm_mode_size = {
 
 
 class MakeLobbies(State):
-  def __init__(self, party_schema: Optional[Tuple[PartySchema, PartySchema]]):
+  def __init__(
+    self,
+    party_schema: Optional[Tuple[PartySchema, PartySchema]],
+    retries: Optional[int] = None,
+  ):
     self.party_schema: Optional[Tuple[PartySchema, PartySchema]] = party_schema
+    self.retries: Optional[int] = retries
 
   def layout(self, ctx: Context, dispatch):
     self.progress = Progress()
@@ -133,7 +138,7 @@ class MakeLobbies(State):
         await asyncio.sleep(0.3)
 
       await asyncio.sleep(0.5)
-      return SelectMap(self.party_schema)
+      return SelectMap(self.party_schema, self.retries)
 
     except ValueError as e:
       logger.error(f"{e}")

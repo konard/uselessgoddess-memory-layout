@@ -1,6 +1,6 @@
 import asyncio
 from sre_parse import State
-from typing import Tuple
+from typing import Optional, Tuple
 from core import game_constants, utils
 from core.context import Context
 from core.services.cs_controller import CS2Controller
@@ -16,7 +16,9 @@ logger = get_logger("state.shuffle")
 
 class ShuffleLobby(State):
   def __init__(
-    self, party_schema: Tuple[PartySchema, PartySchema], retries: int = 0
+    self,
+    party_schema: Tuple[PartySchema, PartySchema],
+    retries: Optional[int] = None,
   ):
     self.party_schema: Tuple[PartySchema, PartySchema] = party_schema
     self.retries = retries
@@ -131,4 +133,4 @@ class ShuffleLobby(State):
         await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9)
         await asyncio.sleep(0.3)
 
-    return states.MakeLobbies(new_party_schema)
+    return states.MakeLobbies(new_party_schema, self.retries)
