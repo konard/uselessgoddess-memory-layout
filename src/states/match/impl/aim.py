@@ -137,10 +137,10 @@ def filter_by_aspect(
   return filtered
 
 
-model_multiplier = 5  # TODO: research
+model_multiplier = 3  # TODO: research
 
-Kp = 0.4
-Kd = 0.2
+Kp = 0.04 * model_multiplier
+Kd = 0.02 * model_multiplier
 
 
 class AimController(Action):
