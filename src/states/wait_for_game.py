@@ -1,7 +1,7 @@
 import asyncio
 from core.services.windows_service import WindowService
 import states
-from typing import Tuple
+from typing import Optional, Tuple
 from core.panel.state import State
 from core.services import CS2Controller
 from core.yass import Yass
@@ -16,10 +16,12 @@ logger = get_logger("state.wait_for_game")
 
 class WaitForGame(State):
   def __init__(
-    self, party_schema: Tuple[PartySchema, PartySchema], retries: int = 0
+    self,
+    party_schema: Tuple[PartySchema, PartySchema],
+    retries: Optional[int] = None,
   ):
     self.party_schema = party_schema
-    self.retries = retries
+    self.retries = retries or 0
 
   async def execute(self, ctx: Context):
     from states.match.state import MatchState
