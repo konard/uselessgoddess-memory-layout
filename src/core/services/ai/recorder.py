@@ -60,7 +60,7 @@ class DataRecorder:
         if frame.shape[2] == 4:
           frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
-        img_name = f"{unique_id}.jpg"
+        img_name = f"{unique_id}.png"
         cv2.imwrite(str(self.images_path / img_name), frame)
 
         h, w = frame.shape[:2]

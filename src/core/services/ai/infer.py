@@ -205,9 +205,9 @@ class InferenceService:
       self.frame_counter += 1
 
       is_hard_example = any(0.35 < t.confidence < 0.75 for t in targets)
-      is_interval = self.frame_counter % 30 == 0
+      is_interval = self.frame_counter % 60 == 0
 
-      if is_interval or is_hard_example:
+      if is_interval and (is_hard_example or not targets):
         self.recorder.save(frame, targets)
 
     return targets
