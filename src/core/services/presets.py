@@ -237,6 +237,21 @@ class PresetsService:
         return preset
     return None
 
+  def find_preset_by_game_schema(
+    self, schema: "GameSchema"
+  ) -> Optional[Preset]:
+    current_logins = []
+    for party in schema:
+      current_logins.extend([acc.login for acc in party.all])
+
+    found_preset = self.find_preset_by_accounts(current_logins)
+    if found_preset:
+      if found_preset.accounts != current_logins:
+        found_preset.accounts = current_logins
+        self.save()
+      return found_preset
+    return None
+
   def get_schema_for_launched_accounts(
     self, launched_accounts: List[RunningAccount]
   ) -> Optional["GameSchema"]:

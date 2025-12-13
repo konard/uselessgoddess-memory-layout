@@ -107,11 +107,7 @@ class WaitForGame(State):
 
     await ctx.send_message("Match found")
 
-    current_logins = []
-    for party in self.party_schema:
-      current_logins.extend([acc.login for acc in party.all])
-
-    found_preset = ctx.presets.find_preset_by_accounts(current_logins)
+    found_preset = ctx.presets.find_preset_by_game_schema(self.party_schema)
 
     if found_preset:
       if found_preset.has_error:
@@ -119,6 +115,10 @@ class WaitForGame(State):
         ctx.presets.save()
         logger.info(f"Cleared error flag for preset {found_preset.name}")
     else:
+      current_logins = []
+      for party in self.party_schema:
+        current_logins.extend([acc.login for acc in party.all])
+
       new_preset_name = generate_preset_name()
 
       logger.info(
