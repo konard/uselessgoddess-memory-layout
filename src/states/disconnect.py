@@ -50,6 +50,15 @@ class DisconnectState(State):
           await asyncio.sleep(0.5)
           await CS2Controller.press_key_async(Key.CTRL)
           await asyncio.sleep(0.5)
+
+        await asyncio.sleep(30)
+
+        for account in ctx.launched_accounts:
+          await WindowService.focus_window_async(account.win_cs_title)
+          await asyncio.sleep(0.5)
+          await CS2Controller.press_key_async(Key.CTRL)
+          await asyncio.sleep(0.5)
+
         return states.MatchState(None)
       case DisconnectType.LOBBY:
         return states.ContinueFarm(None, delay=5)
