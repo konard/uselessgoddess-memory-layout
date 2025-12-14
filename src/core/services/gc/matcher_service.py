@@ -80,7 +80,7 @@ class MatcherService:
           if not done:
             for task in pending_tasks:
               task.cancel()
-            logger.error(
+            logger.debug(
               "Timeout waiting for next match_id: no events received in 3 seconds"
             )
             return False
