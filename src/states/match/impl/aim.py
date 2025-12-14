@@ -139,8 +139,8 @@ def filter_by_aspect(
 
 model_multiplier = 3  # TODO: research
 
-Kp = 0.04 * model_multiplier
-Kd = 0.02 * model_multiplier
+Kp = 0.4 * 6 / model_multiplier
+Kd = 0.2 * 6 / model_multiplier
 
 
 class AimController(Action):
