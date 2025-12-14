@@ -80,3 +80,9 @@ data/dataset
 
 *.exe
 /*.dist
+/*.build
+/.ruff_cache
+/*.onefile-build
+/proto
+/train/dataset
+/train/runs
