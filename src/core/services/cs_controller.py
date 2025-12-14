@@ -123,7 +123,7 @@ class CS2Controller:
     win32api.keybd_event(key.value, 0, 0, 0)
     time.sleep(delay)
     win32api.keybd_event(key.value, 0, win32con.KEYEVENTF_KEYUP, 0)
-    time.sleep(0.1)
+    time.sleep(delay)
     logger.trace(f"Нажата кнопка: {key}")
 
   @staticmethod
@@ -341,3 +341,6 @@ class CS2Controller:
 
   @staticmethod
   async def wait_for_image_async(image: str, account: Account): ...
+
+  @staticmethod
+  async def press_key_async(key: Key): ...

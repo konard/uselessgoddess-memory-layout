@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 from typing import List, Optional, TYPE_CHECKING
 import cv2
 import asyncio
@@ -149,7 +150,13 @@ class TelegramBotService:
       )
       return
 
-    msg = f"<b>Active Sessions ({len(running_accounts)})</b>:\n\n"
+    unfarmed_accounts_count = len(self.ctx.unfarmed_accounts())
+    estimated_time_to_farm = math.floor(unfarmed_accounts_count / 4) * 240 + 20
+    msg = (
+      f"<b>Accounts left to farm: {unfarmed_accounts_count}</b>\n"
+      f"<b>Estimated time to farm: {estimated_time_to_farm} minutes</b>\n"
+    )
+    msg += f"<b>Active Sessions ({len(running_accounts)})</b>:\n\n"
 
     for acc in running_accounts:
       lvl = acc.lock.lvl or 0
@@ -167,7 +174,7 @@ class TelegramBotService:
       msg += (
         f"👤 <code>{safe_login}</code>\n"
         f"├ Rank: {lvl} | XP: {xp}/5000\n"
-        f"└ Status: {status_icon} {status}\n\n"
+        f"└ Status: {status_icon} {status.title()}\n\n"
       )
 
     await update.message.reply_text(msg, parse_mode="HTML")
