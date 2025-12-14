@@ -77,6 +77,7 @@ async def bootstrap(app: QApplication):
 
 async def main():
   app = QApplication.instance() or QApplication(sys.argv)
+  app.setQuitOnLastWindowClosed(False)
 
   window = await bootstrap(app)
   if not window:
@@ -85,7 +86,9 @@ async def main():
 
   await window.manager.into_state(Idle())
 
-  await asyncio.get_event_loop().create_future()
+  should_close = asyncio.Event()
+  app.lastWindowClosed.connect(should_close.set)
+  await should_close.wait()
 
 
 def dev_deps():
