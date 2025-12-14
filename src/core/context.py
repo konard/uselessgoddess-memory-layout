@@ -54,7 +54,7 @@ class Context:
     self.gc = GCService(self)
     self.lic = LicenseService(self.settings.user)
     self.presets = PresetsService()
-    self.metrics = MetricsService()
+    self.metrics = MetricsService(self.lic)
 
   def accounts(self) -> List[Account]:
     return sorted(list(self.account.accounts.values()), key=lambda x: x.login)
