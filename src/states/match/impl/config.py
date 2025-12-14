@@ -18,7 +18,7 @@ class Config:
   confidence: float = 0.0  # TODO: research
 
   # Chance to start headshot aim controller
-  headshot_chance: float = 0.20
+  headshot_chance: float = 0.50
 
   # Prioritize targets closest to the screen center
   center_of_screen: bool = True

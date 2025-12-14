@@ -111,7 +111,7 @@ class DashboardTab(QWidget):
 
   def _kill_all_runners(self):
     ProcessService.kill_all_runners()
-    self.manager.into_state(states.Idle())
+    asyncio.create_task(self.manager.into_state(states.Idle()))
 
   def _test_telegram(self):
     asyncio.create_task(self.ctx.send_message("Test notification."))
