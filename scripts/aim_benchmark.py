@@ -42,7 +42,7 @@ class MovingTarget:
       self.sprite[:] = (0, 0, 255)
       self.sprite[0:15, :] = (0, 255, 255)
     else:
-      self.sprite = cv2.resize(self.sprite, (50, 80))
+      self.sprite = cv2.resize(self.sprite, (75, 100))
 
     self.sw, self.sh = self.sprite.shape[1], self.sprite.shape[0]
 
@@ -159,10 +159,10 @@ def run_benchmark():
     if is_visible_for_ai:
       target_gen.draw(frame_ai_clean, tx, ty, force_ghost=False)
 
-    targets = ai.infer(frame_ai_clean)
-
     aim.center = (v_mouse.x, v_mouse.y)
-    aim.step("ct", targets, delta=0.016)
+    aim.step("ct", frame_ai_clean, ai, delta=(1 / 180))
+
+    targets = ai.infer(frame_ai_clean)
 
     display_frame = frame_ai_clean.copy()
 
