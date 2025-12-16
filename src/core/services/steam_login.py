@@ -6,7 +6,9 @@ import pyautogui
 import struct
 import hmac
 
-from pyzbar.pyzbar import decode
+import numpy as np
+import zxingcpp
+
 
 from core.logging import get_logger
 from core.services import UserSettings
@@ -82,10 +84,11 @@ def wait_qr() -> str:
 
   while True:
     screenshot = pyautogui.screenshot()
-    codes = decode(screenshot)
+    img_array = np.array(screenshot)
 
+    codes = zxingcpp.read_barcodes(img_array)
     for code in codes:
-      data = code.data.decode("utf-8")
+      data = code.text
       if "s.team" in data:
         qr_url = data
         break

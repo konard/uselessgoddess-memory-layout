@@ -19,7 +19,7 @@ dependencies = [
   # -- auto
   "PyAutoIt>=0.6",
   "pyautogui>=0.9",
-  "pyzbar>=0.1.9",
+  "zxing-cpp",
   # -- win
   "pywin32>=311",
   "pyuac",
