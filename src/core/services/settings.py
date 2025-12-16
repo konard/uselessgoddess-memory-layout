@@ -74,6 +74,8 @@ class UserSettings(Settings):
   telegram_token: Optional[str] = None
   telegram_whitelist: List[str] = field(default_factory=list)
 
+  collect_available_steam_games_on_login: bool = False
+
   # farm settings
   times_to_shuffle: int = 3
   times_to_brute_force: int = 3

@@ -92,16 +92,7 @@ async def main():
 
 
 def dev_deps():
-  NODE_DIR = os.path.join("data", "scripts")
-  NODE_MODULES_DIR = os.path.join(NODE_DIR, "node_modules")
-
-  if not os.path.exists(NODE_MODULES_DIR):
-    try:
-      print("[*] installing scripts dependencies...")
-      subprocess.run(["npm", "install"], cwd=NODE_DIR, check=True)
-    except subprocess.CalledProcessError:
-      sys.exit(1)
-  print("[+] scripts dependencies installed")
+  pass
 
 
 def is_debugger_present():

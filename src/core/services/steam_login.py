@@ -1,4 +1,5 @@
 import os
+import asyncio
 import time
 import base64
 import subprocess
@@ -8,6 +9,7 @@ import hmac
 
 import numpy as np
 import zxingcpp
+from steam import Client
 
 
 from core.logging import get_logger
@@ -101,6 +103,58 @@ def wait_qr() -> str:
   return qr_url
 
 
+class QRLogin(Client):
+  def __init__(self, qr_url, settings):
+    super().__init__()
+    self.qr_url = qr_url
+    self.settings = settings
+    self.completion = asyncio.Future()
+
+  async def on_login(self):
+    try:
+      if self.settings.collect_available_steam_games_on_login:
+        await self.http.get_free_games()
+      await self.approve_qr_login(self.qr_url)
+      if not self.completion.done():
+        self.completion.set_result(True)
+    except Exception as e:
+      logger.error(f"Failed to approve QR: {e}")
+      if not self.completion.done():
+        self.completion.set_result(False)
+    finally:
+      await self.close()
+
+
+async def _async_login_qr(
+  login, password, shared_secret, settings, qr_url, loop
+):
+  client = QRLogin(qr_url, settings)
+
+  login_task = loop.create_task(
+    client.login(username=login, password=password, shared_secret=shared_secret)
+  )
+
+  try:
+    done, pending = await asyncio.wait(
+      [login_task, client.completion],
+      return_when=asyncio.FIRST_COMPLETED,
+      timeout=60.0,
+    )
+
+    for task in pending:
+      task.cancel()
+
+    if client.completion in done:
+      return client.completion.result()
+
+    logger.error("Login timed out or failed without completion")
+    return False
+
+  except Exception as e:
+    logger.error(f"Exception during async login: {e}")
+    return False
+
+
 def login_qr(
   login: str,
   password: str,
@@ -108,19 +162,18 @@ def login_qr(
   settings: UserSettings,
 ):
   qr_url = wait_qr()
-  code = subprocess.run(
-    [
-      "node",
-      "data/scripts/approve_qr.js",
-      login,
-      password,
-      shared_secret,
-      qr_url,
-    ],
-    text=True,
-  ).returncode
+  if not qr_url:
+    return False
 
-  return code == 0
+  # Explicitly use ProactorEventLoop on Windows to ensure standard behavior
+  loop = asyncio.ProactorEventLoop()
+  asyncio.set_event_loop(loop)
+  try:
+    return loop.run_until_complete(
+      _async_login_qr(login, password, shared_secret, settings, qr_url, loop)
+    )
+  finally:
+    loop.close()
 
 
 def login_fallback(
