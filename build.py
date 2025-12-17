@@ -27,6 +27,8 @@ INCLUDE_PACKAGES = [
   "selenium",
   "webdriver_manager",
   "cryptography",
+  "trio",
+  "anyio",
 ]
 
 
