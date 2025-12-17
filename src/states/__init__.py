@@ -10,4 +10,6 @@ from .types import PartySchema
 from .disconnect import DisconnectState, DisconnectType
 from .continue_farm import ContinueFarm
 from .license import LicenseState
+from .collect_free_games import CollectFreeGames
+from .collect_free_profile_items import CollectFreeProfileItems
 from .idle import Idle

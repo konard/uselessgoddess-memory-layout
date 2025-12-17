@@ -13,7 +13,9 @@ from steam import Client
 
 
 from core.logging import get_logger
-from core.services import UserSettings
+from core.services.settings import UserSettings
+from core.services.api.api_controller import api_controller
+from core.services.api.free_fames_response import FreeGamesResponse
 from core.services.windows_service import WindowService
 
 
@@ -113,7 +115,11 @@ class QRLogin(Client):
   async def on_login(self):
     try:
       if self.settings.collect_available_steam_games_on_login:
-        await self.http.get_free_games()
+        owned_games = await self.user.games()
+        game_ids: FreeGamesResponse = await api_controller.get(
+          "/api/cache/steam/free-games"
+        )
+        game_ids = filter(lambda x: x.app_id not in owned_games, game_ids)
       await self.approve_qr_login(self.qr_url)
       if not self.completion.done():
         self.completion.set_result(True)

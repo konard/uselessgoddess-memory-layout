@@ -58,6 +58,16 @@ class LaunchAccountsMsg(Message):
   accounts: list[Account] = field(default_factory=list)
 
 
+@dataclass
+class CollectFreeGamesMsg(Message):
+  accounts: list[Account] = field(default_factory=list)
+
+
+@dataclass
+class CollectFreeProfileItemsMsg(Message):
+  accounts: list[Account] = field(default_factory=list)
+
+
 class Idle(State):
   def layout(self, ctx: Context, dispatch):
     def acquire_accounts(mtype):
@@ -108,17 +118,17 @@ class Idle(State):
           on_click=acquire_accounts(Trade),
           tooltip="Trade inventories to trade url.",
         ),
+        Button(
+          "Collect Games",
+          on_click=acquire_accounts(CollectFreeGamesMsg),
+          tooltip="Collect free games.",
+        ),
         # Button(
-        #   "Drop report",
-        #   on_click=acquire_accounts(Trade),
-        #   tooltip="Make drop report.",
+        #   "Collect Items",
+        #   on_click=acquire_accounts(CollectFreeProfileItemsMsg),
+        #   tooltip="Collect free profile items.",
         # ),
       ),
-      # Button(
-      #   "Wait for Game",
-      #   on_click=launch(WaitForGame),
-      #   tooltip="Wait for game to start.",
-      # ),
       Button(
         "Launch Accounts",
         on_click=acquire_accounts(LaunchAccountsMsg),
@@ -130,18 +140,6 @@ class Idle(State):
         button_type=ButtonType.SPECIAL,
         tooltip="Manually run auto-match",
       ),
-      # HStack(
-      #   Button(
-      #     "Make Lobbies",
-      #     on_click=lambda: dispatch(MakeLobbies(None)),
-      #     tooltip="Make lobbies.",
-      #   ),
-      #   Button(
-      #     "Select Map",
-      #     on_click=lambda: dispatch(SelectMap(None)),
-      #     tooltip="Select map.",
-      #   ),
-      # ),
       Button(
         "Continue Farm",
         on_click=lambda: dispatch(ContinueFarmMsg()),
@@ -242,4 +240,18 @@ class Idle(State):
   async def _on_launch_accounts(self, state, manager: StateManager):
     await manager.into_state(
       LaunchAccounts(state.accounts).then(self),
+    )
+
+  @handles(CollectFreeGamesMsg)
+  async def _on_collect_free_games(self, state, manager: StateManager):
+    logger.debug(f"collect free games {state.accounts}")
+    await manager.into_state(
+      states.CollectFreeGames(state.accounts).then(self),
+    )
+
+  @handles(CollectFreeProfileItemsMsg)
+  async def _on_collect_free_profile_items(self, state, manager: StateManager):
+    logger.debug(f"collect free profile items {state.accounts}")
+    await manager.into_state(
+      states.CollectFreeProfileItems(state.accounts).then(self),
     )

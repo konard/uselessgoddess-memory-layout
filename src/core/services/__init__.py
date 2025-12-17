@@ -12,3 +12,5 @@ from .cs_controller import CS2Controller
 from .license import LicenseService, LicenseKind
 from .presets import PresetsService
 from .metrics import MetricsService
+from .api.api_controller import ApiController, api_controller
+from .api.free_fames_response import FreeGamesResponse
