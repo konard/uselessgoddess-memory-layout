@@ -1,5 +1,7 @@
 import re
-from typing import Optional, List
+import asyncio
+from PyQt6.QtSvg import QSvgRenderer
+from typing import List
 from PyQt6.QtWidgets import (
   QWidget,
   QVBoxLayout,
@@ -13,17 +15,17 @@ from PyQt6.QtWidgets import (
   QListWidget,
   QInputDialog,
   QMessageBox,
-  QMenu,
   QListWidgetItem,
   QDialog,
   QDialogButtonBox,
   QAbstractItemView,
+  QToolButton,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QBrush, QCursor
+from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QSize
+from PyQt6.QtGui import QColor, QBrush, QCursor, QIcon, QPainter
 
 from ui.theme import CURRENT_THEME, ButtonType
-from ui.widgets import Button, Switch, Tooltip, TitledPanel
+from ui.widgets import Button, Switch, Tooltip
 from core.context import Context
 from core.account.model import FarmStatus
 from core.services.presets import Preset
@@ -122,6 +124,84 @@ class AccountSelectionDialog(QDialog):
         super().accept()
 
 
+class LoadingSpinner(QWidget):
+  def __init__(self, parent=None, size=24):
+    super().__init__(parent)
+    self.setFixedSize(size, size)
+    self.angle = 0
+    self.renderer = QSvgRenderer("resources/icons/loader.svg")
+    self.timer = QTimer(self)
+    self.timer.timeout.connect(self._rotate)
+    self.timer.start(40)  # Smooth rotation
+
+  def _rotate(self):
+    self.angle = (self.angle + 20) % 360
+    self.update()
+
+  def paintEvent(self, event):
+    painter = QPainter(self)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+    # Center translation
+    cx = self.width() / 2
+    cy = self.height() / 2
+
+    painter.translate(cx, cy)
+    painter.rotate(self.angle)
+    painter.translate(-cx, -cy)
+
+    self.renderer.render(painter)
+
+
+class BrowserWidget(QWidget):
+  def __init__(self, account, parent=None):
+    super().__init__(parent)
+    self.account = account
+
+    self.layout = QHBoxLayout(self)
+    self.layout.setContentsMargins(0, 0, 0, 0)
+    self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center content!
+
+    self.stack = QStackedWidget()
+
+    self.btn_browser = QToolButton()
+    icon = QIcon("resources/icons/chrome.svg")
+    if icon.isNull():
+      icon = QIcon.fromTheme("web-browser")
+
+    self.btn_browser.setIcon(icon)
+    self.btn_browser.setIconSize(QSize(20, 20))
+    self.btn_browser.setCursor(Qt.CursorShape.PointingHandCursor)
+    self.btn_browser.setStyleSheet(f"""
+        QToolButton {{
+            background-color: transparent;
+            border: 1px solid transparent;
+        }}
+        QToolButton:hover {{
+            background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+            border: 1px solid {CURRENT_THEME.BORDER};
+        }}
+    """)
+
+    self.loader_container = QWidget()
+    loader_layout = QVBoxLayout(self.loader_container)
+    loader_layout.setContentsMargins(0, 0, 0, 0)
+    loader_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    self.spinner = LoadingSpinner(size=22)
+    loader_layout.addWidget(self.spinner)
+
+    self.stack.addWidget(self.btn_browser)
+    self.stack.addWidget(self.loader_container)
+
+    self.stack.setFixedSize(30, 30)
+
+    self.layout.addWidget(self.stack)
+
+  def set_loading(self, loading: bool):
+    self.stack.setCurrentIndex(1 if loading else 0)
+
+
 class AccountsTable(QWidget):
   def __init__(self, ctx: Context, parent=None):
     super().__init__(parent)
@@ -170,8 +250,8 @@ class AccountsTable(QWidget):
     layout.addWidget(self.search_input)
 
     self.table = QTableWidget()
-    self.table.setColumnCount(3)
-    self.table.setHorizontalHeaderLabels(["Login", "Status", "XP"])
+    self.table.setColumnCount(4)
+    self.table.setHorizontalHeaderLabels(["Login", "Status", "XP", "Browser"])
 
     self.table.verticalHeader().setVisible(False)
     self.table.setShowGrid(False)
@@ -184,6 +264,8 @@ class AccountsTable(QWidget):
     header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
     header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
     header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+    header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+    self.table.setColumnWidth(3, 80)
 
     self.table.setStyleSheet(f"""
             QTableWidget {{ 
@@ -202,6 +284,16 @@ class AccountsTable(QWidget):
             QTableWidget::item {{
                 border: none;
                 padding: 4px; 
+            }}
+            QProgressBar {{
+                border: 1px solid {CURRENT_THEME.BORDER};
+                border-radius: 2px;
+                background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+                height: 4px;
+                text-align: center;
+            }}
+            QProgressBar::chunk {{
+                background-color: {CURRENT_THEME.ACCENT_BLUE};
             }}
         """)
 
@@ -272,7 +364,45 @@ class AccountsTable(QWidget):
       xp_item.setData(Qt.ItemDataRole.UserRole, acc.login)
       self.table.setItem(row, 2, xp_item)
 
+      # Browser Button
+      btn_container = BrowserWidget(acc)
+      btn_container.btn_browser.clicked.connect(
+        lambda _, w=btn_container, a=acc: self._launch_browser(w, a)
+      )
+      self.table.setCellWidget(row, 3, btn_container)
+
     self._update_toggles_from_state()
+
+  def _launch_browser(self, widget, account):
+    widget.set_loading(True)
+
+    async def task():
+      try:
+        from core.services.browser import BrowserService
+
+        print(f"DEBUG: Запуск браузера для {account.login}")
+        # launch_browser is now async wrapper around threaded call
+        success, msg = await BrowserService.launch_browser(account)
+        print(f"DEBUG: Результат запуска: {success}, {msg}")
+
+        if not success:
+          QMessageBox.warning(self, "Ошибка запуска", str(msg))
+
+      except ImportError as e:
+        error_msg = f"Не удалось импортировать модуль BrowserService.\nВозможно, отсутствуют библиотеки selenium или webdriver-manager.\nОшибка: {e}"
+        print(f"ERROR: {error_msg}")
+        QMessageBox.critical(self, "Ошибка импорта", error_msg)
+
+      except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        error_msg = f"Произошла неожиданная ошибка при запуске браузера:\n{e}"
+        QMessageBox.critical(self, "Ошибка", error_msg)
+      finally:
+        widget.set_loading(False)
+
+    asyncio.create_task(task())
 
   def _update_toggles_from_state(self):
     selected = set(self.ctx.ui.selected_logins)

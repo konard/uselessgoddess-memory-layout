@@ -45,6 +45,8 @@ dependencies = [
   "onnxruntime-directml>=1.23",
   "onnxruntime>=1.23",
   "steamio",
+  "selenium>=4.39.0",
+  "webdriver-manager>=4.0.2",
 ]
 
 [dependency-groups]

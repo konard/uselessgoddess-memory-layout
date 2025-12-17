@@ -49,7 +49,8 @@ class MafilesService:
             return {
               "shared_secret": mafile_data.get("shared_secret"),
               "identity_secret": mafile_data.get("identity_secret"),
-              "steam_id": mafile_data.get("Session").get("SteamID"),
+              "steam_id": mafile_data.get("Session", {}).get("SteamID"),
+              "session": mafile_data.get("Session"),
             }
         except Exception:
           continue
