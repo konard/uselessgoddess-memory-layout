@@ -24,6 +24,9 @@ INCLUDE_PACKAGES = [
   "steam.models",
   "steam.media",
   "google.protobuf",
+  "selenium",
+  "webdriver_manager",
+  "cryptography",
 ]
 
 

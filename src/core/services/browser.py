@@ -4,6 +4,7 @@ import urllib.parse
 from typing import Tuple
 
 from core.account.model import Account
+from core.logging import get_logger
 from steam.client import Client
 
 from selenium import webdriver
@@ -11,7 +12,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-logger = logging.getLogger("browser")
+logger = get_logger("browser")
 
 
 class BrowserService:

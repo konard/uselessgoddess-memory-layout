@@ -386,10 +386,7 @@ class AccountsTable(QWidget):
       try:
         from core.services.browser import BrowserService
 
-        print(f"DEBUG: Запуск браузера для {account.login}")
-        # launch_browser is now async wrapper around threaded call
         success, msg = await BrowserService.launch_browser(account)
-        print(f"DEBUG: Результат запуска: {success}, {msg}")
 
         if not success:
           QMessageBox.warning(self, "Ошибка запуска", str(msg))

@@ -40,7 +40,7 @@ def setup_logger(name: str) -> logging.Logger:
     HandlerType = EncryptedRotatingFileHandler
 
   has_file_handler = any(isinstance(h, HandlerType) for h in logger.handlers)
-  if not has_file_handler and not logger.hasHandlers():
+  if not has_file_handler:
     try:
       file_handler = HandlerType(
         filename=os.path.abspath("yacs.log"),
