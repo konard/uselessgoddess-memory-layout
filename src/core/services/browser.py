@@ -123,8 +123,6 @@ class BrowserService:
             logger.warning(f"CDP error (store): {e}")
 
         target_url = "https://steamcommunity.com/my/profile"
-        if steam_id:
-          target_url = f"https://steamcommunity.com/profiles/{steam_id}"
 
         driver.get(target_url)
         return True, "Браузер запущен (Авторизован)"
