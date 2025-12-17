@@ -26,15 +26,15 @@ status_map = {
 }
 
 
-class Metadata(Dict[str, Any]):
+class Metadata(dict):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.lvl = 0
-    self.xp = 0
-    self.invite = ""
-    self.status = FarmStatus.NEED_TO_FARM
-    self.vac_banned = False
-    self.refresh_token = ""
+    self.setdefault("lvl", 0)
+    self.setdefault("xp", 0)
+    self.setdefault("invite", "")
+    self.setdefault("status", FarmStatus.NEED_TO_FARM)
+    self.setdefault("vac_banned", False)
+    self.setdefault("refresh_token", "")
 
 
 @dataclass(slots=True)
@@ -46,9 +46,12 @@ class AccountMetadata:
   def update_from_lock(self, login: str, lock: AccountsLock) -> None:
     self._lock = lock
     self._login = login
-    info = lock.get_account_info(login)
-    if info:
-      self._data.update(info)
+
+    info = lock.get_account_info(login) or {}
+
+    self._data.update(info)
+    if len(info) < len(self._data):
+      self.save_to_lock()
 
   def save_to_lock(self) -> None:
     if self._lock and self._login:

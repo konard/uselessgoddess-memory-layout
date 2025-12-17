@@ -57,7 +57,10 @@ class Context:
     self.metrics = MetricsService(self.lic)
 
   def accounts(self) -> List[Account]:
-    return sorted(list(self.account.accounts.values()), key=lambda x: x.login)
+    return sorted(
+      list(self.account.accounts.values()),
+      key=lambda x: 0 if x.lock.lvl is None else x.lock.lvl,
+    )
 
   def unfarmed_accounts(self) -> List[Account]:
     launched_accounts = WindowService.scan_cs2_windows(
