@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg height="800px" width="800px" version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-	 viewBox="0 0 512 512"  xml:space="preserve">
+<svg version="1.1" id="chrome_icon" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 512 512" xml:space="preserve">
 <style type="text/css">
-	.st0{fill:#000000;}
+	.st0{fill:#458588;}
 </style>
 <g>
 	<path class="st0" d="M512,270.893c0-40.578-10.686-78.626-29.323-111.588c18.086-33.144,36.473-85.045,5.971-126.147

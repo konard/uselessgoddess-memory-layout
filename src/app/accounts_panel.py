@@ -160,41 +160,47 @@ class BrowserWidget(QWidget):
 
     self.layout = QHBoxLayout(self)
     self.layout.setContentsMargins(0, 0, 0, 0)
-    self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center content!
-
+    self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self.stack = QStackedWidget()
+    self.stack.setFixedSize(20, 20)
 
     self.btn_browser = QToolButton()
+
     icon = QIcon("resources/icons/chrome.svg")
     if icon.isNull():
       icon = QIcon.fromTheme("web-browser")
-
     self.btn_browser.setIcon(icon)
-    self.btn_browser.setIconSize(QSize(20, 20))
+
+    self.btn_browser.setFixedSize(20, 20)
+    self.btn_browser.setIconSize(QSize(18, 18))
+
     self.btn_browser.setCursor(Qt.CursorShape.PointingHandCursor)
+
     self.btn_browser.setStyleSheet(f"""
-        QToolButton {{
-            background-color: transparent;
-            border: 1px solid transparent;
-        }}
-        QToolButton:hover {{
-            background-color: {CURRENT_THEME.INPUT_BACKGROUND};
-            border: 1px solid {CURRENT_THEME.BORDER};
-        }}
-    """)
+            QToolButton {{
+                background-color: transparent; 
+                border: none;                  
+                padding: 0px;
+            }}
+            QToolButton:hover {{
+                background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+                border: 1px solid {CURRENT_THEME.BORDER};
+            }}
+            QToolButton:pressed {{
+                background-color: {CURRENT_THEME.BORDER};
+            }}
+        """)
 
     self.loader_container = QWidget()
     loader_layout = QVBoxLayout(self.loader_container)
     loader_layout.setContentsMargins(0, 0, 0, 0)
     loader_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    self.spinner = LoadingSpinner(size=22)
+    self.spinner = LoadingSpinner(size=18)
     loader_layout.addWidget(self.spinner)
 
     self.stack.addWidget(self.btn_browser)
     self.stack.addWidget(self.loader_container)
-
-    self.stack.setFixedSize(30, 30)
 
     self.layout.addWidget(self.stack)
 
