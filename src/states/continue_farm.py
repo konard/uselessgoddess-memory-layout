@@ -52,7 +52,7 @@ class ContinueFarm(state.State):
     # Завершение фарма в определенное время, эво пора на работу
     if ctx.settings.user.farm_until:
       try:
-        now = datetime.datetime.шт()
+        now = datetime.datetime.now()
         t = datetime.datetime.strptime(
           ctx.settings.user.farm_until, "%H:%M"
         ).time()
