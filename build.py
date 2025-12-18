@@ -28,7 +28,6 @@ INCLUDE_PACKAGES = [
   "cryptography",
   "trio",
   "anyio",
-  "pyuac",
 ]
 
 
@@ -49,7 +48,6 @@ def build_runner():
     "--onefile",
     f"--output-filename={output_exe}",
     "--windows-console-mode=disable",
-    "--windows-uac-admin",
     str(runner_source),
   ]
 
@@ -80,6 +78,7 @@ def build_executable():
     "--plugin-enable=pyqt6",
     f"--output-filename={EXE_NAME}",
     "--windows-console-mode=attach",
+    "--windows-uac-admin",
   ]
 
   if False:

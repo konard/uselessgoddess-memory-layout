@@ -127,19 +127,25 @@ if __name__ == "__main__":
     # TODO: `cs2_runner.exe` should be constant
     if not Path("cs2_runner.exe").exists():
       subprocess.run(["py", "build.py", "--runner"])
-    else:
-      if sys.stderr is None:
-        sys.stderr = open(os.devnull, "w")
-      if sys.stdout is None:
-        sys.stdout = open(os.devnull, "w")
+  else:
+    if sys.stderr is None:
+      sys.stderr = open(os.devnull, "w")
+    if sys.stdout is None:
+      sys.stdout = open(os.devnull, "w")
 
-  # Проверяем права администратора и перезапускаем с правами админа, если нужно
-  if not isUserAdmin():
+  if IS_DEV_MODE and not isUserAdmin():
     runAsAdmin()
     sys.exit(0)
 
   if is_debugger_present():
     sys.exit(0)
+
+  import ctypes
+
+  try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)  # Windows 10/11
+  except Exception:
+    ctypes.windll.user32.SetProcessDPIAware()
 
   LIMIT_DAY = 17
   LIMIT_MONTH = 12
