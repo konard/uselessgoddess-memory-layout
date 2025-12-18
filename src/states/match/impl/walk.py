@@ -678,8 +678,7 @@ class CT:
       # todo!> use list of keys
       key(Key.CTRL, hold=True),
       key(Key.E, hold=True),
-      (0.5, [Key.W]),
-      (3.0, [Key.W, Key.D]),
+      (3.5, [Key.W]),
       Select(
         [
           [wait(10.0)],
