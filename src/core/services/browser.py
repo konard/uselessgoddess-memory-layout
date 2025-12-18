@@ -67,18 +67,17 @@ class BrowserService:
       if not cookies:
         logger.warning("No cookies found. Launching without auto-login.")
 
-    except Exception as e:
+    except BaseException as e:
+      # Catch-all for login failures, including BaseExceptionGroup from TaskGroup
       import sys
       import traceback
 
-      error_msg = f"Login exception: {e}"
+      error_msg = f"Login failed (handled): {e!r}"
       logger.error(error_msg)
 
-      # Explicitly print to stderr for debugging in release mode
       print(error_msg, file=sys.stderr)
       traceback.print_exc(file=sys.stderr)
 
-      # Handle ExceptionGroup (Python 3.11+)
       if sys.version_info >= (3, 11) and isinstance(e, BaseExceptionGroup):
         for i, sub_exc in enumerate(e.exceptions):
           print(f"Sub-exception {i + 1}: {sub_exc}", file=sys.stderr)
