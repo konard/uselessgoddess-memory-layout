@@ -106,8 +106,18 @@ def is_debugger_present():
     return False
 
 
+def is_admin():
+  try:
+    return ctypes.windll.shell32.IsUserAnAdmin()
+  except Exception:
+    return False
+
+
 if __name__ == "__main__":
   dev_deps()
+
+  if is_admin():
+    print("Running as admin")
 
   if IS_DEV_MODE:
     from pathlib import Path
@@ -117,11 +127,11 @@ if __name__ == "__main__":
     # TODO: `cs2_runner.exe` should be constant
     if not Path("cs2_runner.exe").exists():
       subprocess.run(["py", "build.py", "--runner"])
-  else:
-    if sys.stderr is None:
-      sys.stderr = open(os.devnull, "w")
-    if sys.stdout is None:
-      sys.stdout = open(os.devnull, "w")
+    else:
+      if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w")
+      if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w")
 
   # Проверяем права администратора и перезапускаем с правами админа, если нужно
   if not isUserAdmin():

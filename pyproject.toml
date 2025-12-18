@@ -55,6 +55,7 @@ dev = [
   "ty>=0.0.1a23",
   "pre-commit",
   "pytest>=9.0.1",
+  "nuitka",
 ]
 
 [tool.ruff]

@@ -28,6 +28,7 @@ INCLUDE_PACKAGES = [
   "cryptography",
   "trio",
   "anyio",
+  "pyuac",
 ]
 
 
@@ -46,9 +47,9 @@ def build_runner():
     "-m",
     "nuitka",
     "--onefile",
-    "--standalone",
     f"--output-filename={output_exe}",
     "--windows-console-mode=disable",
+    "--windows-uac-admin",
     str(runner_source),
   ]
 
