@@ -40,6 +40,13 @@ class SRTTab(QWidget):
     )
     btn_layout.addWidget(
       Button(
+        "Block All",
+        on_click=self._block_all_srt_rules,
+        button_type=ButtonType.DANGER,
+      )
+    )
+    btn_layout.addWidget(
+      Button(
         "Clear Rules",
         on_click=self._clear_srt_rules,
         button_type=ButtonType.DANGER,
@@ -68,4 +75,8 @@ class SRTTab(QWidget):
 
   def _clear_srt_rules(self, _=None):
     self.ctx.srt.clear_all_rules()
+    self.srt_table.populate(self.ctx.srt.routes)
+
+  def _block_all_srt_rules(self, _=None):
+    self.ctx.srt.block_all_routes()
     self.srt_table.populate(self.ctx.srt.routes)

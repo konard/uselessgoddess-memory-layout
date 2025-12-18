@@ -217,3 +217,8 @@ class SRTService:
       route.blocked = False
 
     logger.info(f"Cleared {len(to_remove)} rules.")
+
+  def block_all_routes(self):
+    for route in self.routes:
+      if not route.blocked:
+        self.toggle_route(route.name, True)
