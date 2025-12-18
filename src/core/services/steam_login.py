@@ -95,8 +95,11 @@ def wait_qr() -> str:
       data = code.text
       if "s.team" in data:
         qr_url = data
-        logger.debug(f"found QR code: {qr_url}")
         break
+
+    if qr_url:
+      logger.debug(f"found QR code: {qr_url}")
+      break
     time.sleep(1)
 
   return qr_url
@@ -114,7 +117,7 @@ class QRLogin(Client):
       if self.settings.collect_available_steam_games_on_login:
         owned_games = await self.user.games()
         game_ids: FreeGamesResponse = await api_controller.get(
-          "/api/cache/steam/free-games2"
+          "/api/cache/steam/free-games"
         )
         game_ids = filter(lambda x: x.app_id not in owned_games, game_ids)
       await self.approve_qr_login(self.qr_url)
