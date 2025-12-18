@@ -36,10 +36,10 @@ class FreeProfileItemsClient(Client):
       results = []
 
       inv = await self.user.inventory(steam.STEAM)
-      flat_names = map(lambda x: x.name, inv.items)
+      flat_names = list(map(lambda x: x.name, inv.items))
 
       for item in self.items:
-        if item.name not in flat_names:
+        if item.name in flat_names:
           continue
 
         try:
@@ -78,14 +78,15 @@ class CollectFreeProfileItems(State):
 
   async def execute(self, ctx: Context):
     # TODO use api
-    items = [
-      FreeProfileItem(
-        app_id=2598440,
-        def_id=241807,
-        name="Keyboard Headcrab",
-      )
-    ]
 
+    items = list(
+      map(
+        lambda x: FreeProfileItem(**x),
+        api_controller.get("/api/cache/steam/free-items"),
+      )
+    )
+
+    print(items)
     for account in self.accounts:
       client = FreeProfileItemsClient(items)
 

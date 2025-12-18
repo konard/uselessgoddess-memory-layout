@@ -114,12 +114,12 @@ class QRLogin(Client):
 
   async def on_login(self):
     try:
-      if self.settings.collect_available_steam_games_on_login:
-        owned_games = await self.user.games()
-        game_ids: FreeGamesResponse = await api_controller.get(
-          "/api/cache/steam/free-games"
-        )
-        game_ids = filter(lambda x: x.app_id not in owned_games, game_ids)
+      # if self.settings.collect_available_steam_games_on_login:
+      #   owned_games = await self.user.games()
+      #   game_ids: FreeGamesResponse = await api_controller.get(
+      #     "/api/cache/steam/free-games"
+      #   )
+      #   game_ids = filter(lambda x: x.app_id not in owned_games, game_ids)
       await self.approve_qr_login(self.qr_url)
       if not self.completion.done():
         self.completion.set_result(True)
