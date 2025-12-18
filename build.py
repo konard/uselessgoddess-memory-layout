@@ -17,7 +17,6 @@ RUNNER_EXE_NAME = "cs2_runner.exe"
 INCLUDE_PACKAGES = [
   "PyQt6",
   "onnxruntime",
-  "src",
   "autoit",
   "steam",
   "steam.utils",
