@@ -16,7 +16,7 @@ from core import game_constants
 from utils import steam_web_helper_limiter
 from .steam_login import steam_login
 
-logger = get_logger("yacs.launch")
+logger = get_logger("launch")
 
 
 class LaunchService:
@@ -28,12 +28,15 @@ class LaunchService:
   ) -> RunningAccount:
     """Запустить аккаунт через Steam"""
     try:
+      logger.debug(f"start account login {account.login}")
+
       steam_login(
         login=account.login,
         password=account.password,
         shared_secret=account.shared_secret,
         settings=settings,
       )
+      logger.debug(f"account logged in {account.login}")
 
       return LaunchService._launch_cs2(account, accounts)
 
@@ -76,6 +79,7 @@ class LaunchService:
         CS2Controller.click_if_exists(
           "img/run_any_way.png", running_account, 0.9, True, True
         )
+      logger.debug("window initialization finished")
 
       while (
         WindowService.rename_window(
@@ -84,6 +88,9 @@ class LaunchService:
         )
         is None
       ):
+        logger.trace(
+          f"trying to rename window into {running_account.win_cs_title}"
+        )
         time.sleep(1)
 
       WindowService.wait_for_window(
@@ -91,8 +98,7 @@ class LaunchService:
       )
 
       next_x, next_y = WindowService.get_next_window_position(accounts)
-
-      time.sleep(10)  # sleep saves all
+      time.sleep(15)  # sleep saves all
 
       # -------------------------------------
 
@@ -100,6 +106,8 @@ class LaunchService:
       STABILITY_REQUIRED = 3.0
 
       while True:
+        logger.trace(f"move window to {next_x}:{next_y}")
+
         info = WindowService.get_window_info(running_account.win_cs_title)
         if not info:
           time.sleep(1)

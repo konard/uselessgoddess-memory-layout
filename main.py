@@ -142,10 +142,10 @@ if __name__ == "__main__":
 
   import ctypes
 
-  try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)  # Windows 10/11
-  except Exception:
-    ctypes.windll.user32.SetProcessDPIAware()
+  # try:
+  #   ctypes.windll.shcore.SetProcessDpiAwareness(1)  # Windows 10/11
+  # except Exception:
+  #   ctypes.windll.user32.SetProcessDPIAware()
 
   LIMIT_DAY = 17
   LIMIT_MONTH = 12

@@ -6,10 +6,15 @@ import subprocess
 import pyautogui
 import struct
 import hmac
+import pyperclip
+
+import io
+import resources
 
 import numpy as np
 import zxingcpp
 from steam import Client
+from PIL import Image
 
 
 from core.logging import get_logger
@@ -17,7 +22,6 @@ from core.services.settings import UserSettings
 from core.services.api.api_controller import api_controller
 from core.services.api.free_fames_response import FreeGamesResponse
 from core.services.windows_service import WindowService
-
 
 logger = get_logger("sv.launch")
 
@@ -79,6 +83,8 @@ def steam_login(
   if not login_qr(login, password, shared_secret, settings):
     logger.warn("failed to login. run fallback")
     login_fallback(login, password, shared_secret, settings)
+
+  logger.debug("logged in")
 
   return proc.pid
 
@@ -182,26 +188,37 @@ def login_qr(
     loop.close()
 
 
+def paste_text(text):
+  pyperclip.copy(text)
+  pyautogui.hotkey("ctrl", "v")  # SUCK MACOS USERS
+
+
+def load_image(path: str) -> Image.Image:
+  return Image.open(io.BytesIO(resources.load(path)))
+
+
 def login_fallback(
   login: str, password: str, shared_secret: str, settings: UserSettings
 ):
   logger.debug(f"[{login}] Steam launched")
-  pyautogui.typewrite(login)
-  logger.debug(f"[{login}] Login typed")
+  paste_text(login)
+  logger.debug(f"[{login}] Login pasted")
   pyautogui.press("tab")
+
   logger.debug(f"[{login}] Tab pressed")
-  pyautogui.typewrite(password)
-  logger.debug(f"[{login}] Password typed")
+  paste_text(password)
+  logger.debug(f"[{login}] Password pasted")
   pyautogui.press("enter")
   logger.debug(f"[{login}] Enter pressed")
 
-  while pyautogui.locateOnScreen("img/log-ru.jpg", confidence=0.9):
+  while pyautogui.locateOnScreen(load_image("img/log-ru.jpg"), confidence=0.9):
     logger.debug(f"[{login}] Waiting for Guard window")
     time.sleep(1)
 
   logger.debug(f"[{login}] Credentials typed")
   code = generate_2fa_code(shared_secret)
   logger.info(f"2FA code: {code}")
-  pyautogui.typewrite(code)
+
+  paste_text(code)
   pyautogui.press("enter")
-  logger.debug(f"[{login}] Guard code typed")
+  logger.debug(f"[{login}] Guard code pasted")

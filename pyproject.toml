@@ -19,6 +19,7 @@ dependencies = [
   # -- auto
   "PyAutoIt>=0.6",
   "pyautogui>=0.9",
+  "pyperclip>=1.11.0",
   "zxing-cpp",
   # -- win
   "pywin32>=311",
