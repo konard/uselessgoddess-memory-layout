@@ -127,11 +127,6 @@ class WaitForGame(State):
         f"Current match accounts not in any preset. Creating {new_preset_name}"
       )
 
-      for login in current_logins:
-        old_preset_name = ctx.presets.get_preset_by_account(login)
-        if old_preset_name:
-          ctx.presets.remove_account(old_preset_name, login)
-
       if ctx.presets.create_preset(new_preset_name):
         ctx.presets.update_preset_accounts(new_preset_name, current_logins)
 

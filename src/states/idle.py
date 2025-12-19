@@ -123,11 +123,11 @@ class Idle(State):
           on_click=acquire_accounts(CollectFreeGamesMsg),
           tooltip="Collect free games.",
         ),
-        # Button(
-        #   "Collect Items",
-        #   on_click=acquire_accounts(CollectFreeProfileItemsMsg),
-        #   tooltip="Collect free profile items.",
-        # ),
+        Button(
+          "Collect Items",
+          on_click=acquire_accounts(CollectFreeProfileItemsMsg),
+          tooltip="Collect free profile items.",
+        ),
       ),
       Button(
         "Launch Accounts",

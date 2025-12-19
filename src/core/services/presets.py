@@ -175,9 +175,9 @@ class PresetsService:
     return None
 
   def add_account(self, preset_name: str, login: str) -> bool:
-    if self.is_account_used(login):
-      logger.warning(f"Account {login} already in a preset")
-      return False
+    # if self.is_account_used(login):
+    #   logger.warning(f"Account {login} already in a preset")
+    #   return False
 
     if preset_name in self.presets:
       schema = self.presets[preset_name]
