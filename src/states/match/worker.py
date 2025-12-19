@@ -65,13 +65,14 @@ class MatchWorker(threading.Thread):
 
     self.mode = DEV_MODE
     self.running = True
+    self.ingame = False
+    self.disconnect = False
     self.status = "Initializing..."
 
     self.path: Path = None
     self.players: Dict[str, PlayerEntry] = {}
     self.score = {Team.CT: 0, Team.T: 0}
     self.round = -1
-    self.ingame = False
     self.state = State.Prepare
     self._event_queue = queue.Queue(maxsize=12)
 
@@ -109,6 +110,8 @@ class MatchWorker(threading.Thread):
               self.ctx.ai,
               curr - last_time,
             )
+            self.lifetime += curr - last_time
+
             if stop:
               self.state = State.Stop
             elif team is not None:
@@ -157,6 +160,10 @@ class MatchWorker(threading.Thread):
   def process_state(self, event: GameState):
     map, round, player = event.map, event.round, event.player
 
+    # kill after 15 minute of nothing
+    if self.lifetime > 15 * 60:
+      self.running = False
+
     probe_score = score_from(map)
     # avoid zero after match
     if sum(probe_score.values()) > sum(self.score.values()):
@@ -180,16 +187,26 @@ class MatchWorker(threading.Thread):
 
     if map.round != self.round and self.all_ready():
       self.round = map.round
+      self.disconnect = False
       logger.debug(f"start new round {self.round}")
 
       self.score = score_from(map)
       self.start_round(map.name, map.mode, self.score)
+      self.lifetime = 0.0
+
+    if map.round != self.round and self.disconnect:
+      self.coco_jambo(False)
 
     active_players = len(self.active_players())
     if self.ingame and active_players == 0:
       self.running = False
     else:
       self.status_text = f"Waiting {active_players}/{len(self.accounts)}..."
+
+    # disconnect
+    if self.running and self.ingame and active_players != len(self.accounts):
+      self.disconnect = True
+      self.coco_jambo(False)
 
   def start_round(self, map_name: str, mode: str, score: dict):
     maxround = self.mode.max_round - 2

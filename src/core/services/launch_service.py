@@ -81,6 +81,8 @@ class LaunchService:
         )
       logger.debug("window initialization finished")
 
+      time.sleep(15)  # sleep saves all
+
       while (
         WindowService.rename_window(
           counter_strike_2_title,
@@ -98,7 +100,6 @@ class LaunchService:
       )
 
       next_x, next_y = WindowService.get_next_window_position(accounts)
-      time.sleep(15)  # sleep saves all
 
       # -------------------------------------
 
