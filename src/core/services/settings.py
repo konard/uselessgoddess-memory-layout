@@ -71,6 +71,8 @@ class UserSettings(Settings):
   win_w: int = 360
   win_h: int = 270
 
+  use_sandbox: bool = False
+
   telegram_token: Optional[str] = None
   telegram_whitelist: List[str] = field(default_factory=list)
 

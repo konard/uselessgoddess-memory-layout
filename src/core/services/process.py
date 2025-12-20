@@ -1,11 +1,7 @@
-"""
-ProcessService - сервис для управления процессами
-Отвечает за запуск, остановку и мониторинг процессов
-"""
-
 import os
 from typing import List
 import psutil
+import subprocess
 from core.logging import get_logger
 
 logger = get_logger("yacs.process")
@@ -58,4 +54,21 @@ class ProcessService:
   @staticmethod
   def kill_all_runners() -> None:
     for pid in ProcessService.get_all_runner_pids():
+      logger.info(f"Killing runner PID: {pid}")
       ProcessService.kill_by_pid(pid)
+
+  @staticmethod
+  def kill_sandboxie_processes(sandboxie_path: str) -> None:
+    if not sandboxie_path or not os.path.exists(sandboxie_path):
+      return
+
+    try:
+      logger.info("Terminating all sandbox processes...")
+      subprocess.run(
+        [sandboxie_path, "/terminate_all"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+      )
+    except Exception as e:
+      logger.error(f"Failed to terminate Sandboxie boxes: {e}")

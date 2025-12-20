@@ -16,6 +16,8 @@ from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
 from .log_view import LogHandler, QtLogHandler
 from .tabs import DashboardTab, SRTTab, GSITab
 
+from core.sandbox import SandboxieInstaller
+
 
 logger = get_logger("ui.main")
 
@@ -56,7 +58,36 @@ class MainWindow(QMainWindow):
 
     self.setup_logging()
 
+    try:
+      self._init_sandbox()
+    except Exception as e:
+      logger.error(f"{e}")
+
+      from PyQt6.QtWidgets import QMessageBox
+
+      QMessageBox.warning(
+        self,
+        "Sandbox Error",
+        "Failed to initialize Sandbox driver.\nMulti-instance mode may not work.",
+      )
+
     logger.debug("main window initialized.")
+
+  def _init_sandbox(self):
+    installer = SandboxieInstaller()
+
+    logger.debug(f"use sandbox: {self.ctx.su.use_sandbox}")
+
+    if self.ctx.su.use_sandbox:
+      logger.debug("Checking Sandbox status...")
+      if not installer.ensure_installed():
+        from PyQt6.QtWidgets import QMessageBox
+
+        QMessageBox.warning(
+          self,
+          "Sandbox Error",
+          "Failed to initialize Sandbox driver.\nMulti-instance mode may not work.",
+        )
 
   def setup_ui(self):
     self.setStyleSheet(MAIN_WINDOW_STYLESHEET)

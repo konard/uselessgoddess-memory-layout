@@ -10,3 +10,5 @@ except NameError:
 
 IS_DEV_MODE = not IS_COMPILED
 CHECK_LICENSE = IS_COMPILED
+
+SANDBOX_PATH = "data/sandbox"

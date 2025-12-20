@@ -7,6 +7,7 @@ import pyautogui
 import struct
 import hmac
 import pyperclip
+import sys
 
 import io
 import resources
@@ -22,12 +23,15 @@ from core.services.settings import UserSettings
 from core.services.api.api_controller import api_controller
 from core.services.api.free_fames_response import FreeGamesResponse
 from core.services.windows_service import WindowService
+from core.services.sandbox import SandboxieService
+
+from constants import SANDBOX_PATH
 
 logger = get_logger("sv.launch")
 
 
 def build_runner_launch_args(login: str, settings: UserSettings):
-  args = [
+  runner_args = [
     "cs2_runner.exe",
     "--steamPath",
     settings.steam_path,
@@ -37,9 +41,34 @@ def build_runner_launch_args(login: str, settings: UserSettings):
     f"{os.getcwd()}/data/NetHook2.dll",
   ]
 
-  logger.debug(f"run runner with args: {args}")
+  if settings.use_sandbox:
+    sb_service = SandboxieService()
+    box_name = sb_service.sanitize_box_name(login)
 
-  return args
+    base_path = os.getcwd()
+    if getattr(sys, "frozen", False):
+      base_path = sys._MEIPASS
+    elif __file__:
+      base_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
+      )
+
+    logger.debug(f"Ensuring sandbox exists: {box_name}")
+    if not sb_service.create_box_if_not_exists(box_name):
+      logger.error(f"Failed to create sandbox for {login}. Running native.")
+    else:
+      logger.debug(f"Delegating Sandboxie launch to Runner: {box_name}")
+      runner_args.extend(
+        [
+          "--sandboxiePath",
+          os.path.join(base_path, SANDBOX_PATH, "Start.exe"),
+          "--box",
+          box_name,
+        ]
+      )
+
+  logger.debug(f"Runner args: {runner_args}")
+  return runner_args
 
 
 def generate_2fa_code(shared_secret: str) -> str:
@@ -68,47 +97,112 @@ def steam_login(
   shared_secret: str,
   settings: UserSettings,
 ):
+  args = build_runner_launch_args(login, settings)
+
   proc = subprocess.Popen(
-    build_runner_launch_args(login, settings),
+    args,
     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
     | subprocess.DETACHED_PROCESS,
     close_fds=True,
   )
 
-  while not WindowService.wait_for_window("Войти в Steam", 10):
-    logger.debug(f"[{login}] Waiting for Steam window")
+  logger.debug(f"[{login}] Process started. Entering monitoring loop...")
+
+  login_window_title = "Войти в Steam"
+  game_window_title = "Counter-Strike 2"
+  renamed_game_title = f"[{login}] # CS"
+
+  last_log_time = time.time()
+
+  while True:
+    if proc.poll() is not None and proc.returncode != 0:
+      logger.error(
+        f"[{login}] Process crashed/closed with code {proc.returncode}"
+      )
+      break
+
+    if WindowService.window_exists(game_window_title):
+      logger.info(
+        f"[{login}] Game window '{game_window_title}' detected! Success."
+      )
+      return proc.pid
+
+    if WindowService.window_exists(renamed_game_title):
+      logger.info(f"[{login}] Renamed game window detected. Already running.")
+      return proc.pid
+
+    if WindowService.window_exists(login_window_title):
+      found_qr = wait_qr(login, timeout=5)
+
+      if found_qr:
+        logger.info(f"[{login}] Valid QR found. Attempting login sequence...")
+        if _perform_login_with_qr_url(
+          login, password, shared_secret, settings, found_qr
+        ):
+          logger.info(f"[{login}] Login submitted.")
+        else:
+          logger.warn(f"[{login}] Login attempt failed, retrying loop...")
+      else:
+        pass
+
+    if time.time() - last_log_time > 30:
+      logger.debug(f"[{login}] Waiting for Game Window...")
+      last_log_time = time.time()
+
     time.sleep(1)
-  time.sleep(5)
-
-  if not login_qr(login, password, shared_secret, settings):
-    logger.warn("failed to login. run fallback")
-    login_fallback(login, password, shared_secret, settings)
-
-  logger.debug("logged in")
 
   return proc.pid
 
 
-def wait_qr() -> str:
+def _perform_login_with_qr_url(
+  login, password, shared_secret, settings, qr_url
+):
+  loop = asyncio.ProactorEventLoop()
+  asyncio.set_event_loop(loop)
+  try:
+    return loop.run_until_complete(
+      _async_login_qr(login, password, shared_secret, settings, qr_url, loop)
+    )
+  except Exception as e:
+    logger.error(f"Login error: {e}")
+    return False
+  finally:
+    loop.close()
+
+
+def wait_qr(login: str, timeout: int = 5) -> str | None:
   qr_url = None
+  start = time.time()
 
-  while True:
-    screenshot = pyautogui.screenshot()
-    img_array = np.array(screenshot)
+  game_titles = ["Counter-Strike 2", f"[{login}] # CS"]
 
-    codes = zxingcpp.read_barcodes(img_array)
-    for code in codes:
-      data = code.text
-      if "s.team" in data:
-        qr_url = data
-        break
+  while time.time() - start < timeout:
+    for title in game_titles:
+      if WindowService.window_exists(title):
+        logger.info(
+          f"[{login}] Game window detected inside wait_qr! Aborting QR search."
+        )
+        return None
+
+    try:
+      screenshot = pyautogui.screenshot()
+      img_array = np.array(screenshot)
+      codes = zxingcpp.read_barcodes(img_array)
+      for code in codes:
+        data = code.text
+        if "s.team" in data:
+          qr_url = data
+          break
+    except Exception:
+      pass
 
     if qr_url:
-      logger.debug(f"found QR code: {qr_url}")
-      break
+      logger.debug(f"[{login}] QR code found: {qr_url}")
+      return qr_url
+
     time.sleep(1)
 
-  return qr_url
+  return None  # Timeout
 
 
 class QRLogin(Client):

@@ -111,6 +111,16 @@ class DashboardTab(QWidget):
 
   def _kill_all_runners(self):
     ProcessService.kill_all_runners()
+
+    # TODO: use service from ctx to get path
+    import os
+    from constants import SANDBOX_PATH
+
+    if self.ctx.su.use_sandbox:
+      ProcessService.kill_sandboxie_processes(
+        os.path.join(SANDBOX_PATH, "Start.exe")
+      )
+
     asyncio.create_task(self.manager.into_state(states.Idle()))
 
   def _test_telegram(self):
