@@ -1,11 +1,13 @@
 import asyncio
+import random
 from core.panel.state import State
 from core.context import Context
 from core.logging import get_logger
 from core.services.settings import FarmMode
 from core.account.model import FarmStatus
+from states.trade import process_trade
 from states.types import GameSchema
-from states.loot import LootAccounts
+from states.loot import LootAccounts, claim_drop
 from states.farm import StartFarm
 
 logger = get_logger("state.start_unfarmed")
@@ -22,6 +24,12 @@ class StartUnfarmed(State):
       account.stop_account()
 
     await asyncio.sleep(5)
+
+    for account in accounts:
+      if ctx.settings.system.collect_drop:
+        await claim_drop(account)
+        await asyncio.sleep(1 + random.randint(0, 4))
+        await process_trade(account, ctx.settings.user.trade_url)
 
     next_preset_accounts = self._find_next_preset(ctx)
 
