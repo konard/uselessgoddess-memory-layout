@@ -102,7 +102,7 @@ class SandboxieInstaller:
     if self._run_command(start_args, "Service Start"):
       time.sleep(2)
       if self.is_service_running():
-        logger.info("Sandboxie is active and ready.")
+        logger.info("Sandbox is active and ready.")
         return True
 
     logger.debug("Fallback to 'net start SbieSvc'...")
@@ -114,11 +114,28 @@ class SandboxieInstaller:
     )
 
     if self.is_service_running():
-      logger.info("Sandboxie started via fallback.")
+      logger.info("Sandbox started via fallback.")
+      self._apply_global_settings()
       return True
 
-    logger.error("Failed to start Sandboxie service.")
+    logger.error("Failed to start Sandbox service.")
     return False
+
+  def _apply_global_settings(self):
+    logger.debug("Applying global silent settings...")
+
+    sbie_ini = os.path.join(self.sb_dir, "SbieIni.exe")
+    cmd = [sbie_ini, "set", "GlobalSettings", "HideTrayIcon", "y"]
+
+    try:
+      subprocess.run(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+      )
+    except Exception as e:
+      logger.debug(f"failed to hide tray icon: {e}")
 
   def _run_command(self, args: list, label: str) -> bool:
     try:

@@ -72,3 +72,20 @@ class ProcessService:
       )
     except Exception as e:
       logger.error(f"Failed to terminate Sandboxie boxes: {e}")
+
+  @staticmethod
+  def kill_sandbox_box(sandboxie_path: str, box_name: str):
+    if not sandboxie_path or not os.path.exists(sandboxie_path) or not box_name:
+      return
+
+    try:
+      logger.info(f"Terminating Sandboxie box: [{box_name}]...")
+      subprocess.run(
+        [sandboxie_path, f"/box:{box_name}", "/terminate"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+      )
+      logger.info(f"Termination command sent to box [{box_name}].")
+    except Exception as e:
+      logger.error(f"Failed to terminate box [{box_name}]: {e}")

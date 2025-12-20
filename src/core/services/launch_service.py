@@ -166,9 +166,3 @@ class LaunchService:
     except Exception:
       logger.exception(f"[{account.login}] Ошибка при запуске CS2")
       return False
-
-  @staticmethod
-  def close_account(account_data: Account) -> None:
-    """Закрыть аккаунт"""
-    logger.info(f"[{account_data.login}] Closing account processes")
-    AccountsService.stop_account(account_data.login)

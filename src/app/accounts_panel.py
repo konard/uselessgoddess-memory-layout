@@ -129,7 +129,7 @@ class LoadingSpinner(QWidget):
     super().__init__(parent)
     self.setFixedSize(size, size)
     self.angle = 0
-    self.renderer = QSvgRenderer("resources/icons/loader.svg")
+    self.renderer = QSvgRenderer("data/icons/loader.svg")
     self.timer = QTimer(self)
     self.timer.timeout.connect(self._rotate)
     self.timer.start(40)  # Smooth rotation
@@ -166,7 +166,7 @@ class BrowserWidget(QWidget):
 
     self.btn_browser = QToolButton()
 
-    icon = QIcon("resources/icons/chrome.svg")
+    icon = QIcon("data/icons/chrome.svg")
     if icon.isNull():
       icon = QIcon.fromTheme("web-browser")
     self.btn_browser.setIcon(icon)

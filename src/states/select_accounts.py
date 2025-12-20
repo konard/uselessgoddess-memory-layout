@@ -35,5 +35,5 @@ class SelectAccounts(State):
         : len(launched_accounts) - self.target_size
       ]
       for running_account in accounts_to_stop:
-        await running_account.stop_account()
+        await running_account.stop_account(ctx.su)
       return

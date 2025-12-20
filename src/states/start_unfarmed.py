@@ -21,7 +21,7 @@ class StartUnfarmed(State):
     accounts = [account for party in self.game_schema for account in party.all]
 
     for account in accounts:
-      account.stop_account()
+      account.stop_account(ctx.su)
 
     await asyncio.sleep(5)
 

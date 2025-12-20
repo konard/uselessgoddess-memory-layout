@@ -53,6 +53,11 @@ class SandboxieService:
       ("OpenPipePath", r"\Device\NamedPipe\SteamProtobufPipe"),
       ("OpenProcessAccess", "y"),
       ("OpenProcess", "steam.exe"),
+      #
+      ("AutoDelete", "y"),
+      ("AutoRecover", "n"),
+      ("NeverDelete", "n"),
+      ("CopyLimitKb", "81920"),
       # Важно: Не создаем виртуальных дисков, используем стандартное перенаправление
     ]
 

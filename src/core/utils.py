@@ -1,6 +1,14 @@
 import asyncio
 import functools
 import inspect
+import os
+import sys
+
+
+def get_project_root() -> str:
+  if getattr(sys, "frozen", False):
+    return os.path.dirname(sys.executable)
+  return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def name_of(value):

@@ -1,4 +1,6 @@
+import os
 import sys
+from core import utils
 
 win_w = 360
 win_h = 270
@@ -11,4 +13,5 @@ except NameError:
 IS_DEV_MODE = not IS_COMPILED
 CHECK_LICENSE = IS_COMPILED
 
-SANDBOX_PATH = "data/sandbox"
+PROJECT_ROOT = utils.get_project_root()
+SANDBOX_PATH = os.path.join(PROJECT_ROOT, "data", "sandbox")

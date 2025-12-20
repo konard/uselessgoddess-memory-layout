@@ -4,9 +4,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict
 from enum import Enum
 
+import core
 from core.logging import get_logger
 from .lock import AccountsLock
 
+from constants import SANDBOX_PATH
 
 logger = get_logger("account.model")
 
@@ -194,11 +196,19 @@ class RunningAccount(Account):
   def generate_window_title(login: str) -> str:
     return f"[{login}] # CS"
 
-  def stop_account(self) -> bool:
+  def stop_account(self, settings) -> bool:
     if self.runner_pid > 0:
-      # Ленивый импорт для избежания циклических зависимостей
       from core.services.process import ProcessService
 
       ProcessService.kill_by_pid(self.runner_pid)
       return True
+
+    if settings.use_sandbox:
+      box_name = core.services.sandbox.SandboxService.sanitize_box_name(
+        self.login
+      )
+      ProcessService.kill_sandbox_box(
+        sandboxie_path=SANDBOX_PATH, box_name=box_name
+      )
+
     return False

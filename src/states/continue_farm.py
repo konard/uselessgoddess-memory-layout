@@ -60,7 +60,7 @@ class ContinueFarm(state.State):
         now_min = now.hour * 60 + now.minute
         if 0 <= (now_min - target_min) % 1440 <= 120:
           for account in accounts:
-            account.stop_account()
+            account.stop_account(ctx.su)
           return states.Idle()
       except ValueError:
         pass
