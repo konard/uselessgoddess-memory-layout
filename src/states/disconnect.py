@@ -43,6 +43,8 @@ class DisconnectState(State):
           await CS2Controller.click_if_exists_async(
             "img/recon_to_match.png", account, 0.9
           )
+          await asyncio.sleep(0.5)
+          await CS2Controller.click_async(277, 21, account)
           await asyncio.sleep(1)
 
         for account in ctx.launched_accounts:

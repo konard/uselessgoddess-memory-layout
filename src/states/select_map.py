@@ -72,4 +72,4 @@ class SelectMap(State):
 
         party_retries += 1
 
-    return WaitForGame(self.party_schema)
+    return WaitForGame(self.party_schema, self.retries)

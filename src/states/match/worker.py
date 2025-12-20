@@ -62,7 +62,7 @@ class MatchWorker(threading.Thread):
     super().__init__(name="MatchWorker", daemon=True)
     self.ctx = ctx
     self.accounts = accounts
-
+    self.lifetime = 0
     self.mode = DEV_MODE
     self.running = True
     self.ingame = False
@@ -160,8 +160,8 @@ class MatchWorker(threading.Thread):
   def process_state(self, event: GameState):
     map, round, player = event.map, event.round, event.player
 
-    # kill after 15 minute of nothing
-    if self.lifetime > 15 * 60:
+    # kill after 10 minute of nothing
+    if self.lifetime > 10 * 60:
       self.running = False
 
     probe_score = score_from(map)

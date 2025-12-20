@@ -31,13 +31,11 @@ class FreeGamesClient(Client):
 
       # Fetch owned games
       owned_app_ids = await self.user.games()
-
       # Filter games
       # Assuming free_games is a list of dicts
       games_to_add = [
         g for g in self.free_games if g.get("app_id") not in owned_app_ids
       ]
-
       results = []
       if not games_to_add:
         logger.info(f"[{self.user.name}] No new free games to add")
@@ -46,13 +44,12 @@ class FreeGamesClient(Client):
         pkg_id = game.get("pkg_id")
         name = game.get("name", str(pkg_id))
         try:
-          await self.redeem_package(pkg_id)
-          results.append(name)
+          await asyncio.wait_for(self.redeem_package(pkg_id), timeout=2.0)
           logger.info(f"[{self.user.name}] Added {name}")
           # Small delay to be safe
           await asyncio.sleep(0.5 + random.randint(0, 3) * 1.5)
-        except Exception as e:
-          logger.error(f"[{self.user.name}] Failed to add {name}: {e}")
+        except Exception:
+          pass
 
       self.completion.set_result(results)
 
@@ -73,22 +70,14 @@ class CollectFreeGames(State):
 
   async def execute(self, ctx: Context):
     free_games = api_controller.get("/api/cache/steam/free-games")
-    print(free_games)
     for account in self.accounts:
       client = FreeGamesClient(free_games)
 
-      login_data = None
-      if account.lock.refresh_token:
-        login_data = {
-          "username": account.login,
-          "refresh_token": account.lock.refresh_token,
-        }
-      else:
-        login_data = {
-          "username": account.login,
-          "password": account.password,
-          "shared_secret": account.shared_secret,
-        }
+      login_data = {
+        "username": account.login,
+        "password": account.password,
+        "shared_secret": account.shared_secret,
+      }
 
       try:
         login_task = asyncio.create_task(
