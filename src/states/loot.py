@@ -30,28 +30,15 @@ assembler = SkinAssembler(
 
 
 class ClaimDrop(csgo.Client):
-  def __init__(self, account_lock: AccountsLock):
+  def __init__(self, account: Account):
     super().__init__()
+    self.account = account
     self.completion = asyncio.Future()
     self.loot_report = None
-    self.account_lock = account_lock
-
-  async def on_gc_ready(self) -> None:
-    profile = await self.user.csgo_profile()
-    self.account_lock.set_field(self.username, "lvl", profile.level)
-    self.account_lock.set_field(
-      self.username, "xp", profile.current_xp - 327680000
-    )
-    self.account_lock.set_field(
-      self.username, "vac_banned", bool(profile.vac_banned)
-    )
-    self.account_lock.set_field(
-      self.username, "refresh_token", self.refresh_token
-    )
 
   async def on_weekly_reward(self, items: list[csgo.BaseItem]):
     results: list[dict[str, Any]] = []
-
+    print("on_weekly_reward")
     global_stats = self.user.global_statistics
     rtime32_cur = self.user.gc_client_msg.rtime32_gc_welcome_timestamp
 
@@ -91,6 +78,58 @@ class ClaimDrop(csgo.Client):
       )
 
 
+async def claim_drop(account: Account):
+  loot_client = ClaimDrop(account)
+
+  login_data = None
+  if account.lock.refresh_token:
+    login_data = {
+      "username": account.login,
+      "refresh_token": account.lock.refresh_token,
+    }
+  else:
+    login_data = {
+      "username": account.login,
+      "password": account.password,
+      "shared_secret": account.shared_secret,
+    }
+
+  try:
+    login_task = asyncio.create_task(
+      loot_client.login(
+        **login_data,
+        identity_secret=account.identity_secret,
+      )
+    )
+
+    done, pending = await asyncio.wait(
+      [login_task, loot_client.completion],
+      return_when=asyncio.FIRST_COMPLETED,
+      timeout=60.0,
+    )
+
+    for task in pending:
+      task.cancel()
+
+    if loot_client.completion in done:
+      result = await loot_client.completion
+      logger.info(f"[{account.login}]: {result}")
+    elif login_task in done:
+      await login_task
+      logger.error(
+        f"[{account.login}] Login task finished unexpectedly without reward event."
+      )
+    else:
+      logger.warning(f"[{account.login}] Operation timed out.")
+  except Exception as e:
+    logger.error(f"Failed to process account {account.login}: {e}")
+
+  finally:
+    if loot_client.is_ready():
+      await loot_client.close()
+    await asyncio.sleep(2)
+
+
 class LootAccounts(State):
   def __init__(self, accounts: List[Account]):
     self.accounts = accounts
@@ -102,55 +141,13 @@ class LootAccounts(State):
 
   async def execute(self, ctx: Context):
     for account in self.accounts:
-      loot_client = ClaimDrop(ctx.account.lock)
-
-      login_data = None
-      if account.lock.refresh_token:
-        login_data = {
-          "username": account.login,
-          "refresh_token": account.lock.refresh_token,
-        }
-      else:
-        login_data = {
-          "username": account.login,
-          "password": account.password,
-          "shared_secret": account.shared_secret,
-        }
-
       try:
-        login_task = asyncio.create_task(
-          loot_client.login(
-            **login_data,
-            identity_secret=account.identity_secret,
-          )
-        )
-
-        done, pending = await asyncio.wait(
-          [login_task, loot_client.completion],
-          return_when=asyncio.FIRST_COMPLETED,
-          timeout=60.0,
-        )
-
-        for task in pending:
-          task.cancel()
-
-        if loot_client.completion in done:
-          result = await loot_client.completion
-          logger.info(f"[{account.login}]: {result}")
-        elif login_task in done:
-          await login_task
-          logger.error(
-            f"[{account.login}] Login task finished unexpectedly without reward event."
-          )
-        else:
-          logger.warning(f"[{account.login}] Operation timed out.")
-        self.progress.inc()
+        await claim_drop(account)
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")
 
       finally:
-        if loot_client.is_ready():
-          await loot_client.close()
+        self.progress.inc()
         await asyncio.sleep(2)
 
     return states.ScanAccounts(self.accounts, trade=True)

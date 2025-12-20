@@ -6,7 +6,6 @@ import steam
 from steam.ext import csgo
 from steam import TradeOffer
 
-from core.account.lock import AccountsLock
 from core.account.model import FarmStatus
 from core.panel.state import State
 from core.context import Context
@@ -21,9 +20,10 @@ logger = get_logger("state.trade")
 class ScanInventory(steam.Client):
   trade_url: steam.utils.TradeURLInfo
 
-  def __init__(self, trade_url: Optional[str], account_lock: AccountsLock):
+  def __init__(self, trade_url: Optional[str], account: Account):
     super().__init__()
-    self.account_lock = account_lock
+    print("initing scan inventory")
+    self.account = account
     if trade_url:
       self.trade_url = steam.utils.parse_trade_url(trade_url)
     self.complete = asyncio.Future[tuple[str, list]]()
@@ -64,7 +64,7 @@ class ScanInventory(steam.Client):
 
     if not items_to_send:
       if not self.complete.done():
-        self.account_lock.set_field(self.username, "status", FarmStatus.TRADED)
+        self.account.lock.status = FarmStatus.TRADED
         self.complete.set_result(("No tradable item in inventory", []))
 
       return
@@ -83,9 +83,7 @@ class ScanInventory(steam.Client):
           target = await self.fetch_user(id64)
           await target.send(trade=trade_offer)
 
-          self.account_lock.set_field(
-            self.username, "status", FarmStatus.TRADED
-          )
+          self.account.lock.status = FarmStatus.TRADED
           if not self.complete.done():
             self.complete.set_result(("Trade sent", items_to_report))
 
@@ -97,6 +95,58 @@ class ScanInventory(steam.Client):
       logger.error(f"Failed to send trade offer: {e}")
       if not self.complete.done():
         self.complete.set_result(("Drop reported", items_to_report))
+
+
+async def process_trade(
+  account: Account, trade_url: Optional[str]
+) -> tuple[str, List[dict[str, Any]]]:
+  print("processing trade")
+  send_trade_client = ScanInventory(trade_url, account)
+
+  login_data = {
+    "username": account.login,
+    "password": account.password,
+    "shared_secret": account.shared_secret,
+  }
+
+  try:
+    print("logging in")
+    login_task = asyncio.create_task(
+      send_trade_client.login(
+        **login_data,
+        identity_secret=account.identity_secret,
+      )
+    )
+
+    print("waiting for login")
+    done, pending = await asyncio.wait(
+      [login_task, send_trade_client.complete],
+      return_when=asyncio.FIRST_COMPLETED,
+    )
+
+    for task in pending:
+      task.cancel()
+
+    if send_trade_client.complete in done:
+      return await send_trade_client.complete
+    elif login_task in done:
+      await login_task
+      logger.error(
+        f"[{account.login}] Login finished unexpectedly without reward event."
+      )
+      return "Login error", []
+    else:
+      logger.warning(f"[{account.login}] Operation timed out.")
+      return "Timeout", []
+  except Exception as e:
+    logger.error(f"Failed to process account {account.login}: {e}")
+    import traceback
+
+    print(traceback.format_exc())
+    return "Failure", []
+  finally:
+    if send_trade_client.is_ready():
+      await send_trade_client.close()
 
 
 class ScanAccounts(State):
@@ -124,84 +174,32 @@ class ScanAccounts(State):
 
     for account in self.accounts:
       await asyncio.sleep(5)
-      send_trade_client = ScanInventory(
-        settings.trade_url if self.trade else None,
-        ctx.account.lock,
+      print("processing trade")
+      message, sent_items = await process_trade(
+        account, settings.trade_url if self.trade else None
       )
 
-      login_data = None
-      if account.lock.refresh_token:
-        login_data = {
-          "username": account.login,
-          "refresh_token": account.lock.refresh_token,
-        }
+      if message == "Trade failed":
+        logger.warning(f"[{account.login}]: Trade failed, appending to queue")
+        self.status.set(f"{account.login}: Trade failed, retrying later")
+        self.accounts.append(account)
+        self.progress.limit = len(self.accounts)
+
       else:
-        login_data = {
-          "username": account.login,
-          "password": account.password,
-          "shared_secret": account.shared_secret,
-        }
+        if message not in ["Login error", "Timeout", "Failure"]:
+          logger.info(f"[{account.login}]: {message}")
 
-      try:
-        login_task = asyncio.create_task(
-          send_trade_client.login(
-            **login_data,
-            identity_secret=account.identity_secret,
-          )
-        )
+        self.status.set(f"{account.login}: {message}")
 
-        done, pending = await asyncio.wait(
-          [login_task, send_trade_client.complete],
-          return_when=asyncio.FIRST_COMPLETED,
-        )
+        for data in sent_items:
+          name = data["name"]
+          price = data["price"]
+          if name not in self.trade_report:
+            self.trade_report[name] = {"price": price, "amount": 0}
+          self.trade_report[name]["amount"] += 1
 
-        for task in pending:
-          task.cancel()
-
-        if send_trade_client.complete in done:
-          message, sent_items = await send_trade_client.complete
-
-          if message == "Trade failed":
-            logger.warning(
-              f"[{account.login}]: Trade failed, appending to queue"
-            )
-            self.status.set(f"{account.login}: Trade failed, retrying later")
-            self.accounts.append(account)
-            self.progress.limit = len(self.accounts)
-
-          else:
-            logger.info(f"[{account.login}]: {message}")
-            self.status.set(f"{account.login}: {message}")
-
-            for data in sent_items:
-              name = data["name"]
-              price = data["price"]
-              if name not in self.trade_report:
-                self.trade_report[name] = {"price": price, "amount": 0}
-              self.trade_report[name]["amount"] += 1
-        elif login_task in done:
-          await login_task
-          logger.error(
-            f"[{account.login}] Login finished unexpectedly without reward event."
-          )
-          self.status.set(f"{account.login}: Login error")
-        else:
-          logger.warning(f"[{account.login}] Operation timed out.")
-          self.status.set(f"{account.login}: Timeout")
-      except Exception as e:
-        logger.error(f"Failed to process account {account.login}: {e}")
-
-        import traceback
-
-        print(traceback.format_exc())
-
-        self.status.set(f"{account.login}: Failure")
-
-      finally:
-        self.progress.inc()
-        if send_trade_client.is_ready():
-          await send_trade_client.close()
-        await asyncio.sleep(2)
+      self.progress.inc()
+      await asyncio.sleep(2)
 
     try:
       with open("report.json", "w", encoding="utf-8") as f:
