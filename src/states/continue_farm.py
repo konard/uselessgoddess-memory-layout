@@ -96,6 +96,12 @@ class ContinueFarm(state.State):
 
         await asyncio.sleep(0.3)
 
+        await CS2Controller.click_if_exists_async(
+          "img/games_avaliable.png", account, 0.9, True
+        )
+
+        await asyncio.sleep(0.3)
+
         await CS2Controller.click_async(
           **game_constants.open_side_bar, account=account
         )
