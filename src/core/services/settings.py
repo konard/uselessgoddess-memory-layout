@@ -16,6 +16,11 @@ class FarmMode(str, Enum):
   FIVE_BY_FIVE = "5x5"
 
 
+class MatchMode(str, Enum):
+  TIE = "tie"
+  RANDOM = "random"
+
+
 def _load_settings(path, ty, label="settings"):
   try:
     if os.path.exists(path):
@@ -79,6 +84,7 @@ class UserSettings(Settings):
   collect_available_steam_games_on_login: bool = False
 
   # farm settings
+  match_mode: MatchMode = MatchMode.TIE
   times_to_shuffle: int = 3
   times_to_brute_force: int = 3
   farm_until: Optional[str] = None

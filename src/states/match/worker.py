@@ -11,6 +11,7 @@ from core.account import Account
 from core.context import Context
 from core.services.gsi.models import GameState, Team, RoundPhase, Map
 from core.services import WindowService, CS2Controller
+from core.services.settings import MatchMode
 from core.services.capture import Region
 from core.keys import Key
 from core.logging import get_logger
@@ -75,6 +76,12 @@ class MatchWorker(threading.Thread):
     self.round = -1
     self.state = State.Prepare
     self._event_queue = queue.Queue(maxsize=12)
+
+    # TODO: infer max round from 2x2 or 5x5
+    if self.ctx.ss.match_mode == MatchMode.TIE:
+      self.mode.max_round = 8
+    else:
+      self.mode.max_round = 999
 
   def run(self):
     logger.info("Worker started")

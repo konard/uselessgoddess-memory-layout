@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import (
   QComboBox,
   QLineEdit,
   QTextEdit,
+  QLabel,
+  QMessageBox,
 )
 from PyQt6.QtGui import QTextOption
 
@@ -14,9 +16,10 @@ from core.context import Context
 from core.logging import get_logger
 from core.panel import StateManager, Message
 from core.services.process import ProcessService
+from core.services.settings import MatchMode
 import states
 from ui import Align
-from ui.theme import ButtonType
+from ui.theme import ButtonType, CURRENT_THEME
 from ui.widgets import Button, TitledPanel, Switch, VStack
 from app import AccountsPanel, SettingsDialog, LogHandler
 
@@ -28,6 +31,7 @@ class DashboardTab(QWidget):
     super().__init__(parent)
     self.ctx = ctx
     self.manager = manager
+    self._sandbox_warned = False
 
     self._setup_ui()
 
@@ -65,13 +69,60 @@ class DashboardTab(QWidget):
     main_hbox.setStretch(1, 3)  # Content
 
   def get_log_handler_widgets(self):
-    """Возвращает виджеты, необходимые для LogHandler"""
     return self.log_text_edit, self.log_level_combo, self.log_filter_edit
 
   def _create_config_panel(self) -> QWidget:
     panel = TitledPanel("Config")
     settings = self.ctx.settings
     system = settings.system
+    user = settings.user
+
+    sw_sandbox = Switch(
+      "Use NO-AVAST (EXPERIMENTAL)",
+      checked=user.use_sandbox,
+      active_color=CURRENT_THEME.ACCENT_BLUE,
+    )
+    sw_sandbox.toggled.connect(
+      lambda c: self._on_sandbox_toggled(c, sw_sandbox)
+    )
+
+    mode_layout = QHBoxLayout()
+    mode_layout.setContentsMargins(0, 0, 0, 0)
+    mode_label = QLabel("Match Strategy:")
+
+    self.combo_mode = QComboBox()
+    self.combo_mode.addItems(["Tie (8:8)", "Random"])
+
+    current_mode_idx = 0 if user.match_mode == MatchMode.TIE else 1
+    self.combo_mode.setCurrentIndex(current_mode_idx)
+
+    self.combo_mode.currentIndexChanged.connect(self._on_match_mode_changed)
+
+    mode_layout.addWidget(mode_label)
+    mode_layout.addWidget(self.combo_mode)
+
+    content_widget = VStack(
+      sw_sandbox,
+      Switch(
+        "Shuffle lobbies after game",
+        checked=system.shuffle_lobbies,
+        on_toggle=system.state_updater(settings, "shuffle_lobbies"),
+      ),
+      Switch(
+        "Auto collect and send drop",
+        checked=system.collect_drop,
+        on_toggle=system.state_updater(settings, "collect_drop"),
+      ),
+      Switch(
+        "Start farm when launched",
+        checked=system.farm_on_launch,
+        on_toggle=system.state_updater(settings, "farm_on_launch"),
+      ),
+      QWidget(),
+    )
+
+    mode_container = QWidget()
+    mode_container.setLayout(mode_layout)
 
     content_widget = VStack(
       Switch(
@@ -104,10 +155,32 @@ class DashboardTab(QWidget):
         on_click=self._kill_all_runners,
         button_type=ButtonType.DANGER,
       ),
+      mode_container,
+      sw_sandbox,
     )
     layout = QVBoxLayout(panel.container)
     layout.addWidget(content_widget)
     return panel
+
+  def _on_sandbox_toggled(self, checked: bool, widget: Switch):
+    self.ctx.settings.user.use_sandbox = checked
+    self.ctx.settings.save(self.ctx.settings.user)
+
+    if checked and not self._sandbox_warned:
+      self._sandbox_warned = True
+      QMessageBox.warning(
+        self,
+        "Restart Required",
+        "You have enabled Sandbox Mode.\n\n"
+        "1. Make sure AVAST/Antivirus is DISABLED (NO AVAST).\n"
+        "2. Please RESTART the panel for driver changes to take effect.",
+      )
+
+  def _on_match_mode_changed(self, index: int):
+    new_mode = MatchMode.TIE if index == 0 else MatchMode.RANDOM
+    self.ctx.settings.user.match_mode = new_mode
+    self.ctx.settings.save(self.ctx.settings.system)
+    logger.info(f"Match mode changed to: {new_mode.value}")
 
   def _kill_all_runners(self):
     ProcessService.kill_all_runners()

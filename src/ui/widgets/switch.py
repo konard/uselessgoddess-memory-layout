@@ -13,13 +13,16 @@ from ui.theme import CURRENT_THEME
 
 
 class _SwitchSlider(QWidget):
-  def __init__(self, parent=None):
+  def __init__(self, active_color=None, parent=None):
     super().__init__(parent)
     self.setFixedSize(32, 16)
+
+    self.active_color = active_color or CURRENT_THEME.ACCENT_GREEN
 
     self._handle_position = 3.0
     self._handle_off_pos = 3
     self._handle_on_pos = self.width() - self.height() + 3
+    self._checked = False  # Важно инициализировать
 
     self.animation = QPropertyAnimation(self, b"handle_position", self)
     self.animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
@@ -40,9 +43,7 @@ class _SwitchSlider(QWidget):
     painter.setPen(Qt.PenStyle.NoPen)
 
     track_color = QColor(
-      CURRENT_THEME.ACCENT_GREEN
-      if self._checked
-      else CURRENT_THEME.INPUT_BACKGROUND
+      self.active_color if self._checked else CURRENT_THEME.INPUT_BACKGROUND
     )
     handle_color = QColor(CURRENT_THEME.PRIMARY_TEXT)
 
@@ -72,6 +73,7 @@ class Switch(QWidget):
     text: str = "",
     checked: bool = False,
     on_toggle: Optional[Callable[[], None]] = None,
+    active_color: Optional[str] = None,
     parent=None,
   ):
     super().__init__(parent)
@@ -82,7 +84,7 @@ class Switch(QWidget):
     layout = QHBoxLayout(self)
     layout.setContentsMargins(0, 0, 0, 0)
 
-    self._slider = _SwitchSlider()
+    self._slider = _SwitchSlider(active_color=active_color)
     self._label = QLabel(text)
     self.setChecked(checked)
 
