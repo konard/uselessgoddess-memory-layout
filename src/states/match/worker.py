@@ -78,7 +78,7 @@ class MatchWorker(threading.Thread):
     self._event_queue = queue.Queue(maxsize=12)
 
     # TODO: infer max round from 2x2 or 5x5
-    if self.ctx.ss.match_mode == MatchMode.TIE:
+    if self.ctx.su.match_mode == MatchMode.TIE:
       self.mode.max_round = 8
     else:
       self.mode.max_round = 999
