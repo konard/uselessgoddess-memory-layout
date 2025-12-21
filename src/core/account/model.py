@@ -197,18 +197,20 @@ class RunningAccount(Account):
     return f"[{login}] # CS"
 
   def stop_account(self, settings) -> bool:
-    if self.runner_pid > 0:
-      from core.services.process import ProcessService
+    from core.services.process import ProcessService
 
+    if self.runner_pid > 0:
       ProcessService.kill_by_pid(self.runner_pid)
       return True
 
     if settings.use_sandbox:
-      box_name = core.services.sandbox.SandboxService.sanitize_box_name(
-        self.login
-      )
+      import os
+      from core.services.sandbox import SandboxieService
+
+      box_name = SandboxieService.sanitize_box_name(self.login)
       ProcessService.kill_sandbox_box(
-        sandboxie_path=SANDBOX_PATH, box_name=box_name
+        sandboxie_path=os.path.join(SANDBOX_PATH, "Start.exe"),
+        box_name=box_name,
       )
 
     return False

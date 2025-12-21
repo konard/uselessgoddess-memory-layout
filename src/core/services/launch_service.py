@@ -75,10 +75,6 @@ class LaunchService:
         steam_web_helper_limiter.limit_steam_web_helper(
           force_close=True, white=["Steam"]
         )
-        WindowService.focus_window("Steam")
-        CS2Controller.click_if_exists(
-          "img/run_any_way.png", running_account, 0.9, True, True
-        )
       logger.debug("window initialization finished")
 
       time.sleep(15)  # sleep saves all

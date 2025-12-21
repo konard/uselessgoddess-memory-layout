@@ -10,6 +10,7 @@ import pyperclip
 import sys
 
 import io
+from core.services.cs_controller import CS2Controller, ZeroPosAccount
 import resources
 
 import numpy as np
@@ -130,6 +131,11 @@ def steam_login(
     if WindowService.window_exists(renamed_game_title):
       logger.info(f"[{login}] Renamed game window detected. Already running.")
       return proc.pid
+
+    if WindowService.window_exists("Steam"):
+      CS2Controller.click_if_exists(
+        "img/run_any_way.png", ZeroPosAccount(), 0.9, True, True
+      )
 
     if WindowService.window_exists(login_window_title):
       found_qr = wait_qr(login, timeout=5)
