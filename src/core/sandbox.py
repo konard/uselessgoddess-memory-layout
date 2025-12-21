@@ -125,11 +125,16 @@ class SandboxieInstaller:
     logger.debug("Applying global silent settings...")
 
     sbie_ini = os.path.join(self.sb_dir, "SbieIni.exe")
-    cmd = [sbie_ini, "set", "GlobalSettings", "HideTrayIcon", "y"]
 
     try:
       subprocess.run(
-        cmd,
+        [sbie_ini, "set", "GlobalSettings", "HideTrayIcon", "y"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+      )
+      subprocess.run(
+        [sbie_ini, "set", "GlobalSettings", "PinToTray", "n"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         creationflags=subprocess.CREATE_NO_WINDOW,

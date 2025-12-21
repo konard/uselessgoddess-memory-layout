@@ -18,6 +18,7 @@ class MatchState(State):
     self.worker: Optional[MatchWorker] = None
     self.lbl_status = Label("Initializing...")
     self.game_schema = game_schema
+    self.running = True
 
   def layout(self, ctx: Context, dispatch):
     return [
@@ -29,9 +30,7 @@ class MatchState(State):
     ]
 
   def stop(self):
-    if self.worker:
-      self.worker.stop()
-    self.worker = None
+    self.running = False
 
   async def execute(self, ctx: Context):
     from states.continue_farm import ContinueFarm
@@ -46,9 +45,10 @@ class MatchState(State):
     self.worker.start()
 
     try:
-      while self.worker and self.worker.is_alive():
+      while self.running and self.worker and self.worker.is_alive():
         self.lbl_status.set(f"{self.worker.status}")
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1.0)
+        self.worker.lifetime += 1.0
     finally:
       if self.worker:
         ctx.gsi.unlisten_raw(self.worker.on_game_state)
@@ -60,4 +60,5 @@ class MatchState(State):
     except:  # noqa: E722
       pass
 
-    return ContinueFarm(self.game_schema)
+    if self.running:
+      return ContinueFarm(self.game_schema)

@@ -110,7 +110,6 @@ class MatchWorker(threading.Thread):
               self.ctx.ai,
               curr - last_time,
             )
-            self.lifetime += curr - last_time
 
             if stop:
               self.state = State.Stop
@@ -163,6 +162,8 @@ class MatchWorker(threading.Thread):
     # kill after 10 minute of nothing
     if self.lifetime > 10 * 60:
       self.running = False
+    else:
+      logger.trace(f"lifetime: {self.lifetime}")
 
     probe_score = score_from(map)
     # avoid zero after match
