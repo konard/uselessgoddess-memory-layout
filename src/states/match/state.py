@@ -60,5 +60,4 @@ class MatchState(State):
     except:  # noqa: E722
       pass
 
-    if self.running:
-      return ContinueFarm(self.game_schema)
+    return ContinueFarm(self.game_schema)
