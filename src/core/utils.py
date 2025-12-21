@@ -6,9 +6,7 @@ import sys
 
 
 def get_project_root() -> str:
-  if getattr(sys, "frozen", False):
-    return os.path.dirname(sys.executable)
-  return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+  return os.getcwd()
 
 
 def name_of(value):
