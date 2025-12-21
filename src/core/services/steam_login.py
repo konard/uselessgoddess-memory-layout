@@ -125,6 +125,8 @@ def steam_login(
       return proc.pid
 
     if WindowService.window_exists("Steam"):
+      WindowService.focus_window("Steam")
+      time.sleep(0.2)
       CS2Controller.click_if_exists(
         "img/run_any_way.png", ZeroPosAccount(), 0.9, True, True
       )
