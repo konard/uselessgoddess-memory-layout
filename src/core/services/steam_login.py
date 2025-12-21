@@ -26,7 +26,7 @@ from core.services.api.free_fames_response import FreeGamesResponse
 from core.services.windows_service import WindowService
 from core.services.sandbox import SandboxieService
 
-from constants import SANDBOX_PATH
+from constants import SANDBOX_PATH, PROJECT_ROOT
 
 logger = get_logger("sv.launch")
 
@@ -46,14 +46,6 @@ def build_runner_launch_args(login: str, settings: UserSettings):
     sb_service = SandboxieService()
     box_name = sb_service.sanitize_box_name(login)
 
-    base_path = os.getcwd()
-    if getattr(sys, "frozen", False):
-      base_path = sys._MEIPASS
-    elif __file__:
-      base_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..")
-      )
-
     logger.debug(f"Ensuring sandbox exists: {box_name}")
     if not sb_service.create_box_if_not_exists(box_name):
       logger.error(f"Failed to create sandbox for {login}. Running native.")
@@ -62,7 +54,7 @@ def build_runner_launch_args(login: str, settings: UserSettings):
       runner_args.extend(
         [
           "--sandboxiePath",
-          os.path.join(base_path, SANDBOX_PATH, "Start.exe"),
+          os.path.join(SANDBOX_PATH, "Start.exe"),
           "--box",
           box_name,
         ]

@@ -48,6 +48,7 @@ def build_runner():
     "--onefile",
     f"--output-filename={output_exe}",
     "--windows-console-mode=disable",
+    "--jobs=12",
     str(runner_source),
   ]
 

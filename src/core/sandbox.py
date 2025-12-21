@@ -15,15 +15,10 @@ class SandboxieInstaller:
   def __init__(self):
     logger.debug("init sandboxie installer")
 
-    base_path = os.getcwd()
-    if getattr(sys, "frozen", False):
-      base_path = sys._MEIPASS
-    elif __file__:
-      base_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..")
-      )
+    self.sb_dir = SANDBOX_PATH
+    if not os.path.exists(self.sb_dir):
+      logger.error(f"Sandbox directory not found at: {self.sb_dir}")
 
-    self.sb_dir = os.path.join(base_path, SANDBOX_PATH)
     self.kmd_util = os.path.join(self.sb_dir, "KmdUtil.exe")
     self.start_exe = os.path.join(self.sb_dir, "Start.exe")
 
