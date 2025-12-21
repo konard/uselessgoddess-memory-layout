@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import hashlib
 from typing import List
 from core.logging import get_logger
 from constants import SANDBOX_PATH
@@ -31,34 +32,46 @@ class SandboxieService:
 
     logger.info(f"Creating new sandbox for: [{box_name}]")
 
+    logger.debug(f"Creating new SILENT box with valid spoofing: [{box_name}]")
+
+    disk_hash = hashlib.md5(f"disk_{box_name}".encode()).hexdigest()
+    fake_disk_serial = f"{disk_hash[0:4].upper()}-{disk_hash[4:8].upper()}"
+
+    mac_hash = hashlib.md5(f"mac_{box_name}".encode()).hexdigest()
+    fake_mac = (
+      "02" + "".join(f"-{mac_hash[i : i + 2]}" for i in range(0, 10, 2)).upper()
+    )
+
     settings = [
-      ("Enabled", "y"),  # Включить бокс
-      ("ConfigLevel", "10"),  # Версия конфига (актуальная для Plus)
-      (
-        "AutoRecover",
-        "n",
-      ),  # Отключить "Восстановление файлов" (чтобы не спамило окнами)
-      ("BlockNetworkFiles", "n"),  # Разрешить сетевые диски (на всякий случай)
-      ("RecoverFolder", "%Personal%"),  # Сброс путей восстановления
-      ("RecoverFolder", "%Desktop%"),
-      (
-        "BorderColor",
-        "#00FFFF,off,6",
-      ),  # Визуальная рамка (Cyan), чтобы видеть изоляцию
-      (
-        "BoxNameTitle",
-        "n",
-      ),  # Не добавлять [#] в заголовки окон (для совместимости с FindWindow)
+      ("Enabled", "y"),
+      ("ConfigLevel", "10"),
+      #
+      ("BorderColor", "#00FFFF,off,6"),
+      ("BoxNameTitle", "n"),
       ("BoxNameTitle", "-"),
-      ("OpenPipePath", r"\Device\NamedPipe\SteamProtobufPipe"),
+      #
       ("OpenProcessAccess", "y"),
       ("OpenProcess", "steam.exe"),
+      ("OpenPipePath", r"\Device\NamedPipe\SteamProtobufPipe"),
       #
       ("AutoDelete", "y"),
       ("AutoRecover", "n"),
+      ("AutoRecover", "n"),
       ("NeverDelete", "n"),
-      # Важно: Не создаем виртуальных дисков, используем стандартное перенаправление
+      ("CopyLimitKb", "81920"),
+      ("CopyLimitSilent", "y"),
+      ("BlockNetworkFiles", "n"),
+      ("RecoverFolder", "%Desktop%"),
+      ("RecoverFolder", "%Personal%"),
+      # tiny spoofer
+      ("DiskSerialNumber", fake_disk_serial),
+      ("NetworkAdapterMAC", f"0,{fake_mac}"),
+      ("RandomRegUID", "y"),
+      ("HideFirmwareInfo", "y"),
+      ("HideDiskSerialNumber", "y"),
     ]
+
+    logger.debug(settings)
 
     for key, val in settings:
       if not self._run_ini_command("set", box_name, key, val):
