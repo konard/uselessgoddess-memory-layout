@@ -17,6 +17,7 @@ from .gc_service import GCService
 logger = get_logger("gc.server")
 
 PIPE_NAME = r"\\.\pipe\SteamProtobufPipe"
+BUFFER_SIZE = 65536
 
 
 def unicode_of(data: bytes) -> str:
@@ -34,15 +35,14 @@ class PipeServer:
     return win32pipe.CreateNamedPipe(
       PIPE_NAME,
       win32pipe.PIPE_ACCESS_INBOUND,
-      # forbid! PIPE_UNLIMITED_INSTANCES
-      win32pipe.PIPE_TYPE_BYTE
-      | win32pipe.PIPE_READMODE_BYTE
+      win32pipe.PIPE_TYPE_MESSAGE
+      | win32pipe.PIPE_READMODE_MESSAGE
       | win32pipe.PIPE_WAIT,
-      win32pipe.PIPE_UNLIMITED_INSTANCES,
-      65536,  # Out buffer
-      65536,  # In buffer
-      0,
-      None,
+      255,  # Max instances
+      BUFFER_SIZE,  # Out buffer
+      BUFFER_SIZE,  # In buffer
+      0,  # Timeout
+      None,  # Security attributes
     )
 
   async def listen(self):
@@ -59,7 +59,10 @@ class PipeServer:
 
       except Exception as e:
         logger.error(f"Error connection waing: {e}")
-        win32file.CloseHandle(pipe_handle)
+        try:
+          win32file.CloseHandle(pipe_handle)
+        except Exception:
+          pass
 
   def _read_exact_sync(self, pipe, size: int) -> bytes:
     if size == 0:
@@ -89,11 +92,11 @@ class PipeServer:
         None, self._read_exact_sync, pipe, data_len
       )
     else:
-      return None
+      return b""
 
   async def handle_client(self, pipe):
     loop = asyncio.get_running_loop()
-    print("[PIPE] Ожидание данных...")
+    logger.debug("[PIPE] Ожидание данных...")
 
     try:
       while True:
@@ -106,22 +109,29 @@ class PipeServer:
           logger.debug("skip invalid packet")
           break
 
-        file_name = await self._read_sized_buf(loop, pipe)
-        if file_name:
-          file_name = unicode_of(file_name)
-        if not file_name:
-          logger.debug("skip invalid `file_name`")
+        file_name_bytes = await self._read_sized_buf(loop, pipe)
+        if file_name_bytes is None:
+          logger.debug("skip invalid `file_name` length")
           break
 
-        client_name = await self._read_sized_buf(loop, pipe)
-        if client_name:
-          client_name = unicode_of(client_name)
-        if not client_name:
-          logger.debug("skip invalid `client_name`")
+        file_name = unicode_of(file_name_bytes)
+        if file_name is None:
+          logger.debug("skip invalid `file_name` encoding")
+          break
+
+        client_name_bytes = await self._read_sized_buf(loop, pipe)
+        if client_name_bytes is None:
+          logger.debug("skip invalid `client_name` length")
+          break
+
+        client_name = unicode_of(client_name_bytes)
+        if client_name is None:
+          logger.debug("skip invalid `client_name` encoding")
           break
 
         payload = await self._read_sized_buf(loop, pipe, limit=128 * 1024)
-        if not payload:
+        if payload is None:
+          logger.debug("skip invalid `payload` length")
           break
 
         direction_str = "in" if direction_id == 1 else "out"
