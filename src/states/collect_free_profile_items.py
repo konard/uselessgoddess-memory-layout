@@ -37,11 +37,11 @@ class FreeProfileItemsClient(Client):
 
       inv = await self.user.inventory(steam.STEAM)
       flat_names = list(map(lambda x: x.name, inv.items))
-
-      for item in self.items:
-        if item.name in flat_names:
-          continue
-
+      items_to_redeem = [
+        item for item in self.items if item.name not in flat_names
+      ]
+      print(items_to_redeem)
+      for item in items_to_redeem:
         try:
           req = loyalty_rewards.RedeemPointsRequest(
             defid=item.def_id, expected_points_cost=0
