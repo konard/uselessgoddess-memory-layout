@@ -486,17 +486,17 @@ def main() -> int:
   if proc.pid is not None:
     # Wait for CS2 process and window
     print("Waiting for CS2 process...")
-    cs2_pids = wait_for_child_processes(proc.pid, ["cs2.exe"])
+    cs2_pids = wait_for_child_processes(proc.pid)
 
     if cs2_pids:
       if wait_for_window_visibility(cs2_pids, timeout=120):
         print("CS2 window detected. Proceeding to inject.")
-        time.sleep(2)  # Small buffer
+        time.sleep(20)  # Small buffer
       else:
         print("CS2 window not detected. Proceeding anyway...")
     else:
       print("CS2 process not found. Proceeding with default delay...")
-      time.sleep(10)
+      time.sleep(60)
 
     syswow64 = os.path.join(
       os.environ.get("SystemRoot", "C:\\Windows"), "SysWOW64"
@@ -507,6 +507,7 @@ def main() -> int:
       rundll32_path = "rundll32.exe"
 
     hook_cmd = []
+    time.sleep(10)
     if args.box and args.sandboxiePath:
       print(f"Injecting into Steam PID {proc.pid} (Inside Box)...")
       hook_cmd = [
