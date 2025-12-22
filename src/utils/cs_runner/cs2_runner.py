@@ -483,42 +483,20 @@ def main() -> int:
 
   print("Launch command executed.")
 
-  target_steam_pid = None
-
-  search_timeout = 180
-  start_search = time.time()
-
-  print("Waiting for new steam.exe process...")
-
-  while time.time() - start_search < search_timeout:
-    current_pids = get_pids_by_name("steam.exe")
-    new_pids = current_pids - baseline_steam_pids
-
-    if new_pids:
-      target_steam_pid = list(new_pids)[0]
-      print(f"Detected new Steam PID: {target_steam_pid}")
-      break
-
-    if not args.box and proc.poll() is not None:
-      print("Native process exited prematurely.")
-      return 0
-
-    time.sleep(2)
-
-  if target_steam_pid:
+  if proc.pid is not None:
     # Wait for CS2 process and window
     print("Waiting for CS2 process...")
-    cs2_pids = wait_for_child_processes(target_steam_pid, ["cs2.exe"])
+    cs2_pids = wait_for_child_processes(proc.pid)
 
     if cs2_pids:
       if wait_for_window_visibility(cs2_pids, timeout=120):
         print("CS2 window detected. Proceeding to inject.")
-        time.sleep(2)  # Small buffer
+        time.sleep(20)  # Small buffer
       else:
         print("CS2 window not detected. Proceeding anyway...")
     else:
       print("CS2 process not found. Proceeding with default delay...")
-      time.sleep(10)
+      time.sleep(60)
 
     syswow64 = os.path.join(
       os.environ.get("SystemRoot", "C:\\Windows"), "SysWOW64"
@@ -529,23 +507,24 @@ def main() -> int:
       rundll32_path = "rundll32.exe"
 
     hook_cmd = []
+    time.sleep(10)
     if args.box and args.sandboxiePath:
-      print(f"Injecting into Steam PID {target_steam_pid} (Inside Box)...")
+      print(f"Injecting into Steam PID {proc.pid} (Inside Box)...")
       hook_cmd = [
         args.sandboxiePath,
         f"/box:{args.box}",
         "/silent",
         rundll32_path,
         f"{args.hook_dll},Inject",
-        str(target_steam_pid),
+        str(proc.pid),
         str(args.login),
       ]
     else:
-      print(f"Injecting into Steam PID {target_steam_pid} (Native)...")
+      print(f"Injecting into Steam PID {proc.pid} (Native)...")
       hook_cmd = [
         rundll32_path,
         f"{args.hook_dll},Inject",
-        str(target_steam_pid),
+        str(proc.pid),
         str(args.login),
       ]
 
@@ -571,9 +550,9 @@ def main() -> int:
 
   print("Monitoring target Steam process...")
 
-  if target_steam_pid:
+  if proc.pid is not None:
     try:
-      while is_process_running(target_steam_pid):
+      while is_process_running(proc.pid):
         time.sleep(5)
       print("Target Steam process terminated. Exiting.")
     except KeyboardInterrupt:
