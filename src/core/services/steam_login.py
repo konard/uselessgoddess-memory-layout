@@ -105,6 +105,8 @@ def steam_login(
   game_window_title = "Counter-Strike 2"
   renamed_game_title = f"[{login}] # CS"
 
+  friends_titles = ["Список друзей", "Friends"]
+
   last_log_time = time.time()
 
   while True:
@@ -124,9 +126,17 @@ def steam_login(
       logger.info(f"[{login}] Renamed game window detected. Already running.")
       return proc.pid
 
+    for f_title in friends_titles:
+      if WindowService.window_exists(f_title):
+        logger.debug(f"[{login}] Closing interfering Friends window: {f_title}")
+        try:
+          WindowService.close_window(f_title)
+        except AttributeError:
+          # WindowService.focus_window(f_title)
+          # pyautogui.hotkey("alt", "f4")
+          pass
+
     if WindowService.window_exists("Steam"):
-      WindowService.focus_window("Steam")
-      time.sleep(0.2)
       CS2Controller.click_if_exists(
         "img/run_any_way.png", ZeroPosAccount(), 0.9, True, True
       )
