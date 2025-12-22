@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Set, Tuple, TYPE_CHECKING
 from core.logging import get_logger
 from core.services import (
   SRTService,
@@ -55,6 +55,7 @@ class Context:
     self.lic = LicenseService(self.settings.user)
     self.presets = PresetsService()
     self.metrics = MetricsService(self.lic)
+    self.blacklisted_accounts: Set[str] = set()
 
   def accounts(self) -> List[Account]:
     return sorted(

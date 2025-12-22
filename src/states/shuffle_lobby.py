@@ -80,6 +80,10 @@ class ShuffleLobby(State):
 
       unfarmed = ctx.unfarmed_accounts()
 
+      unfarmed = list(
+        filter(lambda x: x.login not in ctx.blacklisted_accounts, unfarmed)
+      )
+
       if not unfarmed:
         raise Exception(
           "Failed to shuffle lobby: no unfarmed accounts available for swap"
@@ -87,6 +91,8 @@ class ShuffleLobby(State):
 
       replacement = unfarmed[0]
       logger.info(f"Swapping {victim.login} with {replacement.login}")
+
+      ctx.blacklisted_accounts.add(victim.login)
 
       if victim.stop_account(ctx.su):
         logger.info(f"Stopped {victim.login}")
@@ -126,7 +132,7 @@ class ShuffleLobby(State):
       for account in party.all:
         await WindowService.focus_window_async(account.win_cs_title)
         await asyncio.sleep(0.3)
-        await CS2Controller.click_async(
+        await CS2Controller.move_mouse_async(
           **game_constants.open_side_bar, account=account
         )
         await asyncio.sleep(0.3)

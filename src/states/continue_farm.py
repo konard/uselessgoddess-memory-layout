@@ -102,7 +102,7 @@ class ContinueFarm(state.State):
 
         await asyncio.sleep(0.3)
 
-        await CS2Controller.click_async(
+        await CS2Controller.move_mouse_async(
           **game_constants.open_side_bar, account=account
         )
 
@@ -123,7 +123,7 @@ class ContinueFarm(state.State):
         return SelectMap(self.game_schema)
       else:
         for account in accounts:
-          await CS2Controller.click_async(
+          await CS2Controller.move_mouse_async(
             **game_constants.open_side_bar, account=account
           )
 

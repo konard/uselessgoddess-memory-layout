@@ -109,6 +109,8 @@ class WaitForGame(State):
 
     await ctx.send_message("Match found")
 
+    ctx.blacklisted_accounts.clear()
+
     found_preset = ctx.presets.find_preset_by_game_schema(self.party_schema)
 
     if found_preset:

@@ -73,7 +73,13 @@ class LaunchService:
         counter_strike_2_title, timeout_sec=10
       ):
         steam_web_helper_limiter.limit_steam_web_helper(
-          force_close=True, white=["Steam"]
+          force_close=True,
+          white=["Steam"],
+          window_title_blacklist=[
+            "Список друзей",
+            "Список игр",
+            "Специальные предложения",
+          ],
         )
       logger.debug("window initialization finished")
 

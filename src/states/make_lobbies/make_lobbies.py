@@ -128,7 +128,7 @@ class MakeLobbies(State):
         await asyncio.sleep(0.3)
         await WindowService.focus_window_async(party.leader.win_cs_title)
 
-        await CS2Controller.click_async(
+        await CS2Controller.move_mouse_async(
           **game_constants.open_side_bar, account=party.leader
         )
         await asyncio.sleep(1)

@@ -27,6 +27,7 @@ from core.services.windows_service import WindowService
 from core.services.sandbox import SandboxieService
 
 from constants import SANDBOX_PATH, PROJECT_ROOT
+from utils import steam_web_helper_limiter
 
 logger = get_logger("sv.launch")
 
@@ -105,11 +106,19 @@ def steam_login(
   game_window_title = "Counter-Strike 2"
   renamed_game_title = f"[{login}] # CS"
 
-  friends_titles = ["Список друзей", "Friends"]
-
   last_log_time = time.time()
 
   while True:
+    steam_web_helper_limiter.limit_steam_web_helper(
+      force_close=True,
+      white=["Steam"],
+      window_title_blacklist=[
+        "Список друзей",
+        "Список игр",
+        "Специальные предложения",
+      ],
+    )
+
     if proc.poll() is not None and proc.returncode != 0:
       logger.error(
         f"[{login}] Process crashed/closed with code {proc.returncode}"
@@ -126,19 +135,13 @@ def steam_login(
       logger.info(f"[{login}] Renamed game window detected. Already running.")
       return proc.pid
 
-    for f_title in friends_titles:
-      if WindowService.window_exists(f_title):
-        logger.debug(f"[{login}] Closing interfering Friends window: {f_title}")
-        try:
-          WindowService.close_window(f_title)
-        except AttributeError:
-          # WindowService.focus_window(f_title)
-          # pyautogui.hotkey("alt", "f4")
-          pass
-
     if WindowService.window_exists("Steam"):
       CS2Controller.click_if_exists(
         "img/run_any_way.png", ZeroPosAccount(), 0.9, True, True
+      )
+      time.sleep(0.2)
+      CS2Controller.click_if_exists(
+        "img/asf_farming.png", ZeroPosAccount(), 0.9, True, True
       )
 
     if WindowService.window_exists(login_window_title):
