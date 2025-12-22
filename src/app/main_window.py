@@ -8,7 +8,7 @@ from PyQt6.QtGui import QFont, QCloseEvent
 
 from core.process_config import ConfigService
 from core.services.disconnect_worker import DisconnectWorker
-from core.services.gc import start_gc_server
+from core.services.gc.gc_server_http import start_gc_server
 from core.services.status_reset_service import StatusResetService
 from core.panel import StateManager
 from core.logging import get_logger, logging
@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
     )
 
     self.ctx = context
+    self._closing = False
 
     self.manager = StateManager(self.ctx, callback=lambda: None)
 
@@ -129,16 +130,32 @@ class MainWindow(QMainWindow):
       pass
 
   def closeEvent(self, event: QCloseEvent) -> None:
+    if self._closing:
+      event.accept()
+      return
+
+    event.ignore()
+    self._closing = True
+    asyncio.create_task(self._shutdown())
+
+  async def _shutdown(self):
     try:
+      logger.info("Starting graceful shutdown...")
+
+      # 1. Remove steam lock
       config_service = ConfigService(self.ctx)
       config_service.unblock_steam_store()
       logger.debug("steal lock removed")
-      asyncio.create_task(self.ctx.bot.stop())
+
+      # 2. Stop services
+      await self.ctx.bot.stop()
       logger.debug("telegram bot stopped")
+
       self.ctx.gsi.stop()
       logger.debug("gsi service stopped")
+
     except Exception:
       logger.exception("error during gracefully shutdown")
     finally:
-      event.accept()
-      sys.exit(0)
+      logger.info("Shutdown complete. Closing window.")
+      self.close()
