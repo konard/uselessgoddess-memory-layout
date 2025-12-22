@@ -110,6 +110,19 @@ class ShuffleLobby(State):
 
       logger.info(f"Launched {replacement.login}")
 
+      for party in self.party_schema:
+        for account in party.all:
+          await WindowService.focus_window_async(account.win_cs_title)
+          await asyncio.sleep(0.3)
+          await CS2Controller.move_mouse_async(
+            **game_constants.open_side_bar, account=account
+          )
+          await asyncio.sleep(0.3)
+          await CS2Controller.click_if_exists_async(
+            "img/exit.png", account, 0.9
+          )
+          await asyncio.sleep(0.3)
+
       return states.MakeLobbies(None)
 
     new_party_schema = []
