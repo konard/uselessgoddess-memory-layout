@@ -43,6 +43,7 @@ class SandboxieInstaller:
     try:
       subprocess.check_call(
         ["sc", "qc", "SbieSvc"],
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         creationflags=subprocess.CREATE_NO_WINDOW,
@@ -147,6 +148,7 @@ class SandboxieInstaller:
         encoding="utf-8",
         errors="replace",
         creationflags=subprocess.CREATE_NO_WINDOW,
+        stdin=subprocess.DEVNULL,
       )
 
       if result.returncode == 0:

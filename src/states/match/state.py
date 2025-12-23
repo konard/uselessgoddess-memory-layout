@@ -1,5 +1,6 @@
 from typing import Optional
 
+import states
 import asyncio
 from core.panel import State
 from core.context import Context
@@ -30,6 +31,8 @@ class MatchState(State):
     ]
 
   def stop(self):
+    if self.worker:
+      self.worker.running = False
     self.running = False
 
   async def execute(self, ctx: Context):
@@ -51,13 +54,17 @@ class MatchState(State):
         self.worker.lifetime += 1.0
     finally:
       if self.worker:
+        self.worker.running = False
         ctx.gsi.unlisten_raw(self.worker.on_game_state)
         self.worker.stop()
-      pass
-    try:
-      score = list(self.worker.score.values())
-      await ctx.send_message(f"Match finished with {score[0]}:{score[1]}")
-    except:  # noqa: E722
-      pass
 
-    return ContinueFarm(self.game_schema)
+      try:
+        score = list(self.worker.score.values())
+        await ctx.send_message(f"Match finished with {score[0]}:{score[1]}")
+      except:  # noqa: E722
+        pass
+
+      if self.running:
+        return ContinueFarm(self.game_schema)
+      else:
+        states.Idle()
