@@ -85,16 +85,16 @@ class LaunchService:
 
       time.sleep(15)  # sleep saves all
 
-      while (
+      while WindowService.window_exists(counter_strike_2_title):
+        logger.trace(
+          f"trying to rename window into {running_account.win_cs_title}"
+        )
+
         WindowService.rename_window(
           counter_strike_2_title,
           running_account.win_cs_title,
         )
-        is None
-      ):
-        logger.trace(
-          f"trying to rename window into {running_account.win_cs_title}"
-        )
+
         time.sleep(1)
 
       WindowService.wait_for_window(
