@@ -163,6 +163,10 @@ class LaunchService:
 
       time.sleep(0.5)
 
+      CS2Controller.click_if_exists("img/close.png", running_account, 0.9, True)
+
+      time.sleep(0.5)
+
       return running_account
 
     except Exception:

@@ -2,6 +2,7 @@ import asyncio
 from typing import TYPE_CHECKING
 from core.panel.state import StateManager
 from core.services.cs_controller import CS2Controller
+from core.services.windows_service import WindowService
 from states.disconnect import DisconnectState, DisconnectType
 from states.match.state import MatchState
 from core.logging import get_logger
@@ -22,11 +23,17 @@ class DisconnectWorker:
       disconnected_accounts = []
       is_match = False
       for account in self.ctx.launched_accounts:
-        is_disconnected = CS2Controller.check_if_exists(
+        is_disconnected = await CS2Controller.check_if_exists_async(
           "img/disconnected.png", account
         )
-        if not CS2Controller.check_if_exists("img/play.png", account):
-          is_match = True
+
+        if is_disconnected:
+          await WindowService.focus_window_async(account.win_cs_title)
+          await asyncio.sleep(0.1)
+          if not await CS2Controller.check_if_exists_async(
+            "img/play.png", account
+          ):
+            is_match = True
 
         if is_disconnected:
           disconnected_accounts.append(account)

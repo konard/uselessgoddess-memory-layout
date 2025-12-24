@@ -131,11 +131,12 @@ class MakeLobbies(State):
         await CS2Controller.click_async(
           **game_constants.open_side_bar, account=party.leader
         )
-        await asyncio.sleep(1)
-        await CS2Controller.press_escape_async()
-        await asyncio.sleep(0.3)
-        await CS2Controller.press_escape_async()
-        await asyncio.sleep(0.3)
+
+        while await CS2Controller.check_if_exists_async(
+          "img/invite_friend_window.png", party.leader, 0.9
+        ):
+          await asyncio.sleep(1)
+          await CS2Controller.press_escape_async()
 
       await asyncio.sleep(0.5)
       return SelectMap(self.party_schema, self.retries)

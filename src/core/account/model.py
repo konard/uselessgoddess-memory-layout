@@ -18,6 +18,7 @@ class FarmStatus(str, Enum):
   CAN_BE_LOOTED = "can_be_looted"
   FARMED = "farmed"
   TRADED = "traded"
+  BLOCKED = "blocked"
 
 
 status_map = {

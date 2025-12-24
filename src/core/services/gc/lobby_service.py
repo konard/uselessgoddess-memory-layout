@@ -24,11 +24,9 @@ from core.services.gc.event_service import EventService
 
 logger = get_logger("lobby_service")
 
-# Время жизни инвайта в секундах (1 минута)
 INVITE_EXPIRATION_TIME = 10
 
-# Таймаут ожидания инвайта в секундах (2 минуты)
-INVITE_WAIT_TIMEOUT = 30
+INVITE_WAIT_TIMEOUT = 15
 
 
 class InviteExpiredError(Exception):

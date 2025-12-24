@@ -92,7 +92,7 @@ class Preset:
   def get_status(self, ctx: "Context") -> FarmStatus:
     """
     Calculates aggregate status for the preset.
-    Priority: NEED_TO_FARM > CAN_BE_LOOTED > FARMED > TRADED
+    Priority: NEED_TO_FARM > CAN_BE_LOOTED > FARMED > TRADED > BLOCKED
     """
     statuses = set()
     for login in self.accounts:
@@ -106,8 +106,10 @@ class Preset:
       return FarmStatus.CAN_BE_LOOTED
     if FarmStatus.FARMED in statuses:
       return FarmStatus.FARMED
+    if FarmStatus.TRADED in statuses:
+      return FarmStatus.TRADED
 
-    return FarmStatus.TRADED
+    return FarmStatus.BLOCKED
 
   def swap_accounts(self, idx1: int, idx2: int):
     if 0 <= idx1 < len(self.accounts) and 0 <= idx2 < len(self.accounts):

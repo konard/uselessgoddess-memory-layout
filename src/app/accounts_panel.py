@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
   QDialogButtonBox,
   QAbstractItemView,
   QToolButton,
+  QComboBox,
 )
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QColor, QBrush, QCursor, QIcon, QPainter
@@ -37,6 +38,7 @@ enum_to_color = {
   FarmStatus.CAN_BE_LOOTED: CURRENT_THEME.ACCENT_PURPLE,
   FarmStatus.FARMED: CURRENT_THEME.ACCENT_GREEN,
   FarmStatus.TRADED: CURRENT_THEME.ACCENT_BLUE,
+  FarmStatus.BLOCKED: CURRENT_THEME.ACCENT_ORANGE,
 }
 
 
@@ -353,15 +355,53 @@ class AccountsTable(QWidget):
       self.table.setCellWidget(row, 0, cell_widget)
 
       status_enum = acc.lock.status or FarmStatus.NEED_TO_FARM
+
+      status_combo = QComboBox()
+      status_combo.addItems(
+        [
+          FarmStatus.NEED_TO_FARM.replace("_", " ").title(),
+          FarmStatus.CAN_BE_LOOTED.replace("_", " ").title(),
+          FarmStatus.FARMED.replace("_", " ").title(),
+          FarmStatus.TRADED.replace("_", " ").title(),
+          FarmStatus.BLOCKED.replace("_", " ").title(),
+        ]
+      )
+
       status_text = status_enum.replace("_", " ").title()
-      status_item = QTableWidgetItem(status_text)
+      status_combo.blockSignals(True)
+      status_combo.setCurrentText(status_text)
+      status_combo.blockSignals(False)
 
       color = enum_to_color[status_enum]
+      status_combo.setStyleSheet(f"""
+        QComboBox {{
+          background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+          color: {color};
+          border: 1px solid {CURRENT_THEME.BORDER};
+          border-radius: 4px;
+          padding: 4px;
+        }}
+        QComboBox::drop-down {{
+          border: none;
+        }}
+        QComboBox::down-arrow {{
+          image: none;
+          border: none;
+        }}
+        QComboBox QAbstractItemView {{
+          background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+          color: {CURRENT_THEME.PRIMARY_TEXT};
+          selection-background-color: {CURRENT_THEME.ACCENT_BLUE}40;
+          selection-color: {CURRENT_THEME.ACCENT_BLUE};
+        }}
+      """)
 
-      status_item.setForeground(QBrush(QColor(color)))
-      status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-      status_item.setData(Qt.ItemDataRole.UserRole, acc.login)
-      self.table.setItem(row, 1, status_item)
+      status_combo.setProperty("login", acc.login)
+      status_combo.currentTextChanged.connect(
+        lambda text, login=acc.login: self._on_status_changed(login, text)
+      )
+
+      self.table.setCellWidget(row, 1, status_combo)
 
       xp_val = f"{acc.lock.xp} XP" if acc.lock.xp is not None else "0 XP"
       xp_item = QTableWidgetItem(xp_val)
@@ -407,6 +447,55 @@ class AccountsTable(QWidget):
 
     asyncio.create_task(task())
 
+  def _on_status_changed(self, login: str, text: str):
+    account = self.ctx.account.accounts.get(login)
+    if not account:
+      return
+
+    status_map_text_to_enum = {
+      FarmStatus.NEED_TO_FARM.replace(
+        "_", " "
+      ).title(): FarmStatus.NEED_TO_FARM,
+      FarmStatus.CAN_BE_LOOTED.replace(
+        "_", " "
+      ).title(): FarmStatus.CAN_BE_LOOTED,
+      FarmStatus.FARMED.replace("_", " ").title(): FarmStatus.FARMED,
+      FarmStatus.TRADED.replace("_", " ").title(): FarmStatus.TRADED,
+      FarmStatus.BLOCKED.replace("_", " ").title(): FarmStatus.BLOCKED,
+    }
+
+    new_status = status_map_text_to_enum.get(text)
+    if new_status:
+      account.lock.status = new_status
+
+      for row in range(self.table.rowCount()):
+        status_combo = self.table.cellWidget(row, 1)
+        if status_combo and status_combo.property("login") == login:
+          color = enum_to_color[new_status]
+          status_combo.setStyleSheet(f"""
+            QComboBox {{
+              background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+              color: {color};
+              border: 1px solid {CURRENT_THEME.BORDER};
+              border-radius: 4px;
+              padding: 4px;
+            }}
+            QComboBox::drop-down {{
+              border: none;
+            }}
+            QComboBox::down-arrow {{
+              image: none;
+              border: none;
+            }}
+            QComboBox QAbstractItemView {{
+              background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+              color: {CURRENT_THEME.PRIMARY_TEXT};
+              selection-background-color: {CURRENT_THEME.ACCENT_BLUE}40;
+              selection-color: {CURRENT_THEME.ACCENT_BLUE};
+            }}
+          """)
+          break
+
   def _update_toggles_from_state(self):
     selected = set(self.ctx.ui.selected_logins)
     self.table.blockSignals(True)
@@ -414,13 +503,14 @@ class AccountsTable(QWidget):
     for row in range(self.table.rowCount()):
       widget = self.table.cellWidget(row, 0)
       if widget and hasattr(widget, "switch"):
-        item = self.table.item(row, 1)
-        login = item.data(Qt.ItemDataRole.UserRole)
-        is_selected = login in selected
-        if widget.switch.isChecked() != is_selected:
-          widget.switch.blockSignals(True)
-          widget.switch.setChecked(is_selected)
-          widget.switch.blockSignals(False)
+        status_combo = self.table.cellWidget(row, 1)
+        if status_combo:
+          login = status_combo.property("login")
+          is_selected = login in selected
+          if widget.switch.isChecked() != is_selected:
+            widget.switch.blockSignals(True)
+            widget.switch.setChecked(is_selected)
+            widget.switch.blockSignals(False)
 
     self.table.blockSignals(False)
 
@@ -484,6 +574,10 @@ class AccountsTable(QWidget):
       st_color = CURRENT_THEME.ACCENT_GREEN
     elif status_enum == FarmStatus.CAN_BE_LOOTED:
       st_color = CURRENT_THEME.ACCENT_PURPLE
+    elif status_enum == FarmStatus.TRADED:
+      st_color = CURRENT_THEME.ACCENT_BLUE
+    elif status_enum == FarmStatus.BLOCKED:
+      st_color = CURRENT_THEME.ACCENT_ORANGE
     else:
       st_color = CURRENT_THEME.ACCENT_RED
 
@@ -510,9 +604,10 @@ class AccountsTable(QWidget):
 
     for row in range(self.table.rowCount()):
       if not self.table.isRowHidden(row):
-        item = self.table.item(row, 1)
-        login = item.data(Qt.ItemDataRole.UserRole)
-        to_select.append(login)
+        status_combo = self.table.cellWidget(row, 1)
+        if status_combo:
+          login = status_combo.property("login")
+          to_select.append(login)
 
     self.ctx.ui.set_selection(to_select)
 

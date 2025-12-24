@@ -26,11 +26,29 @@ class ContinueFarm(state.State):
 
     await asyncio.sleep(self.delay)
 
-    if self.game_schema is None:
-      launched_accounts = WindowService.scan_cs2_windows(
-        ctx.accounts(), values=True
-      )
+    launched_accounts = WindowService.scan_cs2_windows(
+      ctx.accounts(), values=True
+    )
 
+    all_in_lobby = True
+
+    for account in launched_accounts:
+      if not await CS2Controller.check_if_exists_async(
+        "img/exit.png", account, 0.9
+      ):
+        all_in_lobby = False
+        break
+
+    if not all_in_lobby:
+      for account in launched_accounts:
+        await WindowService.focus_window_async(account.win_cs_title)
+        await asyncio.sleep(0.3)
+        await CS2Controller.click_if_exists_async(
+          "img/exit.png", account, 0.9, True
+        )
+        await asyncio.sleep(0.1)
+
+    if self.game_schema is None:
       preset_applied = False
       if launched_accounts:
         new_schema = ctx.presets.get_schema_for_launched_accounts(
