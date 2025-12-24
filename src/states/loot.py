@@ -123,6 +123,9 @@ async def claim_drop(account: Account):
       logger.warning(f"[{account.login}] Operation timed out.")
   except Exception as e:
     logger.error(f"Failed to process account {account.login}: {e}")
+    import traceback
+
+    logger.error(traceback.format_exc())
 
   finally:
     if loot_client.is_ready():
@@ -146,6 +149,9 @@ class LootAccounts(State):
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")
 
+        import traceback
+
+        logger.error(traceback.format_exc())
       finally:
         self.progress.inc()
         await asyncio.sleep(2)
