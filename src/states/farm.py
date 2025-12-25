@@ -66,5 +66,9 @@ class StartFarm(State):
 
     await asyncio.sleep(7)
 
+    if not ctx.gc.all_connected(self.accounts_to_launch):
+      logger.error("Not all accounts connected to GC")
+      return
+
     if ctx.ss.farm_on_launch:
       return MakeLobbies(None)

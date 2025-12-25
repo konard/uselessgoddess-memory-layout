@@ -1,10 +1,18 @@
 import asyncio
-import logging
 import urllib.parse
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, List
+import zipfile
+import io
+import time
+import json
+import base64
+import os
 
+import requests
 from core.account.model import Account
 from core.logging import get_logger
+from core.services.settings import SettingsService
 from steam.client import Client
 
 from selenium import webdriver
@@ -17,31 +25,55 @@ logger = get_logger("browser")
 
 class BrowserService:
   @staticmethod
-  async def launch_browser(account: Account) -> Tuple[bool, str]:
-    cookies = {}
-    client = Client()
+  def _is_token_valid(token: str) -> bool:
+    try:
+      parts = token.split(".")
+      if len(parts) != 3:
+        return False
+      payload = parts[1]
+      payload += "=" * (-len(payload) % 4)
+      data = json.loads(base64.urlsafe_b64decode(payload))
+      return data.get("exp", 0) > (time.time() + 300)
+    except Exception:
+      return False
 
-    # --- PHASE 2: Steam Login Attempt ---
+  @staticmethod
+  def _get_cookies_from_cache(account: Account) -> dict | None:
+    try:
+      token_info = account.lock.access_token_info
+      if (
+        token_info
+        and account.steam_id
+        and BrowserService._is_token_valid(token_info.get("token", ""))
+      ):
+        logger.info(f"Using cached access token for {account.login}")
+        token = token_info["token"]
+        return {
+          "steamLoginSecure": urllib.parse.quote(
+            f"{account.steam_id}||{token}"
+          ),
+          "sessionid": os.urandom(12).hex(),
+        }
+    except Exception as e:
+      logger.warning(f"Failed to get cookies from cache: {e}")
+    return None
+
+  @staticmethod
+  async def _login_and_get_cookies(
+    account: Account, settings_service: SettingsService | None
+  ) -> dict | None:
+    client = Client()
+    cookies = {}
     try:
       logger.info(f"Logging in to Steam as {account.login}...")
-
-      try:
-        await asyncio.wait_for(
-          client.login(
-            username=account.login,
-            password=account.password,
-            shared_secret=account.shared_secret,
-          ),
-          timeout=15.0,
-        )
-      except asyncio.TimeoutError:
-        logger.warning("Steam login timed out! Launching without auto-login.")
-        # Запускаем браузер без кук (в отдельном потоке)
-        return await asyncio.to_thread(
-          BrowserService._launch_chrome_sync, cookies, None
-        )
-
-      logger.info("Login successful. Extracting cookies...")
+      await asyncio.wait_for(
+        client.login(
+          username=account.login,
+          password=account.password,
+          shared_secret=account.shared_secret,
+        ),
+        timeout=15.0,
+      )
 
       if client.user.id64 and client._state.ws:
         try:
@@ -52,50 +84,160 @@ class BrowserService:
             token = await token()
 
           if token:
-            steam_login_secure = urllib.parse.quote(
+            account.lock.access_token_info = {
+              "token": token,
+              "timestamp": time.time(),
+            }
+            cookies["steamLoginSecure"] = urllib.parse.quote(
               f"{client.user.id64}||{token}"
             )
-            cookies["steamLoginSecure"] = steam_login_secure
             cookies["sessionid"] = str(client.http.session_id)
         except Exception as e:
-          logger.warning(f"Failed to generate steamLoginSecure: {e}")
+          logger.warning(f"Failed to extract token/cookies: {e}")
 
-      if hasattr(client, "http") and hasattr(client.http, "_session"):
+      if (
+        client.user
+        and hasattr(client, "http")
+        and hasattr(client.http, "_session")
+        and client.http._session
+      ):
         for cookie in client.http._session.cookie_jar:
           cookies[cookie.key] = cookie.value
 
-      if not cookies:
-        logger.warning("No cookies found. Launching without auto-login.")
+      return cookies
 
-    except BaseException as e:
-      # Catch-all for login failures, including BaseExceptionGroup from TaskGroup
-      import sys
-      import traceback
-
-      error_msg = f"Login failed (handled): {e!r}"
-      logger.error(error_msg)
-
-      print(error_msg, file=sys.stderr)
-      traceback.print_exc(file=sys.stderr)
-
-      if sys.version_info >= (3, 11) and isinstance(e, BaseExceptionGroup):
-        for i, sub_exc in enumerate(e.exceptions):
-          print(f"Sub-exception {i + 1}: {sub_exc}", file=sys.stderr)
-          traceback.print_exception(
-            type(sub_exc), sub_exc, sub_exc.__traceback__, file=sys.stderr
-          )
-
+    except asyncio.TimeoutError:
+      logger.warning("Steam login timed out!")
+      return None
+    except Exception as e:
+      logger.error(f"Login failed: {e}")
+      return None
     finally:
       await client.close()
 
-    steam_id = client.user.id if client.user else None
+  @staticmethod
+  async def launch_browser(
+    account: Account, settings_service: SettingsService | None = None
+  ) -> Tuple[bool, str]:
+    if settings_service is None:
+      settings_service = SettingsService()
+    extension_ids = settings_service.user.extension_ids
+    steam_id = account.steam_id
+
+    cookies = BrowserService._get_cookies_from_cache(account)
+
+    if not cookies:
+      cookies = await BrowserService._login_and_get_cookies(
+        account, settings_service
+      )
+      # Если логинились через клиент, у нас может быть более точный steam_id,
+      # но он в целом совпадает с account.steam_id, если тот верен.
+      # Оставим пока account.steam_id как основной источник.
+
+    if not cookies:
+      logger.warning(
+        "No cookies found/generated. Launching without auto-login."
+      )
+
     return await asyncio.to_thread(
-      BrowserService._launch_chrome_sync, cookies, steam_id
+      BrowserService._launch_chrome_sync, cookies, steam_id, extension_ids
     )
 
   @staticmethod
+  def _download_and_unpack_extension(extension_id: str) -> str | None:
+    """Скачивает и распаковывает расширение по ID из Chrome Web Store."""
+    ext_dir = Path("data/extensions")
+    ext_dir.mkdir(parents=True, exist_ok=True)
+
+    crx_path = ext_dir / f"{extension_id}.crx"
+    unpacked_path = ext_dir / f"{extension_id}_unpacked"
+
+    if unpacked_path.exists() and any(unpacked_path.iterdir()):
+      logger.info(
+        f"Extension {extension_id} already unpacked at {unpacked_path}"
+      )
+      return str(unpacked_path.absolute())
+
+    if not crx_path.exists():
+      logger.info(
+        f"Downloading extension {extension_id} from Chrome Web Store..."
+      )
+      try:
+        url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion=132.0&acceptformat=crx2,crx3&x=id%3D{extension_id}%26uc"
+        response = requests.get(url, allow_redirects=True, timeout=30)
+        if response.status_code == 200:
+          with open(crx_path, "wb") as f:
+            f.write(response.content)
+          size = crx_path.stat().st_size
+          logger.info(f"Extension downloaded. Size: {size} bytes.")
+          if size < 1024:
+            logger.warning("File too small, deleting.")
+            crx_path.unlink()
+            return None
+        else:
+          logger.warning(f"Download failed: {response.status_code}")
+          return None
+      except Exception as e:
+        logger.warning(f"Error downloading: {e}")
+        return None
+
+    logger.info(f"Unpacking extension {extension_id}...")
+    try:
+      unpacked_path.mkdir(exist_ok=True)
+      try:
+        with zipfile.ZipFile(crx_path, "r") as zip_ref:
+          zip_ref.extractall(unpacked_path)
+        logger.info("Unzip successful.")
+      except zipfile.BadZipFile:
+        logger.warning("Standard unzip failed (CRX header?), trying skip...")
+        with open(crx_path, "rb") as f:
+          data = f.read()
+          pos = data.find(b"PK\x03\x04")
+          if pos > -1:
+            with zipfile.ZipFile(io.BytesIO(data[pos:]), "r") as zip_ref:
+              zip_ref.extractall(unpacked_path)
+            logger.info("Unzip successful after skipping header.")
+          else:
+            logger.error("Could not find zip header in CRX.")
+            return None
+
+      if (unpacked_path / "_metadata").exists():
+        import shutil
+
+        shutil.rmtree(unpacked_path / "_metadata")
+        logger.info("Removed _metadata folder.")
+
+      return str(unpacked_path.absolute())
+    except Exception as e:
+      logger.error(f"Failed to unpack extension: {e}")
+      return None
+
+  @staticmethod
+  def _install_extensions(
+    driver: webdriver.Chrome, extension_ids: List[str]
+  ) -> None:
+    """Устанавливает расширения по списку ID."""
+    for ext_id in extension_ids:
+      ext_path_str = BrowserService._download_and_unpack_extension(ext_id)
+      if ext_path_str:
+        ext_path = Path(ext_path_str)
+        if (ext_path / "manifest.json").exists():
+          try:
+            logger.info(f"Installing extension {ext_id} from: {ext_path}")
+            extension_result = driver.webextension.install(path=ext_path_str)
+            logger.info(f"Extension {ext_id} installed: {extension_result}")
+          except Exception as e:
+            logger.error(f"Failed to install extension {ext_id}: {e}")
+        else:
+          logger.warning(
+            f"Manifest not found for extension {ext_id} at {ext_path}"
+          )
+      else:
+        logger.warning(f"Failed to download/unpack extension {ext_id}")
+
+  @staticmethod
   def _launch_chrome_sync(
-    cookies: dict, steam_id: int | None
+    cookies: dict, steam_id: int | None, extension_ids: List[str] | None = None
   ) -> Tuple[bool, str]:
     """Синхронный запуск Selenium (должен выполняться в отдельном потоке)"""
     try:
@@ -104,8 +246,19 @@ class BrowserService:
       chrome_options.add_experimental_option("detach", True)
       chrome_options.add_argument("--log-level=3")
 
+      chrome_options.enable_bidi = True
+      chrome_options.add_argument("--remote-debugging-pipe")
+      chrome_options.add_argument("--enable-unsafe-extension-debugging")
+      chrome_options.add_argument("--remote-allow-origins=*")
+
       service = Service(ChromeDriverManager().install())
       driver = webdriver.Chrome(service=service, options=chrome_options)
+
+      if extension_ids:
+        BrowserService._install_extensions(driver, extension_ids)
+      else:
+        default_ext_id = "cmeakgjggjdlcpncigglobpjbkabhmjl"
+        BrowserService._install_extensions(driver, [default_ext_id])
 
       if cookies:
         logger.info(f"Injecting {len(cookies)} cookies via CDP...")
@@ -140,7 +293,6 @@ class BrowserService:
             logger.warning(f"CDP error (store): {e}")
 
         target_url = "https://steamcommunity.com/my/profile"
-
         driver.get(target_url)
         return True, "Браузер запущен (Авторизован)"
       else:

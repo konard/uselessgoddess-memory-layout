@@ -137,6 +137,16 @@ class AccountMetadata:
     if self._lock:
       self._lock.set_field(self._login, "status", value)
 
+  @property
+  def access_token_info(self) -> Dict[str, Any] | None:
+    return self._data.get("access_token_info")
+
+  @access_token_info.setter
+  def access_token_info(self, value: Dict[str, Any]) -> None:
+    self._data["access_token_info"] = value
+    if self._lock:
+      self._lock.set_field(self._login, "access_token_info", value)
+
   def get(self, field_name: str, default: Any = None) -> Any:
     return self._data.get(field_name, default)
 

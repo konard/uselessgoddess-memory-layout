@@ -108,6 +108,8 @@ def steam_login(
 
   last_log_time = time.time()
 
+  found_qr = None
+
   while True:
     steam_web_helper_limiter.limit_steam_web_helper(
       force_close=True,
@@ -144,7 +146,7 @@ def steam_login(
         "img/asf_farming.png", ZeroPosAccount(), 0.9, True, True
       )
 
-    if WindowService.window_exists(login_window_title):
+    if WindowService.window_exists(login_window_title) and found_qr is None:
       found_qr = wait_qr(login, timeout=5)
 
       if found_qr:

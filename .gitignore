@@ -77,6 +77,7 @@ main.dist/*
 # Packed resources
 src/resources.py
 data/dataset
+data/extensions/*
 
 *.exe
 /*.dist

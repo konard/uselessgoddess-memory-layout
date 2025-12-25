@@ -83,6 +83,10 @@ class UserSettings(Settings):
 
   collect_available_steam_games_on_login: bool = False
 
+  extension_ids: List[str] = field(
+    default_factory=lambda: ["cmeakgjggjdlcpncigglobpjbkabhmjl"]
+  )
+
   # farm settings
   match_mode: MatchMode = MatchMode.TIE
   times_to_shuffle: int = 3

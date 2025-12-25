@@ -426,7 +426,9 @@ class AccountsTable(QWidget):
       try:
         from core.services.browser import BrowserService
 
-        success, msg = await BrowserService.launch_browser(account)
+        success, msg = await BrowserService.launch_browser(
+          account, self.ctx.settings
+        )
 
         if not success:
           QMessageBox.warning(self, "Ошибка запуска", str(msg))
