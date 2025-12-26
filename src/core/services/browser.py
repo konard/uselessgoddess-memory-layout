@@ -20,22 +20,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
+from utils.client_login_wrapper import client_login_wrapper
+from utils.is_jwt_valid import is_jwt_valid
+
 logger = get_logger("browser")
 
 
 class BrowserService:
-  @staticmethod
-  def _is_token_valid(token: str) -> bool:
-    try:
-      parts = token.split(".")
-      if len(parts) != 3:
-        return False
-      payload = parts[1]
-      payload += "=" * (-len(payload) % 4)
-      data = json.loads(base64.urlsafe_b64decode(payload))
-      return data.get("exp", 0) > (time.time() + 300)
-    except Exception:
-      return False
+  drivers = []  # Keep references to prevent Garbage Collection closure
 
   @staticmethod
   def _get_cookies_from_cache(account: Account) -> dict | None:
@@ -44,7 +36,7 @@ class BrowserService:
       if (
         token_info
         and account.steam_id
-        and BrowserService._is_token_valid(token_info.get("token", ""))
+        and is_jwt_valid(token_info.get("token", ""))
       ):
         logger.info(f"Using cached access token for {account.login}")
         token = token_info["token"]
@@ -59,21 +51,16 @@ class BrowserService:
     return None
 
   @staticmethod
-  async def _login_and_get_cookies(
-    account: Account, settings_service: SettingsService | None
-  ) -> dict | None:
+  async def _login_and_get_cookies(account: Account) -> dict | None:
     client = Client()
     cookies = {}
+
+    login_task = asyncio.create_task(client_login_wrapper(client, account))
+
     try:
       logger.info(f"Logging in to Steam as {account.login}...")
-      await asyncio.wait_for(
-        client.login(
-          username=account.login,
-          password=account.password,
-          shared_secret=account.shared_secret,
-        ),
-        timeout=15.0,
-      )
+
+      await asyncio.wait_for(login_task, timeout=15.0)
 
       if client.user.id64 and client._state.ws:
         try:
@@ -106,13 +93,12 @@ class BrowserService:
 
       return cookies
 
-    except asyncio.TimeoutError:
-      logger.warning("Steam login timed out!")
-      return None
     except Exception as e:
       logger.error(f"Login failed: {e}")
       return None
     finally:
+      if not login_task.done():
+        login_task.cancel()
       await client.close()
 
   @staticmethod
@@ -127,12 +113,7 @@ class BrowserService:
     cookies = BrowserService._get_cookies_from_cache(account)
 
     if not cookies:
-      cookies = await BrowserService._login_and_get_cookies(
-        account, settings_service
-      )
-      # Если логинились через клиент, у нас может быть более точный steam_id,
-      # но он в целом совпадает с account.steam_id, если тот верен.
-      # Оставим пока account.steam_id как основной источник.
+      cookies = await BrowserService._login_and_get_cookies(account)
 
     if not cookies:
       logger.warning(
@@ -246,13 +227,22 @@ class BrowserService:
       chrome_options.add_experimental_option("detach", True)
       chrome_options.add_argument("--log-level=3")
 
-      chrome_options.enable_bidi = True
-      chrome_options.add_argument("--remote-debugging-pipe")
-      chrome_options.add_argument("--enable-unsafe-extension-debugging")
-      chrome_options.add_argument("--remote-allow-origins=*")
+      chrome_options.enable_bidi = False
 
-      service = Service(ChromeDriverManager().install())
+      chrome_options.add_argument("--no-sandbox")
+      chrome_options.add_argument("--disable-dev-shm-usage")
+      chrome_options.add_argument("--remote-allow-origins=*")
+      chrome_options.add_argument("--enable-unsafe-extension-debugging")
+
+      service = Service(
+        ChromeDriverManager().install(),
+        log_output="chromedriver.log",
+        service_args=["--verbose"],
+      )
       driver = webdriver.Chrome(service=service, options=chrome_options)
+
+      # Keep reference to prevent Garbage Collection closure
+      BrowserService.drivers.append(driver)
 
       if extension_ids:
         BrowserService._install_extensions(driver, extension_ids)

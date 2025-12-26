@@ -10,6 +10,7 @@ import pyperclip
 import sys
 
 import io
+from core.account.model import Account
 from core.services.cs_controller import CS2Controller, ZeroPosAccount
 import resources
 
@@ -86,12 +87,10 @@ def generate_2fa_code(shared_secret: str) -> str:
 
 
 def steam_login(
-  login: str,
-  password: str,
-  shared_secret: str,
+  account: Account,
   settings: UserSettings,
 ):
-  args = build_runner_launch_args(login, settings)
+  args = build_runner_launch_args(account.login, settings)
 
   proc = subprocess.Popen(
     args,
@@ -100,11 +99,13 @@ def steam_login(
     close_fds=True,
   )
 
-  logger.debug(f"[{login}] Process started. Entering monitoring loop...")
+  logger.debug(
+    f"[{account.login}] Process started. Entering monitoring loop..."
+  )
 
   login_window_title = "Войти в Steam"
   game_window_title = "Counter-Strike 2"
-  renamed_game_title = f"[{login}] # CS"
+  renamed_game_title = f"[{account.login}] # CS"
 
   last_log_time = time.time()
 
@@ -123,18 +124,20 @@ def steam_login(
 
     if proc.poll() is not None and proc.returncode != 0:
       logger.error(
-        f"[{login}] Process crashed/closed with code {proc.returncode}"
+        f"[{account.login}] Process crashed/closed with code {proc.returncode}"
       )
       break
 
     if WindowService.window_exists(game_window_title):
       logger.info(
-        f"[{login}] Game window '{game_window_title}' detected! Success."
+        f"[{account.login}] Game window '{game_window_title}' detected! Success."
       )
       return proc.pid
 
     if WindowService.window_exists(renamed_game_title):
-      logger.info(f"[{login}] Renamed game window detected. Already running.")
+      logger.info(
+        f"[{account.login}] Renamed game window detected. Already running."
+      )
       return proc.pid
 
     if WindowService.window_exists("Steam"):
@@ -147,21 +150,23 @@ def steam_login(
       )
 
     if WindowService.window_exists(login_window_title) and found_qr is None:
-      found_qr = wait_qr(login, timeout=5)
+      found_qr = wait_qr(account.login, timeout=5)
 
       if found_qr:
-        logger.info(f"[{login}] Valid QR found. Attempting login sequence...")
-        if _perform_login_with_qr_url(
-          login, password, shared_secret, settings, found_qr
-        ):
-          logger.info(f"[{login}] Login submitted.")
+        logger.info(
+          f"[{account.login}] Valid QR found. Attempting login sequence..."
+        )
+        if _perform_login_with_qr_url(account, settings, found_qr):
+          logger.info(f"[{account.login}] Login submitted.")
         else:
-          logger.warn(f"[{login}] Login attempt failed, retrying loop...")
+          logger.warn(
+            f"[{account.login}] Login attempt failed, retrying loop..."
+          )
       else:
         pass
 
     if time.time() - last_log_time > 30:
-      logger.debug(f"[{login}] Waiting for Game Window...")
+      logger.debug(f"[{account.login}] Waiting for Game Window...")
       last_log_time = time.time()
 
     time.sleep(1)
@@ -169,14 +174,12 @@ def steam_login(
   return proc.pid
 
 
-def _perform_login_with_qr_url(
-  login, password, shared_secret, settings, qr_url
-):
+def _perform_login_with_qr_url(account: Account, settings, qr_url):
   loop = asyncio.ProactorEventLoop()
   asyncio.set_event_loop(loop)
   try:
     return loop.run_until_complete(
-      _async_login_qr(login, password, shared_secret, settings, qr_url, loop)
+      _async_login_qr(account, settings, qr_url, loop)
     )
   except Exception as e:
     logger.error(f"Login error: {e}")
@@ -246,13 +249,15 @@ class QRLogin(Client):
       await self.close()
 
 
-async def _async_login_qr(
-  login, password, shared_secret, settings, qr_url, loop
-):
+async def _async_login_qr(account: Account, settings, qr_url, loop):
   client = QRLogin(qr_url, settings)
 
   login_task = loop.create_task(
-    client.login(username=login, password=password, shared_secret=shared_secret)
+    client.login(
+      username=account.login,
+      password=account.password,
+      shared_secret=account.shared_secret,
+    )
   )
 
   try:

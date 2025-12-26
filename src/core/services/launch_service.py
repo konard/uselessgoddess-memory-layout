@@ -31,9 +31,7 @@ class LaunchService:
       logger.debug(f"start account login {account.login}")
 
       steam_login(
-        login=account.login,
-        password=account.password,
-        shared_secret=account.shared_secret,
+        account=account,
         settings=settings,
       )
       logger.debug(f"account logged in {account.login}")

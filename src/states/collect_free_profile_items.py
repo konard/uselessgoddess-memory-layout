@@ -17,6 +17,8 @@ from steam import Client, enums
 from core.services.api.api_controller import api_controller
 from steam.protobufs import loyalty_rewards
 
+from utils.client_login_wrapper import client_login_wrapper
+
 logger = get_logger("state.collect_free_profile_items")
 
 
@@ -89,26 +91,8 @@ class CollectFreeProfileItems(State):
     print(items)
     for account in self.accounts:
       client = FreeProfileItemsClient(items)
-
-      login_data = None
-      if account.lock.refresh_token:
-        login_data = {
-          "username": account.login,
-          "refresh_token": account.lock.refresh_token,
-        }
-      else:
-        login_data = {
-          "username": account.login,
-          "password": account.password,
-          "shared_secret": account.shared_secret,
-        }
-
       try:
-        login_task = asyncio.create_task(
-          client.login(
-            **login_data,
-          )
-        )
+        login_task = asyncio.create_task(client_login_wrapper(client, account))
 
         done, pending = await asyncio.wait(
           [login_task, client.completion],

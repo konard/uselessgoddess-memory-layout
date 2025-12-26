@@ -13,6 +13,7 @@ from core.account import Account
 from core.logging import get_logger
 import states
 from ui.widgets import Label, Progress
+from utils.client_login_wrapper import client_login_wrapper
 
 logger = get_logger("state.trade")
 
@@ -103,19 +104,10 @@ async def process_trade(
   print("processing trade")
   send_trade_client = ScanInventory(trade_url, account)
 
-  login_data = {
-    "username": account.login,
-    "password": account.password,
-    "shared_secret": account.shared_secret,
-  }
-
   try:
     print("logging in")
     login_task = asyncio.create_task(
-      send_trade_client.login(
-        **login_data,
-        identity_secret=account.identity_secret,
-      )
+      client_login_wrapper(send_trade_client, account)
     )
 
     print("waiting for login")

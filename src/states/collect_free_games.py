@@ -12,6 +12,7 @@ from core.services.api.free_fames_response import FreeGamesResponse
 import states
 from steam import Client
 from core.services.api.api_controller import api_controller
+from utils.client_login_wrapper import client_login_wrapper
 
 logger = get_logger("state.collect_free_games")
 
@@ -73,17 +74,9 @@ class CollectFreeGames(State):
     for account in self.accounts:
       client = FreeGamesClient(free_games)
 
-      login_data = {
-        "username": account.login,
-        "password": account.password,
-        "shared_secret": account.shared_secret,
-      }
-
       try:
         login_task = asyncio.create_task(
-          client.login(
-            **login_data,
-          )
+          client_login_wrapper(client, account),
         )
 
         done, pending = await asyncio.wait(

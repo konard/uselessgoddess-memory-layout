@@ -19,6 +19,8 @@ from steam.ext.csgo.price_analizator.assembler import (
 )
 from pathlib import Path
 
+from utils.client_login_wrapper import client_login_wrapper
+
 logger = get_logger("state.loot")
 
 prices = json.load(open("data/price.json", "r", encoding="utf-8"))
@@ -81,25 +83,9 @@ class ClaimDrop(csgo.Client):
 async def claim_drop(account: Account):
   loot_client = ClaimDrop(account)
 
-  login_data = None
-  if account.lock.refresh_token:
-    login_data = {
-      "username": account.login,
-      "refresh_token": account.lock.refresh_token,
-    }
-  else:
-    login_data = {
-      "username": account.login,
-      "password": account.password,
-      "shared_secret": account.shared_secret,
-    }
-
   try:
     login_task = asyncio.create_task(
-      loot_client.login(
-        **login_data,
-        identity_secret=account.identity_secret,
-      )
+      client_login_wrapper(loot_client, account),
     )
 
     done, pending = await asyncio.wait(
@@ -128,8 +114,7 @@ async def claim_drop(account: Account):
     logger.error(traceback.format_exc())
 
   finally:
-    if loot_client.is_ready():
-      await loot_client.close()
+    await loot_client.close()
     await asyncio.sleep(2)
 
 
