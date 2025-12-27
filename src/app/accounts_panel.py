@@ -21,15 +21,19 @@ from PyQt6.QtWidgets import (
   QAbstractItemView,
   QToolButton,
   QComboBox,
+  QMenu,
+  QApplication,
+  QToolTip,
 )
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QColor, QBrush, QCursor, QIcon, QPainter
+from PyQt6.QtGui import QColor, QBrush, QCursor, QIcon, QPainter, QAction
 
 from ui.theme import CURRENT_THEME, ButtonType
 from ui.widgets import Button, Switch, Tooltip
 from core.context import Context
 from core.account.model import FarmStatus
 from core.services.presets import Preset
+from core.services.steam_login import generate_2fa_code
 from app.import_dialog import ImportAccountsDialog
 
 
@@ -40,6 +44,78 @@ enum_to_color = {
   FarmStatus.TRADED: CURRENT_THEME.ACCENT_BLUE,
   FarmStatus.BLOCKED: CURRENT_THEME.ACCENT_ORANGE,
 }
+
+
+class AccountLoginLabel(QLabel):
+  def __init__(self, account, parent=None):
+    super().__init__(account.login, parent)
+    self.account = account
+    self.setCursor(Qt.CursorShape.PointingHandCursor)
+    self.setToolTip("ЛКМ: Копировать 2FA | ПКМ: Меню")
+    self.setStyleSheet(
+      f"font-weight: bold; color: {CURRENT_THEME.PRIMARY_TEXT};"
+    )
+
+  def mousePressEvent(self, event):
+    if event.button() == Qt.MouseButton.LeftButton:
+      self._copy_2fa()
+    super().mousePressEvent(event)
+
+  def contextMenuEvent(self, event):
+    menu = QMenu(self)
+    menu.setStyleSheet(f"""
+        QMenu {{
+            background-color: {CURRENT_THEME.PANEL_BACKGROUND};
+            color: {CURRENT_THEME.PRIMARY_TEXT};
+            border: 1px solid {CURRENT_THEME.BORDER};
+        }}
+        QMenu::item {{
+            padding: 5px 20px;
+        }}
+        QMenu::item:selected {{
+            background-color: {CURRENT_THEME.ACCENT_BLUE};
+        }}
+    """)
+
+    action_2fa = QAction("Копировать 2FA", self)
+    action_2fa.triggered.connect(self._copy_2fa)
+    menu.addAction(action_2fa)
+
+    menu.addSeparator()
+
+    action_login = QAction("Копировать Логин", self)
+    action_login.triggered.connect(self._copy_login)
+    menu.addAction(action_login)
+
+    action_pass = QAction("Копировать Пароль", self)
+    action_pass.triggered.connect(self._copy_password)
+    menu.addAction(action_pass)
+
+    menu.exec(event.globalPos())
+
+  def _copy_2fa(self):
+    try:
+      if not self.account.shared_secret:
+        QToolTip.showText(QCursor.pos(), "Нет shared_secret!", self)
+        return
+
+      code = generate_2fa_code(self.account.shared_secret)
+      QApplication.clipboard().setText(code)
+
+      # Показываем тултип прямо у курсора
+      QToolTip.showText(QCursor.pos(), f"2FA: {code} (Скопировано)", self)
+
+    except Exception as e:
+      print(f"Error generating 2FA: {e}")
+      QToolTip.showText(QCursor.pos(), "Ошибка генерации 2FA", self)
+
+  def _copy_login(self):
+    QApplication.clipboard().setText(self.account.login)
+    QToolTip.showText(QCursor.pos(), "Логин скопирован", self)
+
+  def _copy_password(self):
+    QApplication.clipboard().setText(self.account.password)
+    QToolTip.showText(QCursor.pos(), "Пароль скопирован", self)
 
 
 class AccountSelectionDialog(QDialog):
@@ -339,10 +415,7 @@ class AccountsTable(QWidget):
         lambda checked, login=acc.login: self.ctx.ui.toggle(login, checked)
       )
 
-      login_label = QLabel(acc.login)
-      login_label.setStyleSheet(
-        f"font-weight: bold; color: {CURRENT_THEME.PRIMARY_TEXT};"
-      )
+      login_label = AccountLoginLabel(acc)
 
       cell_widget.switch = switch
       cell_widget.login_label = login_label
