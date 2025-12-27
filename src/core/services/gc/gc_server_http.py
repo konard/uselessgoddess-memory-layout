@@ -24,9 +24,9 @@ async def start_gc_server(gc_service: GCService):
 
       data = await request.body()
 
-      logger.trace(
-        f"<recv> gc message: [{msg_id}]; {client_name} {filename} ({len(data)} bytes)"
-      )
+      # logger.trace(
+      #   f"<recv> gc message: [{msg_id}]; {client_name} {filename} ({len(data)} bytes)"
+      # )
 
       if IS_DEV_MODE and data and len(data) > 0:
         try:

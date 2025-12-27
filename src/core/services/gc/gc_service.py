@@ -31,7 +31,7 @@ class GCService:
     return all(account.login in self.connected_accounts for account in accounts)
 
   def process_message(self, data: bytes, msg_id: int, login: str):
-    logger.trace(f"<recv> raw msg_id: {msg_id} -> {login}")
+    # logger.trace(f"<recv> raw msg_id: {msg_id} -> {login}")
 
     if login not in self.connected_accounts:
       self.connected_accounts.add(login)
