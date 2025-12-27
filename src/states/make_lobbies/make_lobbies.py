@@ -6,7 +6,6 @@ from core.context import Context
 from core.logging import get_logger
 from core.services.cs_controller import CS2Controller
 from core.services.gc.lobby_service import EventNames
-from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
 from core import game_constants
 from states.select_accounts import SelectAccounts
@@ -16,12 +15,6 @@ from .generate_party_schema import generate_party_schema
 from ui.widgets import Progress
 
 logger = get_logger("state.farm")
-
-
-farm_mode_size = {
-  FarmMode.TWO_BY_TWO: 4,
-  FarmMode.FIVE_BY_FIVE: 10,
-}
 
 
 class MakeLobbies(State):
@@ -57,9 +50,6 @@ class MakeLobbies(State):
 
     launched_accounts = WindowService.scan_cs2_windows(ctx.accounts())
     farm_mode = ctx.settings.system.farm_mode
-
-    if farm_mode_size.get(farm_mode) != len(launched_accounts):
-      return SelectAccounts(farm_mode_size[farm_mode]).then(self)
 
     try:
       if self.party_schema is None:

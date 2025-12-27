@@ -3,6 +3,7 @@ import random
 from core.panel.state import State
 from core.context import Context
 from core.logging import get_logger
+from core.process_config import ConfigService
 from core.services.settings import FarmMode
 from core.account.model import FarmStatus
 from states.trade import process_trade
@@ -20,8 +21,11 @@ class StartUnfarmed(State):
   async def execute(self, ctx: Context):
     accounts = [account for party in self.game_schema for account in party.all]
 
+    config_service = ConfigService(ctx)
     for account in accounts:
       account.stop_account(ctx.su)
+
+      config_service.delete_video_config(account.steam_id)
 
     await asyncio.sleep(5)
 

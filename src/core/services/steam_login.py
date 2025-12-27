@@ -34,15 +34,21 @@ logger = get_logger("sv.launch")
 
 
 def build_runner_launch_args(login: str, settings: UserSettings):
-  runner_args = [
-    "cs2_runner.exe",
-    "--steamPath",
-    settings.steam_path,
-    "--login",
-    login,
-    "--hook_dll",
-    f"{os.getcwd()}/data/NetHook2.dll",
-  ]
+  runner_args = ["cs2_runner.exe"]
+
+  runner_args.extend(
+    [
+      "--steamPath",
+      settings.steam_path,
+      "--login",
+      login,
+      "--hook_dll",
+      f"{os.getcwd()}/data/NetHook2.dll",
+    ]
+  )
+
+  if settings.use_experimental_launch:
+    runner_args.append("--experimental")
 
   if settings.use_sandbox:
     sb_service = SandboxieService()
@@ -232,12 +238,6 @@ class QRLogin(Client):
 
   async def on_login(self):
     try:
-      # if self.settings.collect_available_steam_games_on_login:
-      #   owned_games = await self.user.games()
-      #   game_ids: FreeGamesResponse = await api_controller.get(
-      #     "/api/cache/steam/free-games"
-      #   )
-      #   game_ids = filter(lambda x: x.app_id not in owned_games, game_ids)
       await self.approve_qr_login(self.qr_url)
       if not self.completion.done():
         self.completion.set_result(True)

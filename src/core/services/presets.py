@@ -10,6 +10,7 @@ from utils.name_generator import generate_preset_name
 if TYPE_CHECKING:
   from core.context import Context
   from states.types import GameSchema
+  from core.services.settings import FarmMode
 
 logger = get_logger("sv.presets")
 
@@ -272,3 +273,37 @@ class PresetsService:
 
   def get_all_presets(self) -> List[Preset]:
     return list(self.presets.values())
+
+  def find_similar_preset_missing_account(
+    self, launched_logins: List[str], ctx: "Context"
+  ) -> Optional[str]:
+    from core.services.settings import FarmMode
+
+    farm_mode = ctx.settings.system.farm_mode
+    required_count = 4 if farm_mode == FarmMode.TWO_BY_TWO else 10
+    threshold = 3 if farm_mode == FarmMode.TWO_BY_TWO else 9
+
+    launched_set = set(launched_logins)
+
+    for preset in self.presets.values():
+      if preset.has_error or not preset.is_valid:
+        continue
+
+      if len(preset.accounts) != required_count:
+        continue
+
+      preset_set = set(preset.accounts)
+      intersection = preset_set & launched_set
+      missing = preset_set - launched_set
+
+      if len(intersection) == threshold and len(missing) == 1:
+        missing_login = list(missing)[0]
+        if missing_login in ctx.account.accounts:
+          account = ctx.account.accounts[missing_login]
+          if account.lock.status == FarmStatus.NEED_TO_FARM:
+            logger.info(
+              f"Found similar preset '{preset.name}' with {threshold}/{required_count} accounts, missing: {missing_login}"
+            )
+            return missing_login
+
+    return None

@@ -13,7 +13,7 @@ from core.services.cs_controller import CS2Controller
 from core.services.settings import UserSettings
 from core.services.windows_service import WindowService
 from core import game_constants
-from utils import steam_web_helper_limiter
+from utils import cs2_terminator, steam_web_helper_limiter
 from .steam_login import steam_login
 
 logger = get_logger("launch")
@@ -164,6 +164,8 @@ class LaunchService:
       CS2Controller.click_if_exists("img/close.png", running_account, 0.9, True)
 
       time.sleep(0.5)
+
+      cs2_terminator.close_cs2_mutex()
 
       return running_account
 

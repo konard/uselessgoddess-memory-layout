@@ -1,4 +1,13 @@
 # TODO: move to ХЗ КУДА
+from core.services.settings import FarmMode
+
+
+farm_mode_size = {
+  FarmMode.TWO_BY_TWO: 4,
+  FarmMode.FIVE_BY_FIVE: 10,
+}
+
+
 invite_friend = {"x": 353, "y": 9}
 friend_code_input = {"x": 153, "y": 131}
 result_button = {"x": 168, "y": 136}

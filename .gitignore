@@ -78,6 +78,7 @@ main.dist/*
 src/resources.py
 data/dataset
 data/extensions/*
+data/sandboxes/*
 
 *.exe
 /*.dist

@@ -26,6 +26,7 @@ DATA_DIR = Path("data")
 YACS_CFG_SRC = DATA_DIR / "yacs.cfg"
 GSI_CFG_SRC = DATA_DIR / "gamestate_integration.cfg"
 VIDEO_TEMPLATE_PATH = DATA_DIR / "video.txt"
+CS2_MACHINE_CONVARS_SRC = DATA_DIR / "cs2_machine_convars.vcfg"
 
 # Константы для работы с hosts файлом
 HOSTS_PATH = Path(r"C:\Windows\System32\drivers\etc\hosts")
@@ -84,9 +85,22 @@ class ConfigService:
     if template_kv is None:
       return
 
+    self._copy_file_if_exists(
+      CS2_MACHINE_CONVARS_SRC,
+      target_cfg_dir / "cs2_machine_convars.vcfg",
+      "cs2_machine_convars.vcfg",
+    )
     current_kv = self._load_current_video_config(target_cfg_dir)
     merged_kv = self._merge_video_configs(current_kv, template_kv)
     self._save_video_config(target_cfg_dir, merged_kv, steam_id)
+
+  def delete_video_config(self, steam_id: str) -> None:
+    userdata_dir = self._find_userdata_dir()
+    target_cfg_dir = self._ensure_cfg_directory(userdata_dir, steam_id)
+    if target_cfg_dir is None:
+      return
+    if target_cfg_dir.exists():
+      shutil.rmtree(target_cfg_dir)
 
   def _copy_config_files(self, cfg_dir: Path) -> None:
     """Копирует конфигурационные файлы в директорию CS2."""
@@ -181,12 +195,14 @@ class ConfigService:
     self, cfg_dir: Path, config: Dict[str, str], steam_id: str
   ) -> None:
     """Сохраняет видео конфигурацию в файл."""
-    target_video = cfg_dir / "video.txt"
+    target_video = cfg_dir / "cs2_video.txt"
     try:
       target_video.write_text(_render_video_kv(config), encoding="utf-8")
-      logger.debug(f"Применена video.txt steam_id={steam_id}: {target_video}")
+      logger.debug(
+        f"Применена cs2_video.txt steam_id={steam_id}: {target_video}"
+      )
     except Exception:
-      logger.exception(f"Не удалось записать video.txt: {target_video}")
+      logger.exception(f"Не удалось записать cs2_video.txt: {target_video}")
 
   def block_steam_store(self) -> bool:
     """Добавляет блокировку store.steampowered.com в файл hosts."""
