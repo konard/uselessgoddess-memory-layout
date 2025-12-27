@@ -8,8 +8,6 @@ import core
 from core.logging import get_logger
 from .lock import AccountsLock
 
-from constants import SANDBOX_PATH
-
 logger = get_logger("account.model")
 
 
@@ -213,15 +211,5 @@ class RunningAccount(Account):
     if self.runner_pid > 0:
       ProcessService.kill_by_pid(self.runner_pid)
       return True
-
-    if settings.use_sandbox:
-      import os
-      from core.services.sandbox import SandboxieService
-
-      box_name = SandboxieService.sanitize_box_name(self.login)
-      ProcessService.kill_sandbox_box(
-        sandboxie_path=os.path.join(SANDBOX_PATH, "Start.exe"),
-        box_name=box_name,
-      )
 
     return False

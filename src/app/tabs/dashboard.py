@@ -79,7 +79,7 @@ class DashboardTab(QWidget):
 
     sw_sandbox = Switch(
       "Use NO-AVAST (EXPERIMENTAL)",
-      checked=user.use_sandbox,
+      checked=user.experimental_launch,
       active_color=CURRENT_THEME.ACCENT_BLUE,
     )
     sw_sandbox.toggled.connect(
@@ -163,18 +163,8 @@ class DashboardTab(QWidget):
     return panel
 
   def _on_sandbox_toggled(self, checked: bool, widget: Switch):
-    self.ctx.settings.user.use_sandbox = checked
+    self.ctx.settings.user.experimental_launch = checked
     self.ctx.settings.save(self.ctx.settings.user)
-
-    if checked and not self._sandbox_warned:
-      self._sandbox_warned = True
-      QMessageBox.warning(
-        self,
-        "Restart Required",
-        "You have enabled Sandbox Mode.\n\n"
-        "1. Make sure AVAST/Antivirus is DISABLED (NO AVAST).\n"
-        "2. Please RESTART the panel for driver changes to take effect.",
-      )
 
   def _on_match_mode_changed(self, index: int):
     new_mode = MatchMode.TIE if index == 0 else MatchMode.RANDOM
@@ -184,16 +174,6 @@ class DashboardTab(QWidget):
 
   def _kill_all_runners(self):
     ProcessService.kill_all_runners()
-
-    # TODO: use service from ctx to get path
-    import os
-    from constants import SANDBOX_PATH
-
-    if self.ctx.su.use_sandbox:
-      ProcessService.kill_sandboxie_processes(
-        os.path.join(SANDBOX_PATH, "Start.exe")
-      )
-
     asyncio.create_task(self.manager.into_state(states.Idle()))
 
   def _test_telegram(self):

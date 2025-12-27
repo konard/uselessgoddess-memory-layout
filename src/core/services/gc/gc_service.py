@@ -3,11 +3,13 @@ from core.account.model import Account
 from core.services.gc.lobby_service import LobbyService
 from core.services.gc.player_info_service import PlayerInfoService
 from core.services.gc.event_service import EventService
-
+from core.logging import get_logger
 
 if TYPE_CHECKING:
   from core.context import Context
   from core.panel import StateManager
+
+logger = get_logger("sv.gc")
 
 
 class GCService:
@@ -29,6 +31,8 @@ class GCService:
     return all(account.login in self.connected_accounts for account in accounts)
 
   def process_message(self, data: bytes, msg_id: int, login: str):
+    logger.trace(f"<recv> raw msg_id: {msg_id} -> {login}")
+
     if login not in self.connected_accounts:
       self.connected_accounts.add(login)
       return

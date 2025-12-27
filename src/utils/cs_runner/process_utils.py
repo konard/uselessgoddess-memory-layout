@@ -1,162 +1,118 @@
 import subprocess
 import os
 import time
-from typing import Set, List
+import ctypes
+from ctypes import wintypes
+from typing import Set, List, Tuple, Optional
+
+# --- WinAPI CONSTANTS & STRUCTURES ---
+TH32CS_SNAPPROCESS = 0x00000002
+
+
+class PROCESSENTRY32(ctypes.Structure):
+  _fields_ = [
+    ("dwSize", wintypes.DWORD),
+    ("cntUsage", wintypes.DWORD),
+    ("th32ProcessID", wintypes.DWORD),
+    ("th32DefaultHeapID", ctypes.c_void_p),
+    ("th32ModuleID", wintypes.DWORD),
+    ("cntThreads", wintypes.DWORD),
+    ("th32ParentProcessID", wintypes.DWORD),
+    ("pcPriClassBase", wintypes.LONG),
+    ("dwFlags", wintypes.DWORD),
+    ("szExeFile", ctypes.c_wchar * 260),
+  ]
+
+
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+CreateToolhelp32Snapshot = kernel32.CreateToolhelp32Snapshot
+CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+
+Process32First = kernel32.Process32FirstW
+Process32First.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32)]
+Process32First.restype = wintypes.BOOL
+
+Process32Next = kernel32.Process32NextW
+Process32Next.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESSENTRY32)]
+Process32Next.restype = wintypes.BOOL
+
+CloseHandle = kernel32.CloseHandle
+CloseHandle.argtypes = [wintypes.HANDLE]
+CloseHandle.restype = wintypes.BOOL
+
+
+def get_processes_fast() -> List[Tuple[int, str, int]]:
+  """
+  Получает список процессов (PID, Name, ParentPID) через WinAPI (быстро и без wmic).
+  """
+  processes = []
+  h_snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+
+  if h_snap == wintypes.HANDLE(-1).value:
+    return []
+
+  pe32 = PROCESSENTRY32()
+  pe32.dwSize = ctypes.sizeof(PROCESSENTRY32)
+
+  if Process32First(h_snap, ctypes.byref(pe32)):
+    while True:
+      processes.append(
+        (pe32.th32ProcessID, pe32.szExeFile, pe32.th32ParentProcessID)
+      )
+      if not Process32Next(h_snap, ctypes.byref(pe32)):
+        break
+
+  CloseHandle(h_snap)
+  return processes
+
+
+def get_process_parent_pid(pid: int) -> Optional[int]:
+  """
+  Возвращает Parent PID для указанного PID.
+  """
+  processes = get_processes_fast()
+  for p_pid, p_name, p_parent in processes:
+    if p_pid == pid:
+      return p_parent
+  return None
 
 
 def get_pids_by_name(process_name: str) -> Set[int]:
   pids = set()
   try:
-    cmd = [
-      "tasklist",
-      "/FI",
-      f"IMAGENAME eq {process_name}",
-      "/FO",
-      "CSV",
-      "/NH",
-    ]
-    result = subprocess.run(
-      cmd,
-      capture_output=True,
-      text=True,
-      encoding="oem",
-      creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-    )
-    for line in result.stdout.splitlines():
-      line = line.strip()
-      if not line:
-        continue
-      parts = line.split('","')
-      if len(parts) > 1:
-        try:
-          pid_str = parts[1].replace('"', "")
-          pids.add(int(pid_str))
-        except ValueError:
-          pass
+    processes = get_processes_fast()
+    for pid, name, ppid in processes:
+      if name.lower() == process_name.lower():
+        pids.add(pid)
   except Exception as e:
     print(f"Error getting PIDs for {process_name}: {e}")
   return pids
 
 
 def is_process_running(pid: int) -> bool:
-  try:
-    cmd = ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"]
-    result = subprocess.run(
-      cmd,
-      capture_output=True,
-      text=True,
-      encoding="oem",
-      creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-    )
-    return str(pid) in result.stdout
-  except Exception:
-    return False
-
-
-def get_child_processes_wmic(parent_pid: int) -> List[tuple]:
-  processes = []
-  try:
-    cmd = [
-      "wmic",
-      "process",
-      "get",
-      "ProcessId,Name,ParentProcessId",
-      "/format:csv",
-    ]
-    result = subprocess.run(
-      cmd,
-      capture_output=True,
-      text=True,
-      encoding="oem",
-      creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-    )
-    lines = result.stdout.strip().splitlines()
-    if not lines:
-      return []
-
-    header_idx = -1
-    for i, line in enumerate(lines):
-      if "ProcessId" in line and "Name" in line:
-        header_idx = i
-        break
-
-    if header_idx == -1:
-      return []
-
-    header = lines[header_idx].split(",")
-    pid_idx = -1
-    name_idx = -1
-    ppid_idx = -1
-
-    for i, col in enumerate(header):
-      col = col.strip()
-      if col == "ProcessId":
-        pid_idx = i
-      elif col == "Name":
-        name_idx = i
-      elif col == "ParentProcessId":
-        ppid_idx = i
-
-    if pid_idx == -1 or name_idx == -1 or ppid_idx == -1:
-      return []
-
-    for line in lines[header_idx + 1 :]:
-      parts = line.split(",")
-      if len(parts) <= max(pid_idx, name_idx, ppid_idx):
-        continue
-      try:
-        pid = int(parts[pid_idx])
-        name = parts[name_idx]
-        ppid = int(parts[ppid_idx])
-        processes.append((pid, name, ppid))
-      except ValueError:
-        continue
-  except Exception as e:
-    print(f"Error getting processes: {e}")
-  return processes
+  processes = get_processes_fast()
+  for p_pid, _, _ in processes:
+    if p_pid == pid:
+      return True
+  return False
 
 
 def find_child_processes_recursive(
-  parent_pid: int, all_processes: List[tuple]
-) -> List[tuple]:
-  """
-  Рекурсивно находит всех дочерних процессов
-
-  Args:
-      parent_pid: PID родительского процесса
-      all_processes: Список всех процессов (pid, name, parent_pid)
-
-  Returns:
-      Список дочерних процессов
-  """
+  parent_pid: int, all_processes: List[Tuple[int, str, int]]
+) -> List[Tuple[int, str, int]]:
   children = []
-
-  # Находим прямых детей
   direct_children = [p for p in all_processes if p[2] == parent_pid]
   children.extend(direct_children)
-
-  # Рекурсивно находим детей детей
   for child in direct_children:
     grandchildren = find_child_processes_recursive(child[0], all_processes)
     children.extend(grandchildren)
-
   return children
 
 
 def wait_for_child_processes(
   parent_pid: int, target_names: List[str] = None, timeout: int = 60
 ) -> List[int]:
-  """
-  Ждет появления дочерних процессов у родительского процесса
-
-  Args:
-      parent_pid: PID родительского процесса
-      target_names: Список имен процессов для поиска (например, ['cs2.exe'])
-      timeout: Максимальное время ожидания в секундах
-
-  Returns:
-      Список PID найденных дочерних процессов
-  """
   if target_names is None:
     target_names = ["cs2.exe", "csgo.exe"]
 
@@ -164,17 +120,14 @@ def wait_for_child_processes(
   found_pids = []
 
   print(f"Ожидаем дочерние процессы для PID {parent_pid}...")
-  print(f"Ищем процессы: {target_names}")
 
   while time.time() - start_time < timeout:
     try:
-      # Получаем все процессы
-      all_processes = get_child_processes_wmic(parent_pid)
+      all_processes = get_processes_fast()
       if not all_processes:
-        time.sleep(2)
+        time.sleep(1)
         continue
 
-      # Находим дочерние процессы
       children = find_child_processes_recursive(parent_pid, all_processes)
 
       for pid, name, ppid in children:
@@ -185,17 +138,12 @@ def wait_for_child_processes(
             print(f"Найден дочерний процесс: {name} (PID: {pid})")
 
       if found_pids:
-        print(f"Найдено {len(found_pids)} дочерних процессов: {found_pids}")
         return found_pids
 
-      if children:
-        # child_names = [f"{name}({pid})" for pid, name, ppid in children]
-        pass
-
     except Exception as e:
-      print(f"Ошибка при получении процессов: {e}")
+      print(f"Ошибка при поиске процессов: {e}")
 
-    time.sleep(2)
+    time.sleep(1.5)
 
   print(f"Тайм-аут ожидания дочерних процессов ({timeout}с)")
   return found_pids
@@ -209,8 +157,6 @@ def wait_for_window_visibility(pids: List[int], timeout: int = 60) -> bool:
   start_time = time.time()
 
   try:
-    import ctypes
-
     user32 = ctypes.windll.user32
     WNDENUMPROC = ctypes.WINFUNCTYPE(
       ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p
@@ -222,11 +168,12 @@ def wait_for_window_visibility(pids: List[int], timeout: int = 60) -> bool:
       def enum_cb(hwnd, _):
         nonlocal visible
         if user32.IsWindowVisible(hwnd):
-          pid = ctypes.c_ulong()
+          pid = wintypes.DWORD()
           user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
           if pid.value in pids:
-            length = user32.GetWindowTextLengthW(hwnd)
-            if length > 0:
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            if (rect.right - rect.left) > 0 and (rect.bottom - rect.top) > 0:
               visible = True
               return False
         return True

@@ -47,7 +47,7 @@ def build_runner():
     "nuitka",
     "--onefile",
     f"--output-filename={output_exe}",
-    "--windows-console-mode=disable",
+    "--windows-console-mode=force",
     "--jobs=12",
     str(runner_source),
   ]

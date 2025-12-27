@@ -14,4 +14,3 @@ IS_DEV_MODE = not IS_COMPILED
 CHECK_LICENSE = IS_COMPILED
 
 PROJECT_ROOT = utils.get_project_root()
-SANDBOX_PATH = os.path.join(PROJECT_ROOT, "data", "sandbox")

@@ -16,8 +16,6 @@ def build_cs2_launch_args(
   appid: str = "730",
   win_w: int = 360,
   win_h: int = 270,
-  sandboxie_path: str = None,
-  box_name: str = None,
 ) -> List[str]:
   steam_args = [
     steam_path,
@@ -62,16 +60,6 @@ def build_cs2_launch_args(
     "+r_dynamic",
     "0",
   ]
-
-  if sandboxie_path and box_name:
-    cmd = [
-      sandboxie_path,
-      f"/box:{box_name}",
-      "/silent",
-      steam_args[0],
-    ]
-    cmd.extend(steam_args[1:])
-    return cmd
 
   return steam_args
 

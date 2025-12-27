@@ -25,9 +25,8 @@ from core.services.settings import UserSettings
 from core.services.api.api_controller import api_controller
 from core.services.api.free_fames_response import FreeGamesResponse
 from core.services.windows_service import WindowService
-from core.services.sandbox import SandboxieService
 
-from constants import SANDBOX_PATH, PROJECT_ROOT
+from constants import PROJECT_ROOT
 from utils import steam_web_helper_limiter
 
 logger = get_logger("sv.launch")
@@ -47,26 +46,8 @@ def build_runner_launch_args(login: str, settings: UserSettings):
     ]
   )
 
-  if settings.use_experimental_launch:
+  if settings.experimental_launch:
     runner_args.append("--experimental")
-
-  if settings.use_sandbox:
-    sb_service = SandboxieService()
-    box_name = sb_service.sanitize_box_name(login)
-
-    logger.debug(f"Ensuring sandbox exists: {box_name}")
-    if not sb_service.create_box_if_not_exists(box_name):
-      logger.error(f"Failed to create sandbox for {login}. Running native.")
-    else:
-      logger.debug(f"Delegating Sandboxie launch to Runner: {box_name}")
-      runner_args.extend(
-        [
-          "--sandboxiePath",
-          os.path.join(SANDBOX_PATH, "Start.exe"),
-          "--box",
-          box_name,
-        ]
-      )
 
   logger.debug(f"Runner args: {runner_args}")
   return runner_args
