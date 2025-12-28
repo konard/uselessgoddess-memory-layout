@@ -61,7 +61,10 @@ class ScreenCaptureService:
     frame = self.camera.get_latest_frame()
 
     if frame is None:
-      frame = self.camera.grab()
+      try:
+        frame = self.camera.grab()
+      except Exception:
+        self.camera = None
 
     if frame is None:
       frame = self._last_valid_frame

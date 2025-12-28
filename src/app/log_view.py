@@ -7,6 +7,7 @@ from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QTimer
 
 from ui.theme import CURRENT_THEME
+from constants import IS_DEV_MODE
 
 
 class QtLogHandler(logging.Handler):
@@ -41,7 +42,11 @@ class LogHandler:
     self.text_edit.setReadOnly(True)
     self.formatter = logging.Formatter(fmt, "%H:%M:%S")
 
-    self.level_combo.addItems(["DEBUG", "INFO", "WARN", "ERROR", "FATAL"])
+    items = ["INFO", "WARN", "ERROR", "FATAL"]
+    if IS_DEV_MODE:
+      items.insert(0, "DEBUG")
+
+    self.level_combo.addItems(items)
     self.level_combo.setCurrentText("INFO")
 
     self.level_combo.currentTextChanged.connect(self.render)

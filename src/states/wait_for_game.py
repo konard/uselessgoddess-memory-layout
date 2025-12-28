@@ -81,7 +81,7 @@ class WaitForGame(State):
       if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(
         leaders
       ):
-        logger.warn("Failed to get same match_ids for all accounts")
+        logger.warn("Got different match_ids for accounts, coninue searching")
 
         await Yass.press_resource_async(
           "img/cancel_button_left_corner.png", leaders

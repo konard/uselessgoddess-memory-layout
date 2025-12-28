@@ -231,7 +231,7 @@ class DashboardTab(QWidget):
     try:
       widgets = current_state.layout(self.ctx, self.dispatch_message)
     except Exception as e:
-      logger.error(f"invalid layout: {e}")
+      logger.debug(f"invalid layout: {e}")
 
     container = self.state_panel.container
     if container.layout():
