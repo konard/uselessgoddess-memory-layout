@@ -67,18 +67,26 @@ class LaunchService:
         posY=0,
       )
       running_account.lock = account.lock
-      while not WindowService.wait_for_window(
-        counter_strike_2_title, timeout_sec=10
-      ):
-        steam_web_helper_limiter.limit_steam_web_helper(
-          force_close=True,
-          white=["Steam"],
-          window_title_blacklist=[
-            "Список друзей",
-            "Список игр",
-            "Специальные предложения",
-          ],
-        )
+
+      while True:
+        if WindowService.window_exists(counter_strike_2_title):
+          logger.debug(
+            f"[{account.login}] Window found. Killing mutex immediately!"
+          )
+          cs2_terminator.close_cs2_mutex()
+          break
+        else:
+          steam_web_helper_limiter.limit_steam_web_helper(
+            force_close=True,
+            white=["Steam"],
+            window_title_blacklist=[
+              "Список друзей",
+              "Список игр",
+              "Специальные предложения",
+            ],
+          )
+          time.sleep(0.5)
+
       logger.debug("window initialization finished")
 
       time.sleep(15)  # sleep saves all

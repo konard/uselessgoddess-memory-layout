@@ -35,6 +35,7 @@ def build_cs2_launch_args(
     "yacs.cfg",
     "+fps_max",
     "30",
+    "-allowmultiple",
     "-window",
     "-w",
     str(win_w),

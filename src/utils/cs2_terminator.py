@@ -16,16 +16,16 @@ def close_cs2_mutex():
     return
 
   try:
-    # lib = ctypes.CDLL(dll_path)
+    lib = ctypes.CDLL(dll_path)
 
-    # CloseAllMutexes = lib.CloseAllMutexes
-    # CloseAllMutexes.argtypes = []
-    # CloseAllMutexes.restype = ctypes.c_ulong
+    CloseAllMutexes = lib.CloseAllMutexes
+    CloseAllMutexes.argtypes = []
+    CloseAllMutexes.restype = ctypes.c_ulong
 
-    # print("[*] Вызываем CloseAllMutexes...")
-    # result = CloseAllMutexes()
+    print("[*] Вызываем CloseAllMutexes...")
+    result = CloseAllMutexes()
 
-    if False:
+    if result:
       print("[+] Успех! Мьютексы закрыты.")
     else:
       print("[-] Не удалось закрыть мьютексы через DLL, пробую через exe...")

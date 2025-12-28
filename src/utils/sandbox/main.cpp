@@ -114,29 +114,35 @@ bool CloseMutexForProcess(DWORD pid) {
 
         // check if this is the one
         POBJECT_NAME_INFORMATION name = (POBJECT_NAME_INFORMATION)buffer.data();
-        std::wstring nameStr(name->Name.Buffer, name->Name.Length / sizeof(WCHAR));
+        if (name->Name.Buffer) {
+            std::wstring nameStr(name->Name.Buffer, name->Name.Length / sizeof(WCHAR));
 
-        if (nameStr.find(L"csgo_singleton_mutex") == std::wstring::npos) {
-            CloseHandle(hDuplicate);
-            return true;
+            bool isTarget = false;
+            
+            if (nameStr.find(L"csgo_singleton_mutex") != std::wstring::npos) isTarget = true;
+            else if (nameStr.find(L"Steam_Singleton_Mutex") != std::wstring::npos) isTarget = true;
+            else if (nameStr.find(L"ValvePlatformMutex") != std::wstring::npos) isTarget = true; // То, что было в логах FSM
+
+            if (isTarget) {
+                CloseHandle(hDuplicate); 
+
+                HANDLE hKill;
+                DuplicateHandle(hProcess, (HANDLE)handle.HandleValue, GetCurrentProcess(), &hKill, 0, FALSE, DUPLICATE_CLOSE_SOURCE);
+                CloseHandle(hKill);
+
+                #ifndef LIB_CS2CH
+                std::wcout << L"[!] Killed Mutex: " << nameStr << L" in PID " << GetProcessId(hProcess) << std::endl;
+                #endif
+                
+                return true; 
+            }
         }
 
-        // close the duplicated handle
         CloseHandle(hDuplicate);
-
-        // duplicate again but this time steal it and close it
-        DuplicateHandle(hProcess, (HANDLE)handle.HandleValue, GetCurrentProcess(), &hDuplicate, 0, FALSE, DUPLICATE_CLOSE_SOURCE);
-        CloseHandle(hDuplicate);
-
-#ifndef LIB_CS2CH
-        std::wcout << L"Closed handle: " << handle.HandleValue << std::endl;
-#endif
-
-        return false;
+        return true;
     });
 
     CloseHandle(hProcess);
-
     return closed;
 }
 

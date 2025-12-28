@@ -17,7 +17,7 @@ def find_vcvars64():
 
   if not os.path.exists(vswhere_path):
     # Если vswhere нет, попробуем тупой перебор стандартных путей
-    years = ["2022", "2019", "2017"]
+    years = ["2026", "2022", "2019", "2017"]
     editions = ["Community", "Professional", "Enterprise"]
     for year in years:
       for ed in editions:

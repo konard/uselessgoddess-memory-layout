@@ -77,8 +77,20 @@ def steam_login(
   account: Account,
   settings: UserSettings,
 ):
-  args = build_runner_launch_args(account.login, settings)
+  try:
+    steam_dir = os.path.dirname(settings.steam_path)
+    config_path = os.path.join(steam_dir, "config", "loginusers.vdf")
 
+    if os.path.exists(config_path):
+      os.remove(config_path)
+      logger.debug(f"[{account.login}] cleaned up loginusers.vdf")
+  except Exception as e:
+    logger.warning(
+      f"[{account.login}] could not clean steam sessions, check your steam path"
+    )
+    logger.debug(e)
+
+  args = build_runner_launch_args(account.login, settings)
   proc = subprocess.Popen(
     args,
     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
