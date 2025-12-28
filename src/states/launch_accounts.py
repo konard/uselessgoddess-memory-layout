@@ -16,7 +16,4 @@ class LaunchAccounts(State):
     self.accounts = accounts
 
   async def execute(self, ctx: Context):
-    for account in self.accounts:
-      await utils.block_on(LaunchService.launch_account_with_steam)(
-        account, ctx.settings.user, ctx.accounts()
-      )
+    await LaunchService.launch_accounts_with_steam(self.accounts, ctx)

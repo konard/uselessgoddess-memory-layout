@@ -14,10 +14,13 @@ import atexit
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
-from core.context import Context
 from core.logging import get_logger
+
+if TYPE_CHECKING:
+  from core.context import Context
+from utils.map_steam64_to_steam3 import map_steam64_to_steam3
 
 
 logger = get_logger("yacs.config")
@@ -33,7 +36,7 @@ HOSTS_PATH = Path(r"C:\Windows\System32\drivers\etc\hosts")
 STEAM_STORE_BLOCK_LINE = "0.0.0.0 store.steampowered.com"
 
 # Глобальная переменная для хранения контекста при закрытии
-_cleanup_context: Optional[Context] = None
+_cleanup_context: Optional["Context"] = None
 
 
 def _cleanup_steam_store_block():
@@ -56,7 +59,7 @@ atexit.register(_cleanup_steam_store_block)
 class ConfigService:
   """Сервис для применения конфигураций CS2."""
 
-  def __init__(self, ctx: Context) -> None:
+  def __init__(self, ctx: "Context") -> None:
     self.ctx = ctx
     # Регистрируем контекст для очистки при закрытии
     global _cleanup_context
@@ -77,7 +80,9 @@ class ConfigService:
       return
 
     userdata_dir = self._find_userdata_dir()
-    target_cfg_dir = self._ensure_cfg_directory(userdata_dir, steam_id)
+    target_cfg_dir = self._ensure_cfg_directory(
+      userdata_dir, map_steam64_to_steam3(steam_id)
+    )
     if target_cfg_dir is None:
       return
 
