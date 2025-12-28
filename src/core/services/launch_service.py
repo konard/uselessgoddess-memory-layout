@@ -2,25 +2,66 @@
 LaunchService - сервис для запуска аккаунтов
 """
 
-from typing import List
+import asyncio
+import os
+from os.path import isdir
+from typing import List, TYPE_CHECKING
 import time
 
 from core.account.model import RunningAccount
 from core.logging import get_logger
+
+if TYPE_CHECKING:
+  from core.context import Context
 from core.account import Account
+from core.process_config import ConfigService
 from core.services.account import AccountsService
 from core.services.cs_controller import CS2Controller
 from core.services.settings import UserSettings
 from core.services.windows_service import WindowService
-from core import game_constants
+from core import game_constants, utils
 from utils import cs2_terminator, steam_web_helper_limiter
 from .steam_login import steam_login
 
 logger = get_logger("launch")
 
+MAPS_DIR = "game/csgo/maps"
+
+
+def remove_bg(dir):
+  for file in os.listdir(dir):
+    if "_vanity" in file and os.path.isfile(os.path.join(dir, file)):
+      os.remove(os.path.join(dir, file))
+
 
 class LaunchService:
   """Сервис для запуска аккаунтов"""
+
+  @staticmethod
+  async def launch_accounts_with_steam(
+    accounts: List[Account], ctx: "Context"
+  ) -> List[RunningAccount]:
+    maps_path = os.path.join(ctx.s.u.cs_path, MAPS_DIR)
+    if isdir(maps_path):
+      logger.debug(f"remove backgrounds from {maps_path}")
+      remove_bg(maps_path)
+
+    config_service = ConfigService(ctx)
+    config_service.ensure_cs_cfgs()
+    config_service.block_steam_store()
+    running_accounts: List[RunningAccount] = []
+    for account in accounts:
+      logger.info(f"launching account +{account.login}")
+
+      config_service.apply_video_config(account.steam_id)
+      running_account: RunningAccount = await utils.block_on(  # noqa: F841 FIXME
+        LaunchService.launch_account_with_steam
+      )(account, ctx.settings.user, ctx.accounts())
+      logger.info(f"{account.login} launched")
+      await asyncio.sleep(1)
+      running_accounts.append(running_account)
+
+    return running_accounts
 
   @staticmethod
   def launch_account_with_steam(

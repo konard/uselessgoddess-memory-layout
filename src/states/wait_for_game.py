@@ -98,13 +98,16 @@ class WaitForGame(State):
         for account in party.all:
           await WindowService.focus_window_async(account.win_cs_title)
 
-          await asyncio.sleep(0.5)
+          await CS2Controller.wait_for_image_async(
+            "img/accept_game_button.png", account
+          )
+
+          await asyncio.sleep(0.1)
 
           await CS2Controller.click_async(
             **game_constants.accept_game_button, account=account
           )
-
-          await asyncio.sleep(0.5)
+          await asyncio.sleep(0.2)
       break
 
     await ctx.send_message("Match found")
