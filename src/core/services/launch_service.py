@@ -51,6 +51,8 @@ class LaunchService:
     config_service.block_steam_store()
     running_accounts: List[RunningAccount] = []
     for account in accounts:
+      cs2_terminator.close_cs2_mutex()
+
       logger.info(f"launching account +{account.login}")
 
       config_service.apply_video_config(account.steam_id)

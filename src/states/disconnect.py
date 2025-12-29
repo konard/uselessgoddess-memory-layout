@@ -53,7 +53,7 @@ class DisconnectState(State):
           await CS2Controller.press_key_async(Key.CTRL)
           await asyncio.sleep(0.5)
 
-        await asyncio.sleep(30)
+        await asyncio.sleep(20)
 
         for account in ctx.launched_accounts:
           await WindowService.focus_window_async(account.win_cs_title)
