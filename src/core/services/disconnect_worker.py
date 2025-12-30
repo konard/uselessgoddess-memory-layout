@@ -47,9 +47,7 @@ class DisconnectWorker:
       in_match = False
 
       for account in self.ctx.launched_accounts:
-        if not await CS2Controller.check_if_exists_async(
-          "img/play.png", account
-        ):
+        if not await CS2Controller.check_if_exists_async("img/play.png", account):
           in_match = True
           break
 
@@ -57,12 +55,6 @@ class DisconnectWorker:
         is_disconnected = await CS2Controller.check_if_exists_async(
           "img/disconnected.png", account
         )
-
-        if is_disconnected:
-          await WindowService.focus_window_async(account.win_cs_title)
-          await asyncio.sleep(0.1)
-          if not await CS2Controller.check_if_exists_async("img/play.png", account):
-            is_match = True
 
         if is_disconnected:
           disconnected_accounts.append(account)

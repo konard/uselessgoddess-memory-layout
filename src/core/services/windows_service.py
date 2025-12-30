@@ -145,6 +145,9 @@ class WindowService:
     window_width, window_height = win_w, win_h
     screen_width = pyautogui.size()[0]
 
+    if isinstance(accounts, dict):
+      accounts = list(accounts.values())
+
     running_accounts: list[RunningAccount] = WindowService.scan_cs2_windows(accounts)
 
     max_cols = max(1, screen_width // window_width)
@@ -197,10 +200,7 @@ class WindowService:
   ) -> list[RunningAccount] | list[str]:
     running = {}
 
-    if isinstance(accounts, dict):
-      accounts_list = list(accounts.values())
-    else:
-      accounts_list = accounts
+    accounts_list = list(accounts.values()) if isinstance(accounts, dict) else accounts
     accounts_dict = {acc.login: acc for acc in accounts_list}
 
     def callback(hwnd, lParam):
