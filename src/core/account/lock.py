@@ -41,7 +41,7 @@ class AccountsLock:
 
       data = json.loads(content)
 
-      logger.warning(
+      logger.warn(
         f"Detected plaintext storage at {self._db_path}. Migrating to encrypted storage"
       )
 

@@ -4,6 +4,7 @@ LaunchService - сервис для запуска аккаунтов
 
 import asyncio
 import os
+import threading
 import time
 from os.path import isdir
 from typing import TYPE_CHECKING
@@ -40,7 +41,7 @@ class LaunchService:
 
   @staticmethod
   async def launch_accounts_with_steam(
-    accounts: list[Account], ctx: "Context"
+    accounts: list[Account], ctx: "Context", stop_event: threading.Event | None = None
   ) -> list[RunningAccount]:
     maps_path = os.path.join(ctx.s.u.cs_path, MAPS_DIR)
     if isdir(maps_path):
@@ -59,7 +60,7 @@ class LaunchService:
       config_service.apply_video_config(account.steam_id)
       running_account: RunningAccount = await utils.block_on(
         LaunchService.launch_account_with_steam
-      )(account, ctx.settings.user, ctx.accounts())
+      )(account, ctx.settings.user, ctx.accounts(), stop_event)
       logger.info(f"{account.login} launched")
       await asyncio.sleep(1)
       running_accounts.append(running_account)
@@ -68,7 +69,10 @@ class LaunchService:
 
   @staticmethod
   def launch_account_with_steam(
-    account: Account, settings: UserSettings, accounts: list[Account]
+    account: Account,
+    settings: UserSettings,
+    accounts: list[Account],
+    stop_event: threading.Event | None = None,
   ) -> RunningAccount:
     """Запустить аккаунт через Steam"""
     try:
@@ -80,7 +84,7 @@ class LaunchService:
       )
       logger.debug(f"account logged in {account.login}")
 
-      return LaunchService._launch_cs2(account, accounts)
+      return LaunchService._launch_cs2(account, accounts, stop_event)
 
     except Exception as ex:
       if str(ex) == "run program failed":
@@ -94,7 +98,9 @@ class LaunchService:
       return False
 
   @staticmethod
-  def _launch_cs2(account: Account, accounts: list[Account]) -> bool:
+  def _launch_cs2(
+    account: Account, accounts: list[Account], stop_event: threading.Event | None = None
+  ) -> bool:
     try:
       logger.debug(f"[{account.login}] Waiting for CS window after launch...")
       counter_strike_2_title = "Counter-Strike 2"
@@ -111,6 +117,11 @@ class LaunchService:
       running_account.lock = account.lock
 
       while True:
+        logger.trace(stop_event)
+        if stop_event and stop_event.is_set():
+          logger.warn(f"[{account.login}] Launch cancelled by user/state switch.")
+          return False
+
         if WindowService.window_exists(counter_strike_2_title):
           logger.debug(f"[{account.login}] Window found. Killing mutex immediately!")
           cs2_terminator.close_cs2_mutex()

@@ -39,7 +39,7 @@ class BrowserService:
           "sessionid": os.urandom(12).hex(),
         }
     except Exception as e:
-      logger.warning(f"Failed to get cookies from cache: {e}")
+      logger.warn(f"Failed to get cookies from cache: {e}")
     return None
 
   @staticmethod
@@ -72,7 +72,7 @@ class BrowserService:
             )
             cookies["sessionid"] = str(client.http.session_id)
         except Exception as e:
-          logger.warning(f"Failed to extract token/cookies: {e}")
+          logger.warn(f"Failed to extract token/cookies: {e}")
 
       if (
         client.user
@@ -108,7 +108,7 @@ class BrowserService:
       cookies = await BrowserService._login_and_get_cookies(account)
 
     if not cookies:
-      logger.warning("No cookies found/generated. Launching without auto-login.")
+      logger.warn("No cookies found/generated. Launching without auto-login.")
 
     return await asyncio.to_thread(
       BrowserService._launch_chrome_sync, cookies, steam_id, extension_ids
@@ -138,14 +138,14 @@ class BrowserService:
           size = crx_path.stat().st_size
           logger.info(f"Extension downloaded. Size: {size} bytes.")
           if size < 1024:
-            logger.warning("File too small, deleting.")
+            logger.warn("File too small, deleting.")
             crx_path.unlink()
             return None
         else:
-          logger.warning(f"Download failed: {response.status_code}")
+          logger.warn(f"Download failed: {response.status_code}")
           return None
       except Exception as e:
-        logger.warning(f"Error downloading: {e}")
+        logger.warn(f"Error downloading: {e}")
         return None
 
     logger.info(f"Unpacking extension {extension_id}...")
@@ -156,7 +156,7 @@ class BrowserService:
           zip_ref.extractall(unpacked_path)
         logger.info("Unzip successful.")
       except zipfile.BadZipFile:
-        logger.warning("Standard unzip failed (CRX header?), trying skip...")
+        logger.warn("Standard unzip failed (CRX header?), trying skip...")
         with open(crx_path, "rb") as f:
           data = f.read()
           pos = data.find(b"PK\x03\x04")
@@ -194,9 +194,9 @@ class BrowserService:
           except Exception as e:
             logger.error(f"Failed to install extension {ext_id}: {e}")
         else:
-          logger.warning(f"Manifest not found for extension {ext_id} at {ext_path}")
+          logger.warn(f"Manifest not found for extension {ext_id} at {ext_path}")
       else:
-        logger.warning(f"Failed to download/unpack extension {ext_id}")
+        logger.warn(f"Failed to download/unpack extension {ext_id}")
 
   @staticmethod
   def _launch_chrome_sync(
@@ -248,7 +248,7 @@ class BrowserService:
               },
             )
           except Exception as e:
-            logger.warning(f"CDP error (community): {e}")
+            logger.warn(f"CDP error (community): {e}")
 
           try:
             driver.execute_cdp_cmd(
@@ -262,7 +262,7 @@ class BrowserService:
               },
             )
           except Exception as e:
-            logger.warning(f"CDP error (store): {e}")
+            logger.warn(f"CDP error (store): {e}")
 
         target_url = "https://steamcommunity.com/my/profile"
         driver.get(target_url)

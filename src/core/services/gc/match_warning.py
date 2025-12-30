@@ -58,7 +58,7 @@ class MatchWarning:
           # Проверяем последние состояния
           for login in pending_logins:
             last_state = self.states.get(login)
-            logger.warning(f"Account {login} timed out with state: {last_state}")
+            logger.warn(f"Account {login} timed out with state: {last_state}")
             if last_state == "registering":
               # По условию: если последнее сообщение registering - false
               return False

@@ -78,11 +78,11 @@ class ClaimDrop(csgo.Client):
       )
 
 
-async def claim_drop(account: Account):
+async def claim_drop(parent, account: Account):
   loot_client = ClaimDrop(account)
 
   try:
-    login_task = asyncio.create_task(
+    login_task = parent.spawn(
       client_login_wrapper(loot_client, account),
     )
 
@@ -104,7 +104,7 @@ async def claim_drop(account: Account):
         f"[{account.login}] Login task finished unexpectedly without reward event."
       )
     else:
-      logger.warning(f"[{account.login}] Operation timed out.")
+      logger.warn(f"[{account.login}] Operation timed out.")
   except Exception as e:
     logger.error(f"Failed to process account {account.login}: {e}")
     import traceback
@@ -128,7 +128,7 @@ class LootAccounts(State):
   async def execute(self, ctx: Context):
     for account in self.accounts:
       try:
-        await claim_drop(account)
+        await claim_drop(self, account)
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")
 

@@ -31,7 +31,7 @@ class FreeProfileItemsClient(Client):
   async def on_login(self):
     try:
       if not self.items:
-        logger.warning("No free profile items found in API")
+        logger.warn("No free profile items found in API")
         self.completion.set_result([])
         return
 
@@ -86,7 +86,9 @@ class CollectFreeProfileItems(State):
     for account in self.accounts:
       client = FreeProfileItemsClient(items)
       try:
-        login_task = asyncio.create_task(client_login_wrapper(client, account))
+        login_task = self.spawn(
+          client_login_wrapper(client, account),
+        )
 
         done, pending = await asyncio.wait(
           [login_task, client.completion],
@@ -104,7 +106,7 @@ class CollectFreeProfileItems(State):
           await login_task
           logger.error(f"[{account.login}] Login task finished unexpectedly.")
         else:
-          logger.warning(f"[{account.login}] Operation timed out.")
+          logger.warn(f"[{account.login}] Operation timed out.")
 
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")

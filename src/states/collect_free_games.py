@@ -26,7 +26,7 @@ class FreeGamesClient(Client):
   async def on_login(self):
     try:
       if not self.free_games:
-        logger.warning("No free games found in API")
+        logger.warn("No free games found in API")
         self.completion.set_result([])
         return
 
@@ -73,7 +73,7 @@ class CollectFreeGames(State):
       client = FreeGamesClient(free_games)
 
       try:
-        login_task = asyncio.create_task(
+        login_task = self.spawn(
           client_login_wrapper(client, account),
         )
 
@@ -93,7 +93,7 @@ class CollectFreeGames(State):
           await login_task
           logger.error(f"[{account.login}] Login task finished unexpectedly.")
         else:
-          logger.warning(f"[{account.login}] Operation timed out.")
+          logger.warn(f"[{account.login}] Operation timed out.")
 
       except Exception as e:
         logger.error(f"Failed to process account {account.login}: {e}")

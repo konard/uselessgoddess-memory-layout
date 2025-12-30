@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import threading
 import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Optional
@@ -57,6 +58,12 @@ class State:
       self._lazy_background_tasks = set()
     return self._lazy_background_tasks
 
+  @property
+  def cancellation_token(self) -> threading.Event:
+    if not hasattr(self, "_cancellation_token"):
+      self._cancellation_token = threading.Event()
+    return self._cancellation_token
+
   def spawn(self, coro) -> asyncio.Task:
     task = asyncio.create_task(coro)
     self._tasks.add(task)
@@ -64,6 +71,9 @@ class State:
     return task
 
   async def cleanup(self):
+    if hasattr(self, "_cancellation_token"):
+      self._cancellation_token.set()
+
     tasks = getattr(self, "_lazy_background_tasks", None)
 
     if tasks:
@@ -138,7 +148,7 @@ class StateManager:
         title = "License expired"
         desc = "Please renew your license"
 
-      logger.warning(f"License suspended ({kind.value}). Please enter new license.")
+      logger.warn(f"License suspended ({kind.value}). Please enter new license.")
       import states
 
       await self.into_state(states.LicenseState(state, title, desc), check=False)

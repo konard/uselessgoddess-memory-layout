@@ -57,7 +57,7 @@ class Preset:
 
     # Verify all preset accounts are present in launched_accounts
     if not all(login in launched_map for login in self.accounts):
-      logger.warning("Not all preset accounts are launched")
+      logger.warn("Not all preset accounts are launched")
       return None
 
     n = len(self.accounts)
@@ -176,14 +176,14 @@ class PresetsService:
 
   def add_account(self, preset_name: str, login: str) -> bool:
     # if self.is_account_used(login):
-    #   logger.warning(f"Account {login} already in a preset")
+    #   logger.warn(f"Account {login} already in a preset")
     #   return False
 
     if preset_name in self.presets:
       schema = self.presets[preset_name]
       # Validation check
       if len(schema.accounts) >= 10:
-        logger.warning("Preset full (max 10)")
+        logger.warn("Preset full (max 10)")
         return False
 
       if login not in schema.accounts:

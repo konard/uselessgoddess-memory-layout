@@ -229,9 +229,7 @@ class TelegramBotService:
     reply_markup: InlineKeyboardMarkup | None = None,
   ):
     if not self.running or not self.app or not self.app.bot:
-      logger.warning(
-        "Bot not running or application not initialized. Cannot send message."
-      )
+      logger.warn("Bot not running or application not initialized. Cannot send message.")
       return
 
     safe_user = html.escape(getpass.getuser())

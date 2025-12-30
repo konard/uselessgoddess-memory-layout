@@ -67,7 +67,7 @@ class StatusResetService:
   async def start(self):
     """Запустить фоновую задачу проверки времени."""
     if self._running:
-      logger.warning("StatusResetService already running")
+      logger.warn("StatusResetService already running")
       return
 
     self._running = True

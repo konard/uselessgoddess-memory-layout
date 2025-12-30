@@ -281,7 +281,7 @@ class ImportAccountsDialog(QDialog):
       )
 
       if not steam_id or str(steam_id) == "0":
-        logger.warning(f"Skipped {path.name}: Invalid SteamID ({steam_id})")
+        logger.warn(f"Skipped {path.name}: Invalid SteamID ({steam_id})")
         return None
 
       shared_secret = data.get("shared_secret")

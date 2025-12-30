@@ -34,7 +34,12 @@ class StartFarm(State):
     except Exception:
       return
 
-    await LaunchService.launch_accounts_with_steam(self.accounts_to_launch, ctx)
+    await LaunchService.launch_accounts_with_steam(
+      self.accounts_to_launch, ctx, stop_event=self.cancellation_token
+    )
+
+    if self.cancellation_token.is_set():
+      return
 
     if not ctx.gc.all_connected(self.accounts_to_launch):
       logger.error("Not all accounts connected to GC")

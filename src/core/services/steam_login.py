@@ -6,6 +6,7 @@ import os
 import struct
 import subprocess
 import sys
+import threading
 import time
 
 import numpy as np
@@ -73,6 +74,7 @@ def generate_2fa_code(shared_secret: str) -> str:
 def steam_login(
   account: Account,
   settings: UserSettings,
+  stop_event: threading.Event | None = None,
 ):
   try:
     steam_dir = os.path.dirname(settings.steam_path)
@@ -82,7 +84,7 @@ def steam_login(
       os.remove(config_path)
       logger.debug(f"[{account.login}] cleaned up loginusers.vdf")
   except Exception as e:
-    logger.warning(
+    logger.warn(
       f"[{account.login}] could not clean steam sessions, check your steam path"
     )
     logger.debug(e)
@@ -105,6 +107,10 @@ def steam_login(
   found_qr = None
 
   while True:
+    if stop_event and stop_event.is_set():
+      logger.warn(f"[{account.login}] Launch cancelled by user/state switch.")
+      return False
+
     steam_web_helper_limiter.limit_steam_web_helper(
       force_close=True,
       white=["Steam"],

@@ -15,4 +15,9 @@ class LaunchAccounts(State):
     self.accounts = accounts
 
   async def execute(self, ctx: Context):
-    await LaunchService.launch_accounts_with_steam(self.accounts, ctx)
+    await LaunchService.launch_accounts_with_steam(
+      self.accounts, ctx, stop_event=self.cancellation_token
+    )
+
+    if self.cancellation_token.is_set():
+      return

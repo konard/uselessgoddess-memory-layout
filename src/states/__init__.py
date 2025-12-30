@@ -3,7 +3,6 @@ from .collect_free_profile_items import CollectFreeProfileItems
 from .continue_farm import ContinueFarm
 from .disconnect import DisconnectState, DisconnectType
 from .farm import StartFarm
-from .idle import Idle
 from .launch_accounts import LaunchAccounts
 from .license import LicenseState
 from .loot import LootAccounts
@@ -32,3 +31,5 @@ __all__ = [
   "WaitForGame",
   "Idle",
 ]
+
+from .idle import Idle

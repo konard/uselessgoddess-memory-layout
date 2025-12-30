@@ -62,7 +62,7 @@ class ScanInventory(steam.Client):
             }
           )
         except Exception as e:
-          logger.warning(f"Could not fetch price for {item.name}: {e}")
+          logger.warn(f"Could not fetch price for {item.name}: {e}")
 
     if not items_to_send:
       if not self.complete.done():
@@ -100,14 +100,14 @@ class ScanInventory(steam.Client):
 
 
 async def process_trade(
-  account: Account, trade_url: str | None
-) -> tuple[str, list[dict[str, any]]]:
+  parent, account: Account, trade_url: str | None
+) -> tuple[str, list[dict[str, Any]]]:
   print("processing trade")
   send_trade_client = ScanInventory(trade_url, account)
 
   try:
     print("logging in")
-    login_task = asyncio.create_task(client_login_wrapper(send_trade_client, account))
+    login_task = parent.spawn(client_login_wrapper(send_trade_client, account))
 
     print("waiting for login")
     done, pending = await asyncio.wait(
@@ -125,7 +125,7 @@ async def process_trade(
       logger.error(f"[{account.login}] Login finished unexpectedly without reward event.")
       return "Login error", []
     else:
-      logger.warning(f"[{account.login}] Operation timed out.")
+      logger.warn(f"[{account.login}] Operation timed out.")
       return "Timeout", []
   except Exception as e:
     logger.error(f"Failed to process account {account.login}: {e}")
@@ -165,11 +165,11 @@ class ScanAccounts(State):
       await asyncio.sleep(5)
       print("processing trade")
       message, sent_items = await process_trade(
-        account, settings.trade_url if self.trade else None
+        self, account, settings.trade_url if self.trade else None
       )
 
       if message == "Trade failed":
-        logger.warning(f"[{account.login}]: Trade failed, appending to queue")
+        logger.warn(f"[{account.login}]: Trade failed, appending to queue")
         self.status.set(f"{account.login}: Trade failed, retrying later")
         self.accounts.append(account)
         self.progress.limit = len(self.accounts)

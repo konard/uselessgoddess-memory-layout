@@ -178,7 +178,7 @@ class LicenseService(QObject):
 
   def _handle_network_failure(self):
     self._fail_count += 1
-    logger.warning(f"Network error. Attempt {self._fail_count}/3")
+    logger.warn(f"Network error. Attempt {self._fail_count}/3")
 
     if self._fail_count >= 3:
       if self._state != LicenseKind.PAUSED_NETWORK:

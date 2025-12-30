@@ -32,9 +32,9 @@ class StartUnfarmed(State):
 
     for account in accounts:
       if ctx.settings.system.collect_drop:
-        await claim_drop(account)
+        await claim_drop(self, account)
         await asyncio.sleep(1 + random.randint(0, 4))
-        await process_trade(account, ctx.settings.user.trade_url)
+        await process_trade(self, account, ctx.settings.user.trade_url)
 
     next_preset_accounts = self._find_next_preset(ctx)
 

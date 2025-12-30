@@ -75,7 +75,7 @@ class ConfigService:
   def apply_video_config(self, steam_id: str) -> None:
     """Применяет видео конфигурацию для указанного Steam ID."""
     if not steam_id:
-      logger.warning("Пустой steam_id — пропуск apply_video_config")
+      logger.warn("Пустой steam_id — пропуск apply_video_config")
       return
 
     userdata_dir = self._find_userdata_dir()
@@ -156,7 +156,7 @@ class ConfigService:
   def _load_video_template(self) -> dict[str, str] | None:
     """Загружает шаблон видео конфигурации."""
     if not VIDEO_TEMPLATE_PATH.exists():
-      logger.warning(f"Шаблон video.txt не найден: {VIDEO_TEMPLATE_PATH}")
+      logger.warn(f"Шаблон video.txt не найден: {VIDEO_TEMPLATE_PATH}")
       return None
 
     try:
