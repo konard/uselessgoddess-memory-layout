@@ -151,6 +151,9 @@ class WindowService:
     window_width, window_height = win_w, win_h
     screen_width = pyautogui.size()[0]
 
+    if isinstance(accounts, dict):
+      accounts = list(accounts.values())
+
     running_accounts: List[RunningAccount] = WindowService.scan_cs2_windows(
       accounts
     )
@@ -205,7 +208,11 @@ class WindowService:
   ) -> List[RunningAccount] | List[str]:
     running = {}
 
-    accounts_dict = {acc.login: acc for acc in accounts}
+    if isinstance(accounts, dict):
+      accounts_list = list(accounts.values())
+    else:
+      accounts_list = accounts
+    accounts_dict = {acc.login: acc for acc in accounts_list}
 
     def callback(hwnd, lParam):
       if not win32gui.IsWindowVisible(hwnd):

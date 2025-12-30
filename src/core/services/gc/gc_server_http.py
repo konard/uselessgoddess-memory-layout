@@ -2,6 +2,7 @@ import os
 import traceback
 from fastapi import FastAPI, Request, Response
 import uvicorn
+from starlette.requests import ClientDisconnect
 
 from core.logging import get_logger
 from constants import IS_DEV_MODE
@@ -44,6 +45,8 @@ async def start_gc_server(gc_service: GCService):
 
       return Response(status_code=200)
 
+    except ClientDisconnect:
+      pass
     except Exception as e:
       logger.error(f"Error handling request: {e}")
       logger.error(traceback.format_exc())
