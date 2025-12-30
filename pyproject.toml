@@ -37,6 +37,7 @@ dependencies = [
   "bettercam>=1.0.0",
   # --
   "tinydb>=4.8",
+  "pydantic>=2.12.5",
   "typing-extensions>=4.8",
   # -- srt
   "icmplib>=3.0.4",
