@@ -1,5 +1,6 @@
 import pytest
-from core.account import FarmStatus, Account
+
+from core.account import Account, FarmStatus
 from core.account.lock import AccountsLock
 
 

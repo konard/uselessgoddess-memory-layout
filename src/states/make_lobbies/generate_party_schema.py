@@ -1,12 +1,11 @@
-from typing import List, Tuple
 from core.account.model import RunningAccount
 from core.services.settings import FarmMode
 from states.types import PartySchema
 
 
 def generate_party_schema(
-  launched_accounts: List[RunningAccount], farm_mode: FarmMode
-) -> Tuple[PartySchema, PartySchema]:
+  launched_accounts: list[RunningAccount], farm_mode: FarmMode
+) -> tuple[PartySchema, PartySchema]:
   launched_accounts = sorted(launched_accounts, key=lambda x: x.login)
   if farm_mode == FarmMode.TWO_BY_TWO:
     return [

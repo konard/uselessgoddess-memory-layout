@@ -1,13 +1,15 @@
-from typing import Callable, Optional
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel
+from collections.abc import Callable
+from typing import Optional
+
 from PyQt6.QtCore import (
-  pyqtProperty,
-  pyqtSignal,
   QEasingCurve,
   QPropertyAnimation,
   Qt,
+  pyqtProperty,
+  pyqtSignal,
 )
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QColor, QPainter
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from ui.theme import CURRENT_THEME
 
@@ -56,9 +58,7 @@ class _SwitchSlider(QWidget):
   def setChecked(self, checked):
     self._checked = checked
     self.animation.setStartValue(self.handle_position)
-    self.animation.setEndValue(
-      self._handle_on_pos if checked else self._handle_off_pos
-    )
+    self.animation.setEndValue(self._handle_on_pos if checked else self._handle_off_pos)
     self.animation.start()
 
   def isChecked(self):
@@ -72,8 +72,8 @@ class Switch(QWidget):
     self,
     text: str = "",
     checked: bool = False,
-    on_toggle: Optional[Callable[[], None]] = None,
-    active_color: Optional[str] = None,
+    on_toggle: Callable[[], None] | None = None,
+    active_color: str | None = None,
     parent=None,
   ):
     super().__init__(parent)

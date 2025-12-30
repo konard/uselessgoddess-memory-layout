@@ -1,3 +1,4 @@
+import contextlib
 import os
 import sys
 from typing import Optional
@@ -6,8 +7,8 @@ _job_handle = None
 
 if os.name == "nt":
   import ctypes
-  from ctypes import wintypes
   import winreg
+  from ctypes import wintypes
 
   # Constants
   JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
@@ -81,16 +82,14 @@ def set_autologin_user(username):
       winreg.SetValueEx(key, "AutoLoginUser", 0, winreg.REG_SZ, username)
       winreg.SetValueEx(key, "RememberPassword", 0, winreg.REG_DWORD, 1)
       # Иногда помогает сброс PID старого процесса в реестре
-      try:
+      with contextlib.suppress(Exception):
         winreg.DeleteValue(key, "ActiveProcess")
-      except:  # noqa: E722
-        pass
     print(f"[*] Реестр: AutoLoginUser установлен на {username}")
   except Exception as e:
     print(f"[!] Ошибка записи в реестр: {e}")
 
 
-def setup_kill_on_job_close() -> Optional[int]:
+def setup_kill_on_job_close() -> int | None:
   if os.name != "nt":
     return None
   try:
@@ -117,12 +116,8 @@ def setup_kill_on_job_close() -> Optional[int]:
 def assign_process_to_job(job_handle: int, proc_handle: int) -> None:
   if os.name != "nt":
     return
-  try:
-    AssignProcessToJobObject(
-      wintypes.HANDLE(job_handle), wintypes.HANDLE(proc_handle)
-    )
-  except Exception:
-    pass
+  with contextlib.suppress(Exception):
+    AssignProcessToJobObject(wintypes.HANDLE(job_handle), wintypes.HANDLE(proc_handle))
 
 
 def set_console_title(title: str) -> None:

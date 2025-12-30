@@ -1,5 +1,6 @@
+from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtWidgets import QLabel
-from PyQt6.QtCore import Qt, QPoint
+
 from ui.theme import CURRENT_THEME
 
 

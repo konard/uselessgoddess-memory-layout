@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+
 from ui.align import Align
 
 

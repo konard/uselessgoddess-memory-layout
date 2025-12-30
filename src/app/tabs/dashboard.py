@@ -1,27 +1,28 @@
 import asyncio
-from PyQt6.QtWidgets import (
-  QWidget,
-  QHBoxLayout,
-  QVBoxLayout,
-  QGridLayout,
-  QComboBox,
-  QLineEdit,
-  QTextEdit,
-  QLabel,
-  QMessageBox,
-)
-from PyQt6.QtGui import QTextOption
 
+from PyQt6.QtGui import QTextOption
+from PyQt6.QtWidgets import (
+  QComboBox,
+  QGridLayout,
+  QHBoxLayout,
+  QLabel,
+  QLineEdit,
+  QMessageBox,
+  QTextEdit,
+  QVBoxLayout,
+  QWidget,
+)
+
+import states
+from app import AccountsPanel, LogHandler, SettingsDialog
 from core.context import Context
 from core.logging import get_logger
-from core.panel import StateManager, Message
+from core.panel import Message, StateManager
 from core.services.process import ProcessService
 from core.services.settings import MatchMode
-import states
 from ui import Align
-from ui.theme import ButtonType, CURRENT_THEME
-from ui.widgets import Button, TitledPanel, Switch, VStack
-from app import AccountsPanel, SettingsDialog, LogHandler
+from ui.theme import CURRENT_THEME, ButtonType
+from ui.widgets import Button, Switch, TitledPanel, VStack
 
 logger = get_logger("ui.dashboard")
 
@@ -82,9 +83,7 @@ class DashboardTab(QWidget):
       checked=user.experimental_launch,
       active_color=CURRENT_THEME.ACCENT_BLUE,
     )
-    sw_sandbox.toggled.connect(
-      lambda c: self._on_sandbox_toggled(c, sw_sandbox)
-    )
+    sw_sandbox.toggled.connect(lambda c: self._on_sandbox_toggled(c, sw_sandbox))
 
     mode_layout = QHBoxLayout()
     mode_layout.setContentsMargins(0, 0, 0, 0)
@@ -202,9 +201,7 @@ class DashboardTab(QWidget):
     self.log_filter_edit = QLineEdit()
     self.log_filter_edit.setPlaceholderText("Filter logs...")
     self.log_text_edit = QTextEdit()
-    self.log_text_edit.setWordWrapMode(
-      QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere
-    )
+    self.log_text_edit.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
 
     filter_layout = QVBoxLayout()
     filter_layout.addWidget(self.log_level_combo)

@@ -1,14 +1,16 @@
-import threading
 import asyncio
-from typing import Callable, List, Type
+import contextlib
+import threading
+from collections.abc import Callable
 
 import uvicorn
 from fastapi import FastAPI, Request
 
 from core.logging import get_logger
-from .models import GameState
-from .events import GSIEvent
+
 from .analyzer import GSIAnalyzer
+from .events import GSIEvent
+from .models import GameState
 
 logger = get_logger("sv.gsi")
 
@@ -22,8 +24,8 @@ class GSIService:
     self.analyzer = GSIAnalyzer()
     self.current_state: GameState | None = None
 
-    self._subscribers: dict[Type[GSIEvent], List[Callable]] = {}
-    self._global_subscribers: List[Callable[[GameState], None]] = []
+    self._subscribers: dict[type[GSIEvent], list[Callable]] = {}
+    self._global_subscribers: list[Callable[[GameState], None]] = []
 
     self._server_thread: threading.Thread | None = None
     self._server: uvicorn.Server | None = None
@@ -50,10 +52,8 @@ class GSIService:
       self.current_state = new_state
 
       for cb in self._global_subscribers:
-        try:
+        with contextlib.suppress(Exception):
           cb(new_state)
-        except Exception:
-          pass
 
       events = self.analyzer.analyze(new_state)
 
@@ -108,15 +108,14 @@ class GSIService:
       self._server_thread.join(timeout=2)
     logger.info("GSI Server stopped")
 
-  def subscribe(self, event_type: Type[GSIEvent], callback: Callable):
+  def subscribe(self, event_type: type[GSIEvent], callback: Callable):
     if event_type not in self._subscribers:
       self._subscribers[event_type] = []
     self._subscribers[event_type].append(callback)
 
-  def unsubscribe(self, event_type: Type[GSIEvent], callback: Callable):
-    if event_type in self._subscribers:
-      if callback in self._subscribers[event_type]:
-        self._subscribers[event_type].remove(callback)
+  def unsubscribe(self, event_type: type[GSIEvent], callback: Callable):
+    if event_type in self._subscribers and callback in self._subscribers[event_type]:
+      self._subscribers[event_type].remove(callback)
 
   def listen_raw(self, callback: Callable[[GameState], None]):
     self._global_subscribers.append(callback)

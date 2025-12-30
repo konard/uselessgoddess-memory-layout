@@ -1,6 +1,3 @@
-from typing import List
-
-
 class FreeGame:
   pkg_id: int
   app_id: int
@@ -8,4 +5,4 @@ class FreeGame:
   updated_at: str
 
 
-FreeGamesResponse = List[FreeGame]
+FreeGamesResponse = list[FreeGame]

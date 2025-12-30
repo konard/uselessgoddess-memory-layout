@@ -1,15 +1,16 @@
 import asyncio
 import random
-from core.panel.state import State
+
+from core.account.model import FarmStatus
 from core.context import Context
 from core.logging import get_logger
+from core.panel.state import State
 from core.process_config import ConfigService
 from core.services.settings import FarmMode
-from core.account.model import FarmStatus
+from states.farm import StartFarm
+from states.loot import LootAccounts, claim_drop
 from states.trade import process_trade
 from states.types import GameSchema
-from states.loot import LootAccounts, claim_drop
-from states.farm import StartFarm
 
 logger = get_logger("state.start_unfarmed")
 
@@ -38,9 +39,7 @@ class StartUnfarmed(State):
     next_preset_accounts = self._find_next_preset(ctx)
 
     if next_preset_accounts:
-      logger.info(
-        f"Switching to next preset with {len(next_preset_accounts)} accounts"
-      )
+      logger.info(f"Switching to next preset with {len(next_preset_accounts)} accounts")
       return StartFarm(next_preset_accounts)
     unfarmed_accounts = ctx.unfarmed_accounts()
 

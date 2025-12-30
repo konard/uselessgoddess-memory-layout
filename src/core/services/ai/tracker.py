@@ -1,8 +1,8 @@
+from dataclasses import dataclass
+
 import numpy as np
 import scipy.linalg as linalg
 from scipy.optimize import linear_sum_assignment
-from dataclasses import dataclass
-from typing import List
 
 from core.services.ai.infer import Target
 
@@ -81,8 +81,7 @@ class KalmanFilter:
     mean = np.dot(self._motion_mat, mean)
     # P' = FPF^T + Q
     covariance = (
-      np.linalg.multi_dot((self._motion_mat, covariance, self._motion_mat.T))
-      + motion_cov
+      np.linalg.multi_dot((self._motion_mat, covariance, self._motion_mat.T)) + motion_cov
     )
 
     return mean, covariance
@@ -111,9 +110,7 @@ class KalmanFilter:
 
     # K = PH^T * S^-1
     # ИСПРАВЛЕНО: используем scipy.linalg вместо np.linalg
-    chol_factor, lower = linalg.cho_factor(
-      projected_cov, lower=True, check_finite=False
-    )
+    chol_factor, lower = linalg.cho_factor(projected_cov, lower=True, check_finite=False)
     kalman_gain = linalg.cho_solve(
       (chol_factor, lower),
       np.dot(covariance, self._update_mat.T).T,
@@ -160,14 +157,14 @@ class ByteTracker:
     self.track_buffer = track_buffer
     self.match_thresh = match_thresh
 
-    self.tracked_stracks: List[STrack] = []
-    self.lost_stracks: List[STrack] = []
-    self.removed_stracks: List[STrack] = []
+    self.tracked_stracks: list[STrack] = []
+    self.lost_stracks: list[STrack] = []
+    self.removed_stracks: list[STrack] = []
 
     self.frame_id = 0
     self.kalman = KalmanFilter()
 
-  def update(self, targets: List[Target]) -> List[Target]:
+  def update(self, targets: list[Target]) -> list[Target]:
     self.frame_id += 1
 
     activated_starcks = []
@@ -210,9 +207,7 @@ class ByteTracker:
     strack_pool = join_stracks(tracked_stracks, self.lost_stracks)
 
     for strack in strack_pool:
-      strack.mean, strack.covariance = self.kalman.predict(
-        strack.mean, strack.covariance
-      )
+      strack.mean, strack.covariance = self.kalman.predict(strack.mean, strack.covariance)
 
     dists = self._get_dists(strack_pool, detections)
     matches, u_track, u_detection = self._linear_assignment(
@@ -230,13 +225,9 @@ class ByteTracker:
         track.state = 1
         refind_stracks.append(track)
 
-    r_tracked_stracks = [
-      strack_pool[i] for i in u_track if strack_pool[i].state == 1
-    ]
+    r_tracked_stracks = [strack_pool[i] for i in u_track if strack_pool[i].state == 1]
     dists = self._get_dists(r_tracked_stracks, detections_second)
-    matches, u_track, u_detection_second = self._linear_assignment(
-      dists, thresh=0.5
-    )
+    matches, u_track, u_detection_second = self._linear_assignment(dists, thresh=0.5)
 
     for itracked, idet in matches:
       track = r_tracked_stracks[itracked]
@@ -251,7 +242,7 @@ class ByteTracker:
 
     for it in u_track:
       track = r_tracked_stracks[it]
-      if not track.state == 2:
+      if track.state != 2:
         track.state = 2
         lost_stracks.append(track)
 
@@ -270,9 +261,7 @@ class ByteTracker:
     self.lost_stracks = sub_stracks(self.lost_stracks, self.removed_stracks)
 
     self.lost_stracks = [
-      t
-      for t in self.lost_stracks
-      if self.frame_id - t.frame_id < self.track_buffer
+      t for t in self.lost_stracks if self.frame_id - t.frame_id < self.track_buffer
     ]
 
     final_targets = []
@@ -303,9 +292,7 @@ class ByteTracker:
 
   def _init_track(self, track):
     bbox = track.tlwh
-    xyah = np.r_[
-      bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2, bbox[2] / bbox[3], bbox[3]
-    ]
+    xyah = np.r_[bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2, bbox[2] / bbox[3], bbox[3]]
     track.mean, track.covariance = self.kalman.initiate(xyah)
     track.is_activated = True
     track.track_id = self._next_id()
@@ -314,12 +301,8 @@ class ByteTracker:
 
   def _update_track(self, track, new_track):
     bbox = new_track.tlwh
-    xyah = np.r_[
-      bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2, bbox[2] / bbox[3], bbox[3]
-    ]
-    track.mean, track.covariance = self.kalman.update(
-      track.mean, track.covariance, xyah
-    )
+    xyah = np.r_[bbox[0] + bbox[2] / 2, bbox[1] + bbox[3] / 2, bbox[2] / bbox[3], bbox[3]]
+    track.mean, track.covariance = self.kalman.update(track.mean, track.covariance, xyah)
     track.tlwh = new_track.tlwh
     track.score = new_track.score
     track.frame_id = self.frame_id

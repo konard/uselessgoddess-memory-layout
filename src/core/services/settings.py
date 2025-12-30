@@ -1,8 +1,9 @@
 import json
 import os
-from enum import Enum
-from typing import Callable, Optional, List
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
+from enum import Enum
+
 from core.logging import get_logger
 from core.utils import name_of
 
@@ -24,13 +25,12 @@ class MatchMode(str, Enum):
 def _load_settings(path, ty, label="settings"):
   try:
     if os.path.exists(path):
-      with open(path, "r") as f:
+      with open(path) as f:
         data = json.load(f)
         logger.info(f"{label} loaded successfully.")
         return ty(**data)
   except Exception as e:
     logger.error(f"Failed to load '{path}': {e}.")
-    pass
   logger.debug(f"Using default {label}.")
   return ty()
 
@@ -78,12 +78,12 @@ class UserSettings(Settings):
 
   experimental_launch: bool = True
 
-  telegram_token: Optional[str] = None
-  telegram_whitelist: List[str] = field(default_factory=list)
+  telegram_token: str | None = None
+  telegram_whitelist: list[str] = field(default_factory=list)
 
   collect_available_steam_games_on_login: bool = False
 
-  extension_ids: List[str] = field(
+  extension_ids: list[str] = field(
     default_factory=lambda: ["cmeakgjggjdlcpncigglobpjbkabhmjl"]
   )
 
@@ -91,8 +91,8 @@ class UserSettings(Settings):
   match_mode: MatchMode = MatchMode.TIE
   times_to_shuffle: int = 3
   times_to_brute_force: int = 3
-  farm_until: Optional[str] = None
-  overfarm: Optional[int] = None
+  farm_until: str | None = None
+  overfarm: int | None = None
 
   def path_of(self, settings: "SettingsService"):
     return settings.user_file
@@ -124,9 +124,7 @@ class SystemState(Settings):
 
 
 class SettingsService:
-  def __init__(
-    self, user_file="settings.json", system_file="data/settings.lock"
-  ):
+  def __init__(self, user_file="settings.json", system_file="data/settings.lock"):
     self.user_file = user_file
     self.system_file = system_file
     self.reload()

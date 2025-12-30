@@ -1,16 +1,16 @@
 import random
 import types
+from abc import ABC, abstractmethod
 
 import win32api
 import win32con
-from typing import List, Tuple, Union
-from abc import ABC, abstractmethod
 
-from core.logging import get_logger
 from core.keys import Key
-from .rotation import rotate_step, smooth_rotate_to_target
-from .detector import MinimapConfig, MinimapDirectionDetector
+from core.logging import get_logger
+
 from .aim import AimController
+from .detector import MinimapConfig, MinimapDirectionDetector
+from .rotation import rotate_step, smooth_rotate_to_target
 from .utils import (
   Action,
   Context,
@@ -30,7 +30,7 @@ def scancode(num: int) -> Key:
 
 
 class MoveAction(Action):
-  def __init__(self, keys: List[Key], hold: bool = False):
+  def __init__(self, keys: list[Key], hold: bool = False):
     self.hold = hold
     self.keys = keys
 
@@ -134,9 +134,7 @@ class RotateAction(Action):
       if turn_magnitude > self.max_angle:
         return True, ctx.team  # god pls
 
-      smooth_rotate_to_target(
-        current_rotation, self.target_rotation, 10 * ctx.delta
-      )
+      smooth_rotate_to_target(current_rotation, self.target_rotation, 10 * ctx.delta)
     else:
       rotate_step(100 * ctx.delta)
 
@@ -157,19 +155,19 @@ class ChangeTeam(Action):
     pass
 
 
-Edge = Action | Tuple[float, Union[List[Key], Action]]
+Edge = Action | tuple[float, list[Key] | Action]
 
 
 class Path:
   LEFT: int = -1
   RIGHT: int = 1
 
-  def __init__(self, edges: List[Edge], team):
+  def __init__(self, edges: list[Edge], team):
     self.edges = edges
     self.timer = 0
     self.team = team
 
-  def step(self, frame, ai, delta: float) -> Tuple[bool, Team | None]:
+  def step(self, frame, ai, delta: float) -> tuple[bool, Team | None]:
     if len(self.edges) == 0:
       return True, None
 
@@ -221,23 +219,23 @@ class BuilderContext:
 
 class ActionBuilder(ABC):
   @abstractmethod
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     pass
 
 
 class AList(ActionBuilder):
-  def __init__(self, actions: List[Edge]):
+  def __init__(self, actions: list[Edge]):
     self.actions = actions
 
-  def build(self, _ctx: BuilderContext) -> List[Edge]:
+  def build(self, _ctx: BuilderContext) -> list[Edge]:
     return self.actions
 
 
 class Select(ActionBuilder):
-  def __init__(self, actions: List):
+  def __init__(self, actions: list):
     self.actions = actions
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     action = random.choice(self.actions)
     return extract(action, ctx)
 
@@ -247,7 +245,7 @@ class Maybe(ActionBuilder):
     self.action = action
     self.chance = chance
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     if random.random() < self.chance:
       return extract(self.action, ctx)
     else:
@@ -255,14 +253,14 @@ class Maybe(ActionBuilder):
 
 
 class If(ActionBuilder):
-  def __init__(self, cond, then: List, _else=None):
+  def __init__(self, cond, then: list, _else=None):
     if _else is None:
       _else = []
     self.cond = cond
     self.then = then
     self._else = _else
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     if self.cond(ctx):
       return extract(self.then, ctx)
     else:
@@ -273,7 +271,7 @@ class SetDirection(ActionBuilder):
   def __init__(self, direction: int):
     self.direction = direction
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     ctx.direction = self.direction
     return []
 
@@ -282,7 +280,7 @@ class DisableRecursive(ActionBuilder):
   def __init__(self, recursive: bool):
     self.recursive = recursive
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     ctx.recursive = self.recursive
     return []
 
@@ -298,7 +296,7 @@ class BuyRandom(ActionBuilder):
     (5, 2),  # smoke
   ]
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     actions = []
     amount = random.randint(0, 4)
 
@@ -330,7 +328,7 @@ class RandomKnifeDecorator(ActionBuilder):
     self.ratio = ratio
     self.hold = True
 
-  def build(self, ctx: BuilderContext) -> List[Edge]:
+  def build(self, ctx: BuilderContext) -> list[Edge]:
     actions = self.builder.build(ctx)
     actions.append(inspect(hold=False))
 
@@ -439,7 +437,7 @@ def maybe(actions, chance: float = 0.5) -> Maybe:
   return Maybe(actions, chance)
 
 
-def extract(layer, ctx: BuilderContext) -> List[Edge]:
+def extract(layer, ctx: BuilderContext) -> list[Edge]:
   if isinstance(layer, list):
     actions = []
     for action in layer:
@@ -449,9 +447,7 @@ def extract(layer, ctx: BuilderContext) -> List[Edge]:
     return extract(layer.build(ctx), ctx)
   elif isinstance(layer, types.LambdaType):
     return extract(layer(ctx), ctx)
-  elif isinstance(layer, Tuple):
-    return [layer]
-  elif isinstance(layer, Action):
+  elif isinstance(layer, (tuple, Action)):
     return [layer]
 
   logger.error(f"unsupported layer type: {type(layer)}")

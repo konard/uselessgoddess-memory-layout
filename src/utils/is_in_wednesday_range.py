@@ -2,15 +2,6 @@ from datetime import datetime, timedelta
 
 
 def is_in_wednesday_range(generation_time: int) -> bool:
-  """
-  Проверяет, находится ли generationTime в промежутке с предыдущей среды по следующую среду.
-
-  Args:
-      generation_time: Unix timestamp в секундах
-
-  Returns:
-      True если generationTime находится в промежутке, False иначе
-  """
   # Преобразуем timestamp в datetime
   gen_dt = datetime.fromtimestamp(generation_time)
   today = datetime.now()
@@ -32,9 +23,6 @@ def is_in_wednesday_range(generation_time: int) -> bool:
     days_until_wednesday = 7  # Берем следующую среду (через неделю)
 
   next_wednesday = today + timedelta(days=days_until_wednesday)
-  next_wednesday = next_wednesday.replace(
-    hour=0, minute=0, second=0, microsecond=0
-  )
+  next_wednesday = next_wednesday.replace(hour=0, minute=0, second=0, microsecond=0)
 
-  # Проверяем, находится ли generationTime в промежутке [previous_wednesday, next_wednesday)
   return previous_wednesday <= gen_dt < next_wednesday

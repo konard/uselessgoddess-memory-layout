@@ -1,5 +1,8 @@
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Optional
+
 from PyQt6.QtWidgets import QPushButton
+
 from ui.theme import CURRENT_THEME, ButtonType
 
 
@@ -7,9 +10,9 @@ class Button(QPushButton):
   def __init__(
     self,
     text: str,
-    on_click: Optional[Callable[[bool], None]] = None,
+    on_click: Callable[[bool], None] | None = None,
     button_type: ButtonType = ButtonType.DEFAULT,
-    tooltip: Optional[str] = None,
+    tooltip: str | None = None,
     parent=None,
   ):
     super().__init__(text, parent)

@@ -1,25 +1,23 @@
 import asyncio
-import urllib.parse
-from pathlib import Path
-from typing import Tuple, List
-import zipfile
-import io
-import time
-import json
 import base64
+import io
+import json
 import os
+import time
+import urllib.parse
+import zipfile
+from pathlib import Path
 
 import requests
-from core.account.model import Account
-from core.logging import get_logger
-from core.services.settings import SettingsService
-from steam.client import Client
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from steam.client import Client
 from webdriver_manager.chrome import ChromeDriverManager
 
+from core.account.model import Account
+from core.logging import get_logger
+from core.services.settings import SettingsService
 from utils.client_login_wrapper import client_login_wrapper
 from utils.is_jwt_valid import is_jwt_valid
 
@@ -33,17 +31,11 @@ class BrowserService:
   def _get_cookies_from_cache(account: Account) -> dict | None:
     try:
       token_info = account.lock.access_token_info
-      if (
-        token_info
-        and account.steam_id
-        and is_jwt_valid(token_info.get("token", ""))
-      ):
+      if token_info and account.steam_id and is_jwt_valid(token_info.get("token", "")):
         logger.info(f"Using cached access token for {account.login}")
         token = token_info["token"]
         return {
-          "steamLoginSecure": urllib.parse.quote(
-            f"{account.steam_id}||{token}"
-          ),
+          "steamLoginSecure": urllib.parse.quote(f"{account.steam_id}||{token}"),
           "sessionid": os.urandom(12).hex(),
         }
     except Exception as e:
@@ -104,7 +96,7 @@ class BrowserService:
   @staticmethod
   async def launch_browser(
     account: Account, settings_service: SettingsService | None = None
-  ) -> Tuple[bool, str]:
+  ) -> tuple[bool, str]:
     if settings_service is None:
       settings_service = SettingsService()
     extension_ids = settings_service.user.extension_ids
@@ -116,9 +108,7 @@ class BrowserService:
       cookies = await BrowserService._login_and_get_cookies(account)
 
     if not cookies:
-      logger.warning(
-        "No cookies found/generated. Launching without auto-login."
-      )
+      logger.warning("No cookies found/generated. Launching without auto-login.")
 
     return await asyncio.to_thread(
       BrowserService._launch_chrome_sync, cookies, steam_id, extension_ids
@@ -134,15 +124,11 @@ class BrowserService:
     unpacked_path = ext_dir / f"{extension_id}_unpacked"
 
     if unpacked_path.exists() and any(unpacked_path.iterdir()):
-      logger.info(
-        f"Extension {extension_id} already unpacked at {unpacked_path}"
-      )
+      logger.info(f"Extension {extension_id} already unpacked at {unpacked_path}")
       return str(unpacked_path.absolute())
 
     if not crx_path.exists():
-      logger.info(
-        f"Downloading extension {extension_id} from Chrome Web Store..."
-      )
+      logger.info(f"Downloading extension {extension_id} from Chrome Web Store...")
       try:
         url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion=132.0&acceptformat=crx2,crx3&x=id%3D{extension_id}%26uc"
         response = requests.get(url, allow_redirects=True, timeout=30)
@@ -194,9 +180,7 @@ class BrowserService:
       return None
 
   @staticmethod
-  def _install_extensions(
-    driver: webdriver.Chrome, extension_ids: List[str]
-  ) -> None:
+  def _install_extensions(driver: webdriver.Chrome, extension_ids: list[str]) -> None:
     """Устанавливает расширения по списку ID."""
     for ext_id in extension_ids:
       ext_path_str = BrowserService._download_and_unpack_extension(ext_id)
@@ -210,16 +194,14 @@ class BrowserService:
           except Exception as e:
             logger.error(f"Failed to install extension {ext_id}: {e}")
         else:
-          logger.warning(
-            f"Manifest not found for extension {ext_id} at {ext_path}"
-          )
+          logger.warning(f"Manifest not found for extension {ext_id} at {ext_path}")
       else:
         logger.warning(f"Failed to download/unpack extension {ext_id}")
 
   @staticmethod
   def _launch_chrome_sync(
-    cookies: dict, steam_id: int | None, extension_ids: List[str] | None = None
-  ) -> Tuple[bool, str]:
+    cookies: dict, steam_id: int | None, extension_ids: list[str] | None = None
+  ) -> tuple[bool, str]:
     """Синхронный запуск Selenium (должен выполняться в отдельном потоке)"""
     try:
       logger.info("Launching Chrome...")

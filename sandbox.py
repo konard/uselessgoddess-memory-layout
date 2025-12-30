@@ -1,10 +1,11 @@
+import contextlib
 import os
-import sys
-import subprocess
-import winreg
 import random
 import string
+import subprocess
+import sys
 import time
+import winreg
 
 # --- НАСТРОЙКИ ---
 # Путь к папке Steam (где лежит steam.exe)
@@ -16,9 +17,7 @@ BASE_DATA_DIR = os.path.join(os.getenv("LOCALAPPDATA"), "SteamSandboxes")
 
 
 def generate_random_id(length=8):
-  return "".join(
-    random.choices(string.ascii_lowercase + string.digits, k=length)
-  )
+  return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 def set_autologin_user(username):
@@ -29,10 +28,8 @@ def set_autologin_user(username):
       winreg.SetValueEx(key, "AutoLoginUser", 0, winreg.REG_SZ, username)
       winreg.SetValueEx(key, "RememberPassword", 0, winreg.REG_DWORD, 1)
       # Иногда помогает сброс PID старого процесса в реестре
-      try:
+      with contextlib.suppress(BaseException):
         winreg.DeleteValue(key, "ActiveProcess")
-      except:  # noqa: E722
-        pass
     print(f"[*] Реестр: AutoLoginUser установлен на {username}")
   except Exception as e:
     print(f"[!] Ошибка записи в реестр: {e}")

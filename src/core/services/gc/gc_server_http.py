@@ -1,15 +1,23 @@
 import os
 import traceback
-from fastapi import FastAPI, Request, Response
+
 import uvicorn
+from fastapi import FastAPI, Request, Response
 from starlette.requests import ClientDisconnect
 
-from core.logging import get_logger
 from constants import IS_DEV_MODE
+from core import utils
+from core.logging import get_logger
+
 from .gc_service import GCService
 
 logger = get_logger("gc.server.http")
 PORT = 13337
+
+
+def save_sync(file: str, data: bytes):
+  with open(file, "wb") as f:
+    f.write(data)
 
 
 async def start_gc_server(gc_service: GCService):
@@ -36,8 +44,7 @@ async def start_gc_server(gc_service: GCService):
           if not safe_filename:
             safe_filename = "unknown.bin"
           save_path = f"proto/{client_name}/{safe_filename.lower()}.bin"
-          with open(save_path, "wb") as f:
-            f.write(data)
+          await utils.run_blocking(save_sync, save_path, data)
         except Exception as e:
           logger.error(f"Failed to save proto dump: {e}")
 

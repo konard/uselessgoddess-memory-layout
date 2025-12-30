@@ -1,22 +1,21 @@
 import time
-from typing import Dict, List
 
+from PyQt6.QtCore import QObject, Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
-  QWidget,
-  QVBoxLayout,
+  QFrame,
+  QGridLayout,
   QHBoxLayout,
   QLabel,
   QProgressBar,
-  QGridLayout,
-  QFrame,
   QScrollArea,
+  QVBoxLayout,
+  QWidget,
 )
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QTimer
 
 from core.context import Context
 from core.services.gsi.models import GameState, Team
 from ui.theme import CURRENT_THEME
-from ui.widgets import TitledPanel, Label, LabelType
+from ui.widgets import Label, LabelType, TitledPanel
 
 
 class SignalBridge(QObject):
@@ -38,9 +37,7 @@ class StatCard(QFrame):
     layout.setSpacing(2)
 
     lbl_title = QLabel(title)
-    lbl_title.setStyleSheet(
-      f"color: {CURRENT_THEME.SECONDARY_TEXT}; font-size: 10px;"
-    )
+    lbl_title.setStyleSheet(f"color: {CURRENT_THEME.SECONDARY_TEXT}; font-size: 10px;")
     lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     self.lbl_value = QLabel(str(value))
@@ -229,8 +226,8 @@ class GSITab(QWidget):
     super().__init__(parent)
     self.ctx = ctx
 
-    self.active_widgets: Dict[str, PlayerGSIWidget] = {}
-    self.sorted_logins: List[str] = []
+    self.active_widgets: dict[str, PlayerGSIWidget] = {}
+    self.sorted_logins: list[str] = []
 
     self.bridge = SignalBridge()
     self.bridge.gsi_updated.connect(self._on_gsi_packet)

@@ -1,9 +1,8 @@
-import subprocess
-import os
-import time
 import ctypes
+import os
+import subprocess
+import time
 from ctypes import wintypes
-from typing import Set, List, Tuple, Optional
 
 # --- WinAPI CONSTANTS & STRUCTURES ---
 TH32CS_SNAPPROCESS = 0x00000002
@@ -42,7 +41,7 @@ CloseHandle.argtypes = [wintypes.HANDLE]
 CloseHandle.restype = wintypes.BOOL
 
 
-def get_processes_fast() -> List[Tuple[int, str, int]]:
+def get_processes_fast() -> list[tuple[int, str, int]]:
   """
   Получает список процессов (PID, Name, ParentPID) через WinAPI (быстро и без wmic).
   """
@@ -57,9 +56,7 @@ def get_processes_fast() -> List[Tuple[int, str, int]]:
 
   if Process32First(h_snap, ctypes.byref(pe32)):
     while True:
-      processes.append(
-        (pe32.th32ProcessID, pe32.szExeFile, pe32.th32ParentProcessID)
-      )
+      processes.append((pe32.th32ProcessID, pe32.szExeFile, pe32.th32ParentProcessID))
       if not Process32Next(h_snap, ctypes.byref(pe32)):
         break
 
@@ -67,22 +64,22 @@ def get_processes_fast() -> List[Tuple[int, str, int]]:
   return processes
 
 
-def get_process_parent_pid(pid: int) -> Optional[int]:
+def get_process_parent_pid(pid: int) -> int | None:
   """
   Возвращает Parent PID для указанного PID.
   """
   processes = get_processes_fast()
-  for p_pid, p_name, p_parent in processes:
+  for p_pid, _, p_parent in processes:
     if p_pid == pid:
       return p_parent
   return None
 
 
-def get_pids_by_name(process_name: str) -> Set[int]:
+def get_pids_by_name(process_name: str) -> set[int]:
   pids = set()
   try:
     processes = get_processes_fast()
-    for pid, name, ppid in processes:
+    for pid, name, _ in processes:
       if name.lower() == process_name.lower():
         pids.add(pid)
   except Exception as e:
@@ -92,15 +89,12 @@ def get_pids_by_name(process_name: str) -> Set[int]:
 
 def is_process_running(pid: int) -> bool:
   processes = get_processes_fast()
-  for p_pid, _, _ in processes:
-    if p_pid == pid:
-      return True
-  return False
+  return any(p_pid == pid for p_pid, _, _ in processes)
 
 
 def find_child_processes_recursive(
-  parent_pid: int, all_processes: List[Tuple[int, str, int]]
-) -> List[Tuple[int, str, int]]:
+  parent_pid: int, all_processes: list[tuple[int, str, int]]
+) -> list[tuple[int, str, int]]:
   children = []
   direct_children = [p for p in all_processes if p[2] == parent_pid]
   children.extend(direct_children)
@@ -111,8 +105,8 @@ def find_child_processes_recursive(
 
 
 def wait_for_child_processes(
-  parent_pid: int, target_names: List[str] = None, timeout: int = 60
-) -> List[int]:
+  parent_pid: int, target_names: list[str] = None, timeout: int = 60
+) -> list[int]:
   if target_names is None:
     target_names = ["cs2.exe", "csgo.exe"]
 
@@ -130,12 +124,14 @@ def wait_for_child_processes(
 
       children = find_child_processes_recursive(parent_pid, all_processes)
 
-      for pid, name, ppid in children:
+      for pid, name, _ in children:
         name_lower = name.lower()
-        if any(target.lower() in name_lower for target in target_names):
-          if pid not in found_pids:
-            found_pids.append(pid)
-            print(f"Найден дочерний процесс: {name} (PID: {pid})")
+        if (
+          any(target.lower() in name_lower for target in target_names)
+          and pid not in found_pids
+        ):
+          found_pids.append(pid)
+          print(f"Найден дочерний процесс: {name} (PID: {pid})")
 
       if found_pids:
         return found_pids
@@ -149,7 +145,7 @@ def wait_for_child_processes(
   return found_pids
 
 
-def wait_for_window_visibility(pids: List[int], timeout: int = 60) -> bool:
+def wait_for_window_visibility(pids: list[int], timeout: int = 60) -> bool:
   if os.name != "nt":
     return True
 
@@ -158,9 +154,7 @@ def wait_for_window_visibility(pids: List[int], timeout: int = 60) -> bool:
 
   try:
     user32 = ctypes.windll.user32
-    WNDENUMPROC = ctypes.WINFUNCTYPE(
-      ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p
-    )
+    WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
 
     while time.time() - start_time < timeout:
       visible = False

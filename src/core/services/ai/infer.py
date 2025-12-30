@@ -1,16 +1,15 @@
-from typing import List, Tuple, Optional
-
 import time
+from dataclasses import dataclass
+from typing import Optional
+
 import cv2
 import numpy as np
 import onnxruntime as ort
 
-from dataclasses import dataclass
-from core.logging import get_logger
-from .recorder import DataRecorder
-
 import resources
+from core.logging import get_logger
 
+from .recorder import DataRecorder
 
 logger = get_logger("vis.infer")
 
@@ -44,7 +43,7 @@ class Target:
       headshot=self.headshot,
     )
 
-  def encode(self) -> Tuple[int, float, float, float, float]:
+  def encode(self) -> tuple[int, float, float, float, float]:
     return (
       self.laidx,
       self.mid_x / self.input_x,
@@ -53,7 +52,7 @@ class Target:
       self.height / self.input_y,
     )
 
-  def corners(self) -> Tuple[float, float]:
+  def corners(self) -> tuple[float, float]:
     return self.mid_x - self.width / 2, self.mid_x - self.height / 2
 
 
@@ -61,7 +60,7 @@ class InferenceService:
   def __init__(
     self,
     model_path: str,
-    labels: List[str],
+    labels: list[str],
     conf_thres: float = 0.5,
     iou_thres: float = 0.45,
   ):
@@ -113,7 +112,7 @@ class InferenceService:
     return img
 
   # non maximus suppression
-  def _nms(self, boxes: np.ndarray, scores: np.ndarray) -> List[int]:
+  def _nms(self, boxes: np.ndarray, scores: np.ndarray) -> list[int]:
     x1 = boxes[:, 0]
     y1 = boxes[:, 1]
     x2 = boxes[:, 2]
@@ -143,8 +142,8 @@ class InferenceService:
     return keep
 
   def postprocess(
-    self, output: np.ndarray, original_shape: Tuple[int, int]
-  ) -> List[Target]:
+    self, output: np.ndarray, original_shape: tuple[int, int]
+  ) -> list[Target]:
     predictions = np.squeeze(output).T
 
     scores = np.max(predictions[:, 4:], axis=1)
@@ -173,9 +172,7 @@ class InferenceService:
       cx, cy, w, h = boxes[i]
       score = scores[i]
       class_id = class_ids[i]
-      label_name = (
-        self.labels[class_id] if class_id < len(self.labels) else str(class_id)
-      )
+      label_name = self.labels[class_id] if class_id < len(self.labels) else str(class_id)
 
       target = Target(
         input_x=self.model_input_size,
@@ -192,12 +189,10 @@ class InferenceService:
 
     return targets
 
-  def infer(self, frame: np.ndarray) -> List[Target]:
+  def infer(self, frame: np.ndarray) -> list[Target]:
     input_tensor = self.preprocess(frame)
 
-    outputs = self.session.run(
-      [self.output_name], {self.input_name: input_tensor}
-    )
+    outputs = self.session.run([self.output_name], {self.input_name: input_tensor})
 
     targets = self.postprocess(outputs[0], frame.shape)
 

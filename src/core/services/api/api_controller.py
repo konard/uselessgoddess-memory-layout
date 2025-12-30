@@ -1,5 +1,6 @@
+from typing import Any, Optional
+
 import requests
-from typing import Optional, Dict, Any
 
 
 class ApiController:
@@ -8,7 +9,7 @@ class ApiController:
 
   def __new__(cls):
     if cls._instance is None:
-      cls._instance = super(ApiController, cls).__new__(cls)
+      cls._instance = super().__new__(cls)
       cls._instance._init()
     return cls._instance
 
@@ -17,7 +18,7 @@ class ApiController:
     # Можно добавить хедеры по умолчанию, если нужно
     self.session.headers.update({"Content-Type": "application/json"})
 
-  def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Any:
+  def get(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
     """Выполняет GET запрос к API."""
     # Если endpoint не начинается с /, добавляем его
     if not endpoint.startswith("/"):
@@ -35,8 +36,8 @@ class ApiController:
   def post(
     self,
     endpoint: str,
-    data: Optional[Dict[str, Any]] = None,
-    json: Optional[Dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
+    json: dict[str, Any] | None = None,
   ) -> Any:
     """Выполняет POST запрос к API."""
     if not endpoint.startswith("/"):

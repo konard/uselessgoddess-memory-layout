@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Tuple
 
 
 @dataclass
@@ -28,9 +27,9 @@ class Config:
 
   # Shooting configuration
   shoot_distance_threshold: float = 35.0
-  shoot_cooldown: Tuple[float] = 0.1, 0.3
-  shoot_burst: Tuple[float] = 0.2, 0.5
-  shoot_pistol: Tuple[float] = 0.1, 0.3
+  shoot_cooldown: tuple[float] = 0.1, 0.3
+  shoot_burst: tuple[float] = 0.2, 0.5
+  shoot_pistol: tuple[float] = 0.1, 0.3
 
   # Rotation configuration
   enable_rotation: bool = True

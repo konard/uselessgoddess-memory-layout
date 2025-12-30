@@ -1,18 +1,18 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Dict, Any, Tuple
+from typing import Any
 
-from PyQt6.QtWidgets import (
-  QDialog,
-  QVBoxLayout,
-  QLabel,
-  QFileDialog,
-  QMessageBox,
-  QTextEdit,
-)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtWidgets import (
+  QDialog,
+  QFileDialog,
+  QLabel,
+  QMessageBox,
+  QTextEdit,
+  QVBoxLayout,
+)
 
 from core.context import Context
 from core.logging import get_logger
@@ -140,16 +140,10 @@ class ImportAccountsDialog(QDialog):
     self.lbl_logpass_status = QLabel()
     if Path(LOGPASS_FILENAME).exists():
       self.lbl_logpass_status.setText(f"Found {LOGPASS_FILENAME}")
-      self.lbl_logpass_status.setStyleSheet(
-        f"color: {CURRENT_THEME.ACCENT_GREEN}"
-      )
+      self.lbl_logpass_status.setStyleSheet(f"color: {CURRENT_THEME.ACCENT_GREEN}")
     else:
-      self.lbl_logpass_status.setText(
-        f"❌ {LOGPASS_FILENAME} not found in root folder!"
-      )
-      self.lbl_logpass_status.setStyleSheet(
-        f"color: {CURRENT_THEME.ACCENT_RED}"
-      )
+      self.lbl_logpass_status.setText(f"❌ {LOGPASS_FILENAME} not found in root folder!")
+      self.lbl_logpass_status.setStyleSheet(f"color: {CURRENT_THEME.ACCENT_RED}")
 
     opts_layout.addWidget(self.sw_import_identity)
     opts_layout.addWidget(self.lbl_logpass_status)
@@ -161,7 +155,7 @@ class ImportAccountsDialog(QDialog):
     )
     layout.addWidget(btn_close)
 
-  def _load_passwords(self) -> Dict[str, str]:
+  def _load_passwords(self) -> dict[str, str]:
     """Читает logpass.txt и возвращает словарь {login_lower: password}"""
     passwords = {}
     path = Path(LOGPASS_FILENAME)
@@ -170,7 +164,7 @@ class ImportAccountsDialog(QDialog):
       return {}
 
     try:
-      with open(path, "r", encoding="utf-8", errors="ignore") as f:
+      with open(path, encoding="utf-8", errors="ignore") as f:
         for line in f:
           line = line.strip()
           if not line:
@@ -186,7 +180,7 @@ class ImportAccountsDialog(QDialog):
 
     return passwords
 
-  def _process_files(self, files: List[Path]):
+  def _process_files(self, files: list[Path]):
     pass_db = self._load_passwords()
 
     if not pass_db:
@@ -194,7 +188,7 @@ class ImportAccountsDialog(QDialog):
         self,
         "Missing Passwords",
         f"Could not load passwords from '{LOGPASS_FILENAME}'.\n"
-        f"Please ensure the file exists in the root directory and has 'login:password' format.",
+        f"Please ensure the file exists in the root directory and has 'login:password'",
       )
       return
 
@@ -205,7 +199,7 @@ class ImportAccountsDialog(QDialog):
     current_data = {}
     if accounts_file.exists():
       try:
-        with open(accounts_file, "r", encoding="utf-8") as f:
+        with open(accounts_file, encoding="utf-8") as f:
           current_data = json.load(f)
       except Exception:
         current_data = {}
@@ -242,46 +236,39 @@ class ImportAccountsDialog(QDialog):
         self.ctx.ui.selection_changed.emit()
       except Exception as e:
         logger.error(f"Failed to save accounts: {e}")
-        QMessageBox.critical(
-          self, "Error", f"Failed to save accounts.json: {e}"
-        )
+        QMessageBox.critical(self, "Error", f"Failed to save accounts.json: {e}")
         return
 
     self._show_report(success_count, skipped_logins)
 
-  def _show_report(self, success: int, skipped: List[str]):
+  def _show_report(self, success: int, skipped: list[str]):
     msg = f"Successfully imported: {success} accounts.\n"
 
     if skipped:
-      msg += f"\nSkipped {len(skipped)} accounts (missing password in {LOGPASS_FILENAME}):\n"
+      msg += f"\nSkipped {len(skipped)} accounts (missing password in {LOGPASS_FILENAME})"
+      msg += ":\n"
       limit = 10
       msg += "\n".join(f"- {login}" for login in skipped[:limit])
       if len(skipped) > limit:
         msg += f"\n...and {len(skipped) - limit} more."
 
       self.lbl_logpass_status.setText(f"⚠ Skipped {len(skipped)} accounts!")
-      self.lbl_logpass_status.setStyleSheet(
-        f"color: {CURRENT_THEME.ACCENT_ORANGE}"
-      )
+      self.lbl_logpass_status.setStyleSheet(f"color: {CURRENT_THEME.ACCENT_ORANGE}")
 
       QMessageBox.warning(self, "Import Warning", msg)
     else:
       self.lbl_logpass_status.setText(f"Success! Imported {success}")
-      self.lbl_logpass_status.setStyleSheet(
-        f"color: {CURRENT_THEME.ACCENT_GREEN}"
-      )
+      self.lbl_logpass_status.setStyleSheet(f"color: {CURRENT_THEME.ACCENT_GREEN}")
       QMessageBox.information(self, "Import Complete", msg)
       if success > 0:
         self.accept()
 
-  def _parse_mafile(self, path: Path) -> Dict[str, Any] | None:
+  def _parse_mafile(self, path: Path) -> dict[str, Any] | None:
     try:
-      with open(path, "r", encoding="utf-8") as f:
+      with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
-      login = (
-        data.get("account_name") or data.get("accountName") or data.get("login")
-      )
+      login = data.get("account_name") or data.get("accountName") or data.get("login")
 
       if not login:
         return None

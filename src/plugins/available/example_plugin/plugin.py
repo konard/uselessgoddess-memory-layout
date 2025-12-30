@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
-from plugins import PluginBase
 from core.logging import get_logger
+from plugins import PluginBase
 
 logger = get_logger("example_plugin")
 
 
 class _ExamplePlugin(PluginBase):
   def __init__(self) -> None:
-    self._context: Dict[str, Any] | None = None
+    self._context: dict[str, Any] | None = None
 
-  def setup(self, app_context: Dict[str, Any]) -> None:
+  def setup(self, app_context: dict[str, Any]) -> None:
     self._context = app_context
     logger.trace("Example plugin setup выполнен")
     event_bus = app_context.get("event_bus")
@@ -33,7 +33,7 @@ class _ExamplePlugin(PluginBase):
     logger.trace("Example plugin teardown выполнен")
 
   @property
-  def meta(self) -> Dict[str, Any]:
+  def meta(self) -> dict[str, Any]:
     return {"name": "Example Plugin", "version": "0.1.0"}
 
   def _on_task_progress(self, text: str) -> None:

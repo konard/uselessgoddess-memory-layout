@@ -1,15 +1,16 @@
-from PyQt6.QtWidgets import (
-  QDialog,
-  QVBoxLayout,
-  QFormLayout,
-  QLineEdit,
-  QDialogButtonBox,
-  QTimeEdit,
-  QCheckBox,
-  QHBoxLayout,
-  QSpinBox,
-)
 from PyQt6.QtCore import QTime
+from PyQt6.QtWidgets import (
+  QCheckBox,
+  QDialog,
+  QDialogButtonBox,
+  QFormLayout,
+  QHBoxLayout,
+  QLineEdit,
+  QSpinBox,
+  QTimeEdit,
+  QVBoxLayout,
+)
+
 from core.services.settings import SettingsService
 
 
@@ -62,8 +63,7 @@ class SettingsDialog(QDialog):
     layout.addLayout(form_layout)
 
     button_box = QDialogButtonBox(
-      QDialogButtonBox.StandardButton.Save
-      | QDialogButtonBox.StandardButton.Cancel
+      QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
     )
     button_box.accepted.connect(self.accept)
     button_box.rejected.connect(self.reject)
@@ -81,9 +81,7 @@ class SettingsDialog(QDialog):
     if settings.farm_until:
       self.farm_until_check.setChecked(True)
       self.farm_until_edit.setEnabled(True)
-      self.farm_until_edit.setTime(
-        QTime.fromString(settings.farm_until, "HH:mm")
-      )
+      self.farm_until_edit.setTime(QTime.fromString(settings.farm_until, "HH:mm"))
     else:
       self.farm_until_check.setChecked(False)
       self.farm_until_edit.setEnabled(False)

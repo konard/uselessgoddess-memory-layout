@@ -1,6 +1,6 @@
+import psutil
 import win32gui
 import win32process
-import psutil
 
 
 def find_window_by_name(window_name):

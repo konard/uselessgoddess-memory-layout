@@ -1,7 +1,8 @@
 import os
-from typing import List
-import psutil
 import subprocess
+
+import psutil
+
 from core.logging import get_logger
 
 logger = get_logger("yacs.process")
@@ -44,12 +45,8 @@ class ProcessService:
     return -1
 
   @staticmethod
-  def get_all_runner_pids() -> List[int]:
-    return [
-      proc.pid
-      for proc in psutil.process_iter()
-      if proc.name() == "cs2_runner.exe"
-    ]
+  def get_all_runner_pids() -> list[int]:
+    return [proc.pid for proc in psutil.process_iter() if proc.name() == "cs2_runner.exe"]
 
   @staticmethod
   def kill_all_runners() -> None:

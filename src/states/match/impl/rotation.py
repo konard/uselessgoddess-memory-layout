@@ -2,12 +2,11 @@ from typing import Optional
 
 import win32api
 import win32con
+
 from .config import config
 
 
-def smooth_rotate_to_target(
-  current: float, target: float, speed: float
-) -> Optional[float]:
+def smooth_rotate_to_target(current: float, target: float, speed: float) -> float | None:
   current_deg = current % 360
   target_deg = target % 360
 
@@ -38,7 +37,7 @@ def rotate_step(speed: float) -> None:
   win32api.mouse_event(
     win32con.MOUSEEVENTF_MOVE,
     int(speed * config.aa_movement_amp),
-    int(0),
+    0,
     0,
     0,
   )

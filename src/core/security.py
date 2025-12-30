@@ -1,11 +1,10 @@
 import json
+import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 from cryptography.fernet import Fernet
 from tinydb.storages import Storage
-
-import logging
-from logging.handlers import RotatingFileHandler
 
 INTERNAL_KEY = b"1llKWQG0rSXJgyI5GLja7iAw_x215iyPEZFlw4qaTyI="
 

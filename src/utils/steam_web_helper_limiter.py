@@ -15,8 +15,8 @@ Features:
 - Logging, dry-run mode, and simple CLI configuration.
 
 IMPORTANT:
-- Requires admin (or at least enough privileges to change other processes' affinity/priority
-  and to send window messages).
+- Requires admin (or at least enough privileges to change other processes'
+affinity/priority and to send window messages).
 - Use with care: killing or forcibly closing windows may break Steam or anti-cheat
   expectations. Test on one machine first.
 
@@ -33,23 +33,22 @@ Usage example:
 """
 
 from __future__ import annotations
+
 import argparse
 import logging
-import time
 import threading
-from typing import List, Set
+import time
 
 import psutil
 
 try:
-  import win32gui
-  import win32con
-  import win32process
   import ctypes
+
+  import win32con
+  import win32gui
+  import win32process
 except Exception as e:
-  raise RuntimeError(
-    "This script must be run on Windows with pywin32 installed"
-  ) from e
+  raise RuntimeError("This script must be run on Windows with pywin32 installed") from e
 
 # ----------------------------- Utility functions -----------------------------
 
@@ -59,7 +58,8 @@ _kernel32 = ctypes.WinDLL("kernel32")
 
 
 def empty_working_set(pid: int) -> bool:
-  """Call EmptyWorkingSet on a process to encourage Windows to trim its memory."""
+  """Call EmptyWorkingSet on a process to encourage Windows
+  to trim its memory."""
   PROCESS_SET_QUOTA = 0x0100
   PROCESS_QUERY_INFORMATION = 0x0400
   PROCESS_VM_READ = 0x0010
@@ -80,9 +80,10 @@ def empty_working_set(pid: int) -> bool:
 # ----------------------------- Window utilities -----------------------------
 
 
-def enum_windows_for_pids(pids: Set[int]) -> List[int]:
-  """Return list of top-level window handles belonging to any of the given PIDs."""
-  handles: List[int] = []
+def enum_windows_for_pids(pids: set[int]) -> list[int]:
+  """Return list of top-level window handles
+  belonging to any of the given PIDs."""
+  handles: list[int] = []
 
   def _enum(hwnd, extra):
     if not win32gui.IsWindowVisible(hwnd):
@@ -105,22 +106,22 @@ def enum_windows_for_pids(pids: Set[int]) -> List[int]:
 class SteamWebHelperLimiter:
   def __init__(
     self,
-    process_names: List[str] = None,
-    cpu_cores: List[int] | None = None,
+    process_names: list[str] | None = None,
+    cpu_cores: list[int] | None = None,
     set_priority_idle: bool = True,
     trim_memory: bool = False,
     close_windows: bool = True,
-    window_title_blacklist: List[str] | None = None,
-    window_class_blacklist: List[str] | None = None,
+    window_title_blacklist: list[str] | None = None,
+    window_class_blacklist: list[str] | None = None,
     force_close: bool = False,
     dry_run: bool = False,
-    window_white_list: List[str] | None = None,
+    window_white_list: list[str] | None = None,
   ):
     self.process_names = process_names or [
       "steamwebhelper.exe",
       "gameoverlayui64.exe",
     ]
-    self.cpu_cores = cpu_cores
+    self.cpu_cores = cpu_cores if cpu_cores is not None else [0]
     self.set_priority_idle = set_priority_idle
     self.trim_memory = trim_memory
     self.close_windows = close_windows
@@ -131,16 +132,12 @@ class SteamWebHelperLimiter:
         or ["Список друзей", "Список игр", "Steam", "Специальные предложения"]
       )
     ]
-    self.window_white_list = [
-      s.lower() for s in (window_white_list or ["Войти в Steam"])
-    ]
-    self.window_class_blacklist = [
-      s.lower() for s in (window_class_blacklist or [])
-    ]
+    self.window_white_list = [s.lower() for s in (window_white_list or ["Войти в Steam"])]
+    self.window_class_blacklist = [s.lower() for s in (window_class_blacklist or [])]
     self.force_close = force_close
     self.dry_run = dry_run
 
-  def _matching_processes(self) -> List[psutil.Process]:
+  def _matching_processes(self) -> list[psutil.Process]:
     procs = []
     for p in psutil.process_iter(attrs=["pid", "name"]):
       try:
@@ -191,7 +188,7 @@ class SteamWebHelperLimiter:
     except Exception as e:
       logging.warning(f"Failed to trim memory for PID {pid}: {e}")
 
-  def _close_windows_for_pids(self, pids: Set[int]):
+  def _close_windows_for_pids(self, pids: set[int]):
     if not pids:
       return
     handles = enum_windows_for_pids(pids)
@@ -227,6 +224,7 @@ class SteamWebHelperLimiter:
             def _force():
               time.sleep(1)
               try:
+                # FIXME: B023
                 if win32gui.IsWindow(h):
                   win32gui.PostMessage(h, win32con.WM_QUIT, 0, 0)
               except Exception:
@@ -283,9 +281,7 @@ def parse_args():
     nargs="*",
     help="CPU cores to allow (e.g. -c 0 1)",
   )
-  p.add_argument(
-    "--no-priority", action="store_true", help="Do not set idle priority"
-  )
+  p.add_argument("--no-priority", action="store_true", help="Do not set idle priority")
   p.add_argument(
     "--trim", action="store_true", help="Call EmptyWorkingSet to trim memory"
   )
@@ -293,11 +289,9 @@ def parse_args():
   p.add_argument(
     "--title-blacklist",
     nargs="*",
-    help="Window title substrings to close (default: store community workshop chat)",
+    help="Window title substrings to close",
   )
-  p.add_argument(
-    "--class-blacklist", nargs="*", help="Window class names to close"
-  )
+  p.add_argument("--class-blacklist", nargs="*", help="Window class names to close")
   p.add_argument(
     "--force-close",
     action="store_true",
@@ -317,20 +311,18 @@ def parse_args():
 
 
 def limit_steam_web_helper(
-  process_names: List[str] = None,
-  cpu_cores: List[int] | None = [0],
+  process_names: list[str] | None = None,
+  cpu_cores: list[int] | None = None,
   set_priority_idle: bool = True,
   trim_memory: bool = True,
   close_windows: bool = False,
-  window_title_blacklist: List[str] | None = None,
-  window_class_blacklist: List[str] | None = None,
+  window_title_blacklist: list[str] | None = None,
+  window_class_blacklist: list[str] | None = None,
   force_close: bool = True,
   dry_run: bool = False,
-  white: List[str] | None = None,
+  white: list[str] | None = None,
 ):
-  logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-  )
+  logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
   limiter = SteamWebHelperLimiter(
     process_names=process_names,

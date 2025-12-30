@@ -1,7 +1,9 @@
-import time
-from typing import Any, Coroutine
-from steam import Client
 import asyncio
+import time
+from collections.abc import Coroutine
+from typing import Any
+
+from steam import Client
 
 from core.account.model import Account
 from core.logging import get_logger
@@ -13,7 +15,7 @@ logger = get_logger("client_login_wrapper")
 async def client_login_wrapper(client: Client, account: Account) -> bool:
   try:
     # 1. Setup Token Saving logic (Safe Hook) BEFORE login
-    # We capture the original on_login to avoid breaking state classes (e.g. ScanInventory)
+    # We capture the original on_login to avoid breaking state classes
     original_on_login = getattr(client, "on_login", None)
 
     async def wrapped_on_login():

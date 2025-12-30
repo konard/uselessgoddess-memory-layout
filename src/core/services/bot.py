@@ -1,31 +1,34 @@
 from __future__ import annotations
-import math
-from typing import List, Optional, TYPE_CHECKING
-import cv2
+
 import asyncio
-import numpy as np
+import contextlib
 import getpass
 import html
+import math
+from typing import TYPE_CHECKING, Optional
+
+import cv2
+import numpy as np
 from telegram import (
-  Update,
-  ReplyKeyboardMarkup,
   BotCommand,
-  InlineKeyboardMarkup,
   InlineKeyboardButton,
+  InlineKeyboardMarkup,
+  ReplyKeyboardMarkup,
+  Update,
 )
 from telegram.ext import (
   Application,
-  CommandHandler,
-  MessageHandler,
-  ContextTypes,
-  filters,
   CallbackQueryHandler,
+  CommandHandler,
+  ContextTypes,
+  MessageHandler,
+  filters,
 )
-from core.logging import get_logger
-from core.services.windows_service import WindowService
-from core.account.model import FarmStatus
 
 import resources
+from core.account.model import FarmStatus
+from core.logging import get_logger
+from core.services.windows_service import WindowService
 
 if TYPE_CHECKING:
   from core.context import Context
@@ -100,14 +103,10 @@ class TelegramBotService:
       reply_markup=keyboard,
     )
 
-  async def _cmd_start(
-    self, update: Update, context: ContextTypes.DEFAULT_TYPE
-  ):
+  async def _cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not self._check_auth(user.id):
-      logger.warn(
-        f"Unauthorized access attempt from {user.id} ({user.username})"
-      )
+      logger.warn(f"Unauthorized access attempt from {user.id} ({user.username})")
       await self._send_sales_message(update)
       return
 
@@ -132,16 +131,12 @@ class TelegramBotService:
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
-  async def _cmd_status(
-    self, update: Update, context: ContextTypes.DEFAULT_TYPE
-  ):
+  async def _cmd_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not self._check_auth(update.effective_user.id):
       await self._send_sales_message(update)
       return
 
-    running_accounts = WindowService.scan_cs2_windows(
-      self.ctx.accounts(), values=True
-    )
+    running_accounts = WindowService.scan_cs2_windows(self.ctx.accounts(), values=True)
 
     if not running_accounts:
       safe_user = html.escape(getpass.getuser())
@@ -179,9 +174,7 @@ class TelegramBotService:
 
     await update.message.reply_text(msg, parse_mode="HTML")
 
-  async def _cmd_screenshot(
-    self, update: Update, context: ContextTypes.DEFAULT_TYPE
-  ):
+  async def _cmd_screenshot(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not self._check_auth(update.effective_user.id):
       return
 
@@ -201,29 +194,21 @@ class TelegramBotService:
 
       if frame is None or frame.size == 0:
         await context.bot.delete_message(chat_id, placeholder_msg.message_id)
-        await update.message.reply_text(
-          "❌ Failed to capture screen (empty frame)."
-        )
+        await update.message.reply_text("❌ Failed to capture screen (empty frame).")
         return
 
       await context.bot.delete_message(chat_id, placeholder_msg.message_id)
 
       height, width = frame.shape[:2]
-      await self.send_message(
-        chat_id=chat_id, text=f"{width}x{height}", image=frame
-      )
+      await self.send_message(chat_id=chat_id, text=f"{width}x{height}", image=frame)
 
     except Exception as e:
       logger.error(f"Screenshot error: {e}")
-      try:
+      with contextlib.suppress(Exception):
         await context.bot.delete_message(chat_id, placeholder_msg.message_id)
-      except Exception:
-        pass
       await update.message.reply_text(f"❌ Error taking screenshot: {e}")
 
-  async def _handle_text(
-    self, update: Update, context: ContextTypes.DEFAULT_TYPE
-  ):
+  async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not self._check_auth(update.effective_user.id):
       return
 
@@ -239,9 +224,9 @@ class TelegramBotService:
     self,
     chat_id: int | str,
     text: str,
-    image: Optional[np.ndarray] = None,
+    image: np.ndarray | None = None,
     parse_mode: str = "HTML",
-    reply_markup: Optional[InlineKeyboardMarkup] = None,
+    reply_markup: InlineKeyboardMarkup | None = None,
   ):
     if not self.running or not self.app or not self.app.bot:
       logger.warning(
@@ -278,16 +263,10 @@ class TelegramBotService:
       logger.error(f"Failed to send Telegram message to {chat_id}: {e}")
 
 
-def encode_frame_to_bytes(
-  frame_bgra: np.ndarray, ext: str = "png"
-) -> bytes | None:
+def encode_frame_to_bytes(frame_bgra: np.ndarray, ext: str = "png") -> bytes | None:
   try:
     if ext.lower() == "jpeg":
-      if frame_bgra.shape[2] == 4:
-        frame_bgr = frame_bgra[:, :, :3]
-      else:
-        frame_bgr = frame_bgra
-
+      frame_bgr = frame_bgra[:, :, :3] if frame_bgra.shape[2] == 4 else frame_bgra
       encode_success, encoded_image = cv2.imencode(
         ".jpg", frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90]
       )

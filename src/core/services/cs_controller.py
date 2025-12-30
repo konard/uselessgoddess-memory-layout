@@ -1,22 +1,21 @@
-import time
-import win32api
-import win32con
-import win32clipboard
-import pywintypes
-import pyautogui
-from pyscreeze import ImageNotFoundException
 import io
+import time
 
-
-from core.account.model import RunningAccount
-from constants import win_w, win_h
-from core.logging import get_logger
-from core.account import Account
-from core.utils import async_methods
+import pyautogui
+import pywintypes
+import win32api
+import win32clipboard
+import win32con
 from PIL import Image
+from pyscreeze import ImageNotFoundException
 
 import resources
+from constants import win_h, win_w
+from core.account import Account
+from core.account.model import RunningAccount
 from core.keys import Key
+from core.logging import get_logger
+from core.utils import async_methods
 
 logger = get_logger("yacs.cs_controller")
 
@@ -154,17 +153,14 @@ class CS2Controller:
     y = account.posY + win_h
     print(x, y, account.posX, account.posY)
     try:
-      matches = pyautogui.locateAllOnScreen(
-        load_image(image), confidence=confidence
-      )
+      matches = pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
       for match in matches:
         if (
           match[0] < x
           and match[1] < y
           and match[0] > account.posX
           and match[1] > account.posY
-          or whole_screen
-        ):
+        ) or whole_screen:
           click_x = int(match[0] + match[2] / 2)
           click_y = int(match[1] + match[3] / 2)
           CS2Controller.click(click_x, click_y, ZeroPosAccount(), immediate)
@@ -183,9 +179,7 @@ class CS2Controller:
     y = account.posY + win_h
 
     try:
-      matches = pyautogui.locateAllOnScreen(
-        load_image(image), confidence=confidence
-      )
+      matches = pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
       for match in matches:
         if (
           match[0] < x
@@ -239,9 +233,7 @@ class CS2Controller:
     x_min = account.posX
     y_min = account.posY
 
-    matches = list(
-      pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
-    )
+    matches = list(pyautogui.locateAllOnScreen(load_image(image), confidence=confidence))
     for match in matches:
       if (
         match.left > x_min
@@ -260,18 +252,14 @@ class CS2Controller:
     return True
 
   @staticmethod
-  def count_matches(
-    image: str, account: RunningAccount, confidence: float = 0.9
-  ):
+  def count_matches(image: str, account: RunningAccount, confidence: float = 0.9):
     x_max = account.posX + win_w
     y_max = account.posY + win_h
 
     x_min = account.posX
     y_min = account.posY
 
-    matches = list(
-      pyautogui.locateAllOnScreen(load_image(image), confidence=confidence)
-    )
+    matches = list(pyautogui.locateAllOnScreen(load_image(image), confidence=confidence))
 
     count = 0
     for match in matches:
@@ -286,9 +274,7 @@ class CS2Controller:
     return count
 
   @staticmethod
-  def click_bulk_async(
-    image: str, account: RunningAccount, confidence: float = 0.9
-  ): ...
+  def click_bulk_async(image: str, account: RunningAccount, confidence: float = 0.9): ...
 
   @staticmethod
   def count_matches_async(

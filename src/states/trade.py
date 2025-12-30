@@ -1,17 +1,18 @@
-import json
 import asyncio
-from typing import List, Any, Optional
+import json
+from typing import Any
 
 import steam
-from steam.ext import csgo
 from steam import TradeOffer
+from steam.ext import csgo
 
-from core.account.model import FarmStatus
-from core.panel.state import State
-from core.context import Context
-from core.account import Account
-from core.logging import get_logger
 import states
+from core.account import Account
+from core.account.model import FarmStatus
+from core.context import Context
+from core.logging import get_logger
+from core.panel.state import State
+from core.utils import run_blocking
 from ui.widgets import Label, Progress
 from utils.client_login_wrapper import client_login_wrapper
 
@@ -21,7 +22,7 @@ logger = get_logger("state.trade")
 class ScanInventory(steam.Client):
   trade_url: steam.utils.TradeURLInfo
 
-  def __init__(self, trade_url: Optional[str], account: Account):
+  def __init__(self, trade_url: str | None, account: Account):
     super().__init__()
     print("initing scan inventory")
     self.account = account
@@ -99,16 +100,14 @@ class ScanInventory(steam.Client):
 
 
 async def process_trade(
-  account: Account, trade_url: Optional[str]
-) -> tuple[str, List[dict[str, Any]]]:
+  account: Account, trade_url: str | None
+) -> tuple[str, list[dict[str, any]]]:
   print("processing trade")
   send_trade_client = ScanInventory(trade_url, account)
 
   try:
     print("logging in")
-    login_task = asyncio.create_task(
-      client_login_wrapper(send_trade_client, account)
-    )
+    login_task = asyncio.create_task(client_login_wrapper(send_trade_client, account))
 
     print("waiting for login")
     done, pending = await asyncio.wait(
@@ -123,9 +122,7 @@ async def process_trade(
       return await send_trade_client.complete
     elif login_task in done:
       await login_task
-      logger.error(
-        f"[{account.login}] Login finished unexpectedly without reward event."
-      )
+      logger.error(f"[{account.login}] Login finished unexpectedly without reward event.")
       return "Login error", []
     else:
       logger.warning(f"[{account.login}] Operation timed out.")
@@ -142,7 +139,7 @@ async def process_trade(
 
 
 class ScanAccounts(State):
-  def __init__(self, accounts: List[Account], trade: bool = False):
+  def __init__(self, accounts: list[Account], trade: bool = False):
     self.accounts = accounts
     self.trade_report = {}
     self.trade = trade
@@ -194,8 +191,7 @@ class ScanAccounts(State):
       await asyncio.sleep(2)
 
     try:
-      with open("report.json", "w", encoding="utf-8") as f:
-        json.dump(self.trade_report, f, indent=2, ensure_ascii=False)
+      await run_blocking(self._save_report_sync)
       logger.info("Report saved to `report.json`")
       self.status.set("Completed. Report generated.")
     except Exception as e:
@@ -205,3 +201,7 @@ class ScanAccounts(State):
     from states.idle import Idle
 
     return Idle()
+
+  def _save_report_sync(self):
+    with open("report.json", "w", encoding="utf-8") as f:
+      json.dump(self.trade_report, f, indent=2, ensure_ascii=False)

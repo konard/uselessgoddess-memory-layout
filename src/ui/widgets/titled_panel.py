@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
 from ui.theme import CURRENT_THEME
 
 

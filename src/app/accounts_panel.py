@@ -1,41 +1,40 @@
-import re
 import asyncio
+import re
+
+from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QAction, QBrush, QColor, QCursor, QIcon, QPainter
 from PyQt6.QtSvg import QSvgRenderer
-from typing import List
 from PyQt6.QtWidgets import (
-  QWidget,
-  QVBoxLayout,
-  QHBoxLayout,
-  QLineEdit,
-  QTableWidget,
-  QHeaderView,
-  QTableWidgetItem,
-  QLabel,
-  QStackedWidget,
-  QListWidget,
-  QInputDialog,
-  QMessageBox,
-  QListWidgetItem,
+  QAbstractItemView,
+  QApplication,
+  QComboBox,
   QDialog,
   QDialogButtonBox,
-  QAbstractItemView,
-  QToolButton,
-  QComboBox,
+  QHBoxLayout,
+  QHeaderView,
+  QInputDialog,
+  QLabel,
+  QLineEdit,
+  QListWidget,
+  QListWidgetItem,
   QMenu,
-  QApplication,
+  QMessageBox,
+  QStackedWidget,
+  QTableWidget,
+  QTableWidgetItem,
+  QToolButton,
   QToolTip,
+  QVBoxLayout,
+  QWidget,
 )
-from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QColor, QBrush, QCursor, QIcon, QPainter, QAction
 
-from ui.theme import CURRENT_THEME, ButtonType
-from ui.widgets import Button, Switch, Tooltip
-from core.context import Context
+from app.import_dialog import ImportAccountsDialog
 from core.account.model import FarmStatus
+from core.context import Context
 from core.services.presets import Preset
 from core.services.steam_login import generate_2fa_code
-from app.import_dialog import ImportAccountsDialog
-
+from ui.theme import CURRENT_THEME, ButtonType
+from ui.widgets import Button, Switch, Tooltip
 
 enum_to_color = {
   FarmStatus.NEED_TO_FARM: CURRENT_THEME.ACCENT_RED,
@@ -46,15 +45,25 @@ enum_to_color = {
 }
 
 
+class NoScrollComboBox(QComboBox):
+  def __init__(self, parent=None):
+    super().__init__(parent)
+    self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+  def wheelEvent(self, event):
+    if self.view().isVisible():
+      super().wheelEvent(event)
+    else:
+      event.ignore()
+
+
 class AccountLoginLabel(QLabel):
   def __init__(self, account, parent=None):
     super().__init__(account.login, parent)
     self.account = account
     self.setCursor(Qt.CursorShape.PointingHandCursor)
     self.setToolTip("ЛКМ: Копировать 2FA | ПКМ: Меню")
-    self.setStyleSheet(
-      f"font-weight: bold; color: {CURRENT_THEME.PRIMARY_TEXT};"
-    )
+    self.setStyleSheet(f"font-weight: bold; color: {CURRENT_THEME.PRIMARY_TEXT};")
 
   def mousePressEvent(self, event):
     if event.button() == Qt.MouseButton.LeftButton:
@@ -119,7 +128,7 @@ class AccountLoginLabel(QLabel):
 
 
 class AccountSelectionDialog(QDialog):
-  def __init__(self, accounts: List[str], parent=None):
+  def __init__(self, accounts: list[str], parent=None):
     super().__init__(parent)
     self.setWindowTitle("Select Account")
     self.accounts = accounts
@@ -164,15 +173,12 @@ class AccountSelectionDialog(QDialog):
 
     self.list_widget = QListWidget()
     self.list_widget.addItems(self.accounts)
-    self.list_widget.setSelectionMode(
-      QAbstractItemView.SelectionMode.SingleSelection
-    )
+    self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
     self.list_widget.itemDoubleClicked.connect(self.accept)
     layout.addWidget(self.list_widget)
 
     buttons = QDialogButtonBox(
-      QDialogButtonBox.StandardButton.Ok
-      | QDialogButtonBox.StandardButton.Cancel
+      QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
     )
     buttons.accepted.connect(self.accept)
     buttons.rejected.connect(self.reject)
@@ -429,7 +435,7 @@ class AccountsTable(QWidget):
 
       status_enum = acc.lock.status or FarmStatus.NEED_TO_FARM
 
-      status_combo = QComboBox()
+      status_combo = NoScrollComboBox()
       status_combo.addItems(
         [
           FarmStatus.NEED_TO_FARM.replace("_", " ").title(),
@@ -499,15 +505,15 @@ class AccountsTable(QWidget):
       try:
         from core.services.browser import BrowserService
 
-        success, msg = await BrowserService.launch_browser(
-          account, self.ctx.settings
-        )
+        success, msg = await BrowserService.launch_browser(account, self.ctx.settings)
 
         if not success:
           QMessageBox.warning(self, "Ошибка запуска", str(msg))
 
       except ImportError as e:
-        error_msg = f"Не удалось импортировать модуль BrowserService.\nВозможно, отсутствуют библиотеки selenium или webdriver-manager.\nОшибка: {e}"
+        error_msg = f"""Не удалось импортировать модуль BrowserService.
+        Возможно, отсутствуют библиотеки selenium или webdriver-manager.
+        Ошибка: {e}"""
         print(f"ERROR: {error_msg}")
         QMessageBox.critical(self, "Ошибка импорта", error_msg)
 
@@ -528,12 +534,8 @@ class AccountsTable(QWidget):
       return
 
     status_map_text_to_enum = {
-      FarmStatus.NEED_TO_FARM.replace(
-        "_", " "
-      ).title(): FarmStatus.NEED_TO_FARM,
-      FarmStatus.CAN_BE_LOOTED.replace(
-        "_", " "
-      ).title(): FarmStatus.CAN_BE_LOOTED,
+      FarmStatus.NEED_TO_FARM.replace("_", " ").title(): FarmStatus.NEED_TO_FARM,
+      FarmStatus.CAN_BE_LOOTED.replace("_", " ").title(): FarmStatus.CAN_BE_LOOTED,
       FarmStatus.FARMED.replace("_", " ").title(): FarmStatus.FARMED,
       FarmStatus.TRADED.replace("_", " ").title(): FarmStatus.TRADED,
       FarmStatus.BLOCKED.replace("_", " ").title(): FarmStatus.BLOCKED,
@@ -615,7 +617,12 @@ class AccountsTable(QWidget):
         self.table.setRowHidden(row, False)
 
         highlighted_html = pattern.sub(
-          f"<span style='border: 1px solid {border_color}; background-color: {highlight_color}40;'>\\1</span>",
+          f"""
+          <span 
+            style='border: 1px solid {border_color}; 
+            background-color: {highlight_color}40;'>\\1
+          </span>
+          """,
           original_login,
         )
         widget.login_label.setText(highlighted_html)
@@ -928,16 +935,11 @@ class PresetsView(QWidget):
         self.refresh_presets()
         # Restore selection
         for i in range(self.preset_list.count()):
-          if (
-            self.preset_list.item(i).data(Qt.ItemDataRole.UserRole).name
-            == preset.name
-          ):
+          if self.preset_list.item(i).data(Qt.ItemDataRole.UserRole).name == preset.name:
             self.preset_list.setCurrentRow(i)
             break
       else:
-        QMessageBox.warning(
-          self, "Error", "Failed to add account (maybe full?)."
-        )
+        QMessageBox.warning(self, "Error", "Failed to add account (maybe full?).")
 
   def _remove_account(self):
     preset_item = self.preset_list.currentItem()
@@ -954,10 +956,7 @@ class PresetsView(QWidget):
     # Refresh UI
     self.refresh_presets()
     for i in range(self.preset_list.count()):
-      if (
-        self.preset_list.item(i).data(Qt.ItemDataRole.UserRole).name
-        == preset.name
-      ):
+      if self.preset_list.item(i).data(Qt.ItemDataRole.UserRole).name == preset.name:
         self.preset_list.setCurrentRow(i)
         break
 
@@ -978,9 +977,7 @@ class AccountsPanel(QWidget):
     mode_layout = QHBoxLayout()
     mode_layout.setSpacing(0)
 
-    self.btn_mode_accounts = Button(
-      "All Accounts", button_type=ButtonType.PRIMARY
-    )
+    self.btn_mode_accounts = Button("All Accounts", button_type=ButtonType.PRIMARY)
     self.btn_mode_presets = Button("Presets", button_type=ButtonType.DEFAULT)
 
     # Styling for "tabs" look

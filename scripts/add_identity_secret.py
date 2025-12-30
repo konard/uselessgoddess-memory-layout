@@ -3,15 +3,13 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ACCOUNTS_JSON_PATH = PROJECT_ROOT / "accounts.json"
 MAFILES_DIR = PROJECT_ROOT / "data" / "maFiles"
 
 
-def load_json_file(path: Path) -> Optional[dict]:
+def load_json_file(path: Path) -> dict | None:
   try:
     text = path.read_text(encoding="utf-8")
     return json.loads(text)
@@ -21,14 +19,10 @@ def load_json_file(path: Path) -> Optional[dict]:
 
 def build_mafile_indexes(
   mafiles_dir: Path,
-) -> Tuple[Dict[str, str], Dict[str, str], Dict[str, str]]:
-  """
-  Create indexes for quick lookup of identity_secret by steamid, account_name, and base filename.
-  Returns tuple of (by_steamid, by_account_name, by_basename) where all dict values are identity_secret.
-  """
-  by_steamid: Dict[str, str] = {}
-  by_account_name: Dict[str, str] = {}
-  by_basename: Dict[str, str] = {}
+) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+  by_steamid: dict[str, str] = {}
+  by_account_name: dict[str, str] = {}
+  by_basename: dict[str, str] = {}
 
   if not mafiles_dir.exists():
     return by_steamid, by_account_name, by_basename
@@ -40,10 +34,12 @@ def build_mafile_indexes(
     if name_lower == "manifest.json":
       continue
     # Accept .maFile and .mafile (case-insensitive)
-    if not (name_lower.endswith(".mafile") or name_lower.endswith(".mafile")):
+    if (
+      not name_lower.endswith((".mafile", ".maFile"))
       # Allow any file that starts with .ma (rare cases), but skip others
-      if ".ma" not in name_lower:
-        continue
+      and ".ma" not in name_lower
+    ):
+      continue
 
     data = load_json_file(path)
     if not isinstance(data, dict):
@@ -71,12 +67,12 @@ def build_mafile_indexes(
 
 
 def find_identity_secret(
-  login: Optional[str],
-  steam_id: Optional[int],
-  idx_steamid: Dict[str, str],
-  idx_account: Dict[str, str],
-  idx_basename: Dict[str, str],
-) -> Optional[str]:
+  login: str | None,
+  steam_id: int | None,
+  idx_steamid: dict[str, str],
+  idx_account: dict[str, str],
+  idx_basename: dict[str, str],
+) -> str | None:
   # Prefer exact steamid match
   if steam_id is not None:
     v = idx_steamid.get(str(steam_id))
@@ -99,7 +95,7 @@ def find_identity_secret(
   return None
 
 
-def update_accounts(accounts_path: Path, target: Optional[str] = None) -> int:
+def update_accounts(accounts_path: Path, target: str | None = None) -> int:
   accounts = load_json_file(accounts_path)
   if not isinstance(accounts, dict):
     raise SystemExit(f"Не удалось прочитать JSON: {accounts_path}")
@@ -132,10 +128,9 @@ def update_accounts(accounts_path: Path, target: Optional[str] = None) -> int:
     identity_secret = find_identity_secret(
       login, steam_id, idx_steamid, idx_account, idx_basename
     )
-    if identity_secret:
-      if account.get("identity_secret") != identity_secret:
-        account["identity_secret"] = identity_secret
-        updated_count += 1
+    if identity_secret and account.get("identity_secret") != identity_secret:
+      account["identity_secret"] = identity_secret
+      updated_count += 1
 
   # Persist only if any change
   if updated_count > 0:
@@ -156,7 +151,7 @@ def main(argv: list[str]) -> int:
     print(f"Папка с maFile не найдена: {MAFILES_DIR}")
     return 2
 
-  target: Optional[str] = None
+  target: str | None = None
   if len(argv) >= 2:
     target = argv[1]
 

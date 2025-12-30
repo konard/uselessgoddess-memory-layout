@@ -1,14 +1,14 @@
 import asyncio
 from sre_parse import State
-from typing import Optional, Tuple
+
+import states
 from core import game_constants, utils
 from core.context import Context
+from core.logging import get_logger
 from core.services.cs_controller import CS2Controller
+from core.services.launch_service import LaunchService
 from core.services.settings import FarmMode
 from core.services.windows_service import WindowService
-from core.services.launch_service import LaunchService
-from core.logging import get_logger
-import states
 from states.types import PartySchema
 
 logger = get_logger("state.shuffle")
@@ -17,10 +17,10 @@ logger = get_logger("state.shuffle")
 class ShuffleLobby(State):
   def __init__(
     self,
-    party_schema: Tuple[PartySchema, PartySchema],
-    retries: Optional[int] = None,
+    party_schema: tuple[PartySchema, PartySchema],
+    retries: int | None = None,
   ):
-    self.party_schema: Tuple[PartySchema, PartySchema] = party_schema
+    self.party_schema: tuple[PartySchema, PartySchema] = party_schema
     self.retries = retries
 
   async def execute(self, ctx: Context):
@@ -56,14 +56,10 @@ class ShuffleLobby(State):
             if login in ctx.account.accounts:
               new_accounts.append(ctx.account.accounts[login])
             else:
-              logger.error(
-                f"Account {login} from preset {next_preset.name} not found in accounts service"
-              )
+              logger.error(f"Account {login} from preset {next_preset.name} not found")
 
           if new_accounts:
-            return states.LaunchAccounts(new_accounts).then(
-              states.MakeLobbies(None)
-            )
+            return states.LaunchAccounts(new_accounts).then(states.MakeLobbies(None))
           else:
             logger.error("No valid accounts found for next preset")
         else:
@@ -80,9 +76,7 @@ class ShuffleLobby(State):
 
       unfarmed = ctx.unfarmed_accounts()
 
-      unfarmed = list(
-        filter(lambda x: x.login not in ctx.blacklisted_accounts, unfarmed)
-      )
+      unfarmed = list(filter(lambda x: x.login not in ctx.blacklisted_accounts, unfarmed))
 
       if not unfarmed:
         raise Exception(
@@ -104,9 +98,7 @@ class ShuffleLobby(State):
       )
 
       if not res:
-        raise Exception(
-          f"Failed to launch replacement account {replacement.login}"
-        )
+        raise Exception(f"Failed to launch replacement account {replacement.login}")
 
       logger.info(f"Launched {replacement.login}")
 
@@ -118,9 +110,7 @@ class ShuffleLobby(State):
             **game_constants.open_side_bar, account=account
           )
           await asyncio.sleep(0.3)
-          await CS2Controller.click_if_exists_async(
-            "img/exit.png", account, 0.9
-          )
+          await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9)
           await asyncio.sleep(0.3)
 
       return states.MakeLobbies(None)

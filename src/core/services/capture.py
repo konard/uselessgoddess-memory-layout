@@ -1,8 +1,10 @@
+import ctypes
+from dataclasses import dataclass
+
 import bettercam
 import numpy as np
-from dataclasses import dataclass
+
 from core.logging import get_logger
-import ctypes
 
 logger = get_logger("sv.capture")
 

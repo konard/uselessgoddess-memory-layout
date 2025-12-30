@@ -1,29 +1,29 @@
 import asyncio
 import json
 from os import name
-from typing import List, Any
+from pathlib import Path
+from typing import Any
 
-from core.account.lock import AccountsLock
-from core.account.model import FarmStatus
-from core.panel import State
-from core.context import Context
-from core.account import Account
-from core.logging import get_logger
-from ui.widgets import Progress, Label
-import states
 from steam.ext import csgo
 from steam.ext.csgo.price_analizator.assembler import (
   SkinAssembler,
   load_csgo_english,
   load_items_game,
 )
-from pathlib import Path
 
+import states
+from core.account import Account
+from core.account.lock import AccountsLock
+from core.account.model import FarmStatus
+from core.context import Context
+from core.logging import get_logger
+from core.panel import State
+from ui.widgets import Label, Progress
 from utils.client_login_wrapper import client_login_wrapper
 
 logger = get_logger("state.loot")
 
-prices = json.load(open("data/price.json", "r", encoding="utf-8"))
+prices = json.loads(Path("data/price.json").read_text(encoding="utf-8"))
 assembler = SkinAssembler(
   load_items_game(Path("data/items_game.txt")),
   load_csgo_english(Path("data/csgo_english.json")),
@@ -66,9 +66,7 @@ class ClaimDrop(csgo.Client):
         results,
       )
 
-      sorted_results = sorted(
-        filtered, key=lambda x: x.get("price", -1), reverse=True
-      )
+      sorted_results = sorted(filtered, key=lambda x: x.get("price", -1), reverse=True)
       top_results = sorted_results[:2]
 
       report_results = [
@@ -119,7 +117,7 @@ async def claim_drop(account: Account):
 
 
 class LootAccounts(State):
-  def __init__(self, accounts: List[Account]):
+  def __init__(self, accounts: list[Account]):
     self.accounts = accounts
 
   def layout(self, ctx: Context, dispatch):

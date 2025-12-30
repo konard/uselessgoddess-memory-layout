@@ -1,18 +1,17 @@
 import asyncio
+import contextlib
 import json
 import urllib.request
-import win32com.client
-from typing import List, Optional
 from dataclasses import dataclass
+
+import win32com.client
 from icmplib import async_ping
 
 from core.logging import get_logger
 
 logger = get_logger("sv.sdr")
 
-SDR_CONFIG_URL = (
-  "https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=730"
-)
+SDR_CONFIG_URL = "https://api.steampowered.com/ISteamApps/GetSDRConfig/v1?appid=730"
 # TODO: make local backup
 SDR_CONFIG_BACKUP = "https://raw.githubusercontent.com/SteamDatabase/SteamTracking/597d81b2a436d260a7ffe3b53eb3b9ed932c2efb/Random/NetworkDatagramConfig.json"
 
@@ -24,14 +23,14 @@ NET_FW_IP_PROTOCOL_UDP = 17
 @dataclass
 class Relay:
   ipv4: str
-  port_range: List[int]
+  port_range: list[int]
 
 
 @dataclass
 class Route:
   name: str
   desc: str
-  relays: List[Relay]
+  relays: list[Relay]
   ping: int = -1
   blocked: bool = False
 
@@ -42,13 +41,13 @@ class Route:
 
 class SRTService:
   def __init__(self):
-    self.routes: List[Route] = []
+    self.routes: list[Route] = []
     self._fw_policy = None
 
-  def get_allowed_routes(self) -> List[str]:
+  def get_allowed_routes(self) -> list[str]:
     return [r.name for r in self.routes if not r.blocked]
 
-  def load_routes(self) -> List[Route]:
+  def load_routes(self) -> list[Route]:
     logger.debug("load srt routes")
 
     data = None
@@ -56,9 +55,7 @@ class SRTService:
       with urllib.request.urlopen(SDR_CONFIG_URL, timeout=5) as response:
         data = json.loads(response.read().decode())
     except Exception:
-      logger.warn(
-        "Failed to fetch SDR config from primary URL, trying backup..."
-      )
+      logger.warn("Failed to fetch SDR config from primary URL, trying backup...")
       try:
         with urllib.request.urlopen(SDR_CONFIG_BACKUP, timeout=5) as response:
           data = json.loads(response.read().decode())
@@ -154,10 +151,8 @@ class SRTService:
 
     rule_name = f"SteamRouteTool-{route.name}"
 
-    try:
+    with contextlib.suppress(Exception):
       policy.Rules.Remove(rule_name)
-    except Exception:
-      pass
 
     if block:
       try:
@@ -208,10 +203,8 @@ class SRTService:
         to_remove.append(rule.Name)
 
     for name in to_remove:
-      try:
+      with contextlib.suppress(Exception):
         policy.Rules.Remove(name)
-      except Exception:
-        pass
 
     for route in self.routes:
       route.blocked = False

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict
 
 from core.account import Account
 from core.logging import get_logger
@@ -10,8 +9,8 @@ logger = get_logger("sv.match_warning")
 
 
 class MatchWarning:
-  states: Dict[str, str] = {}
-  events: Dict[str, asyncio.Event] = {}
+  states: dict[str, str] = {}
+  events: dict[str, asyncio.Event] = {}
 
   def process_message(self, data: dict, login: str):
     queue_state = data.get("game:mmqueue")
@@ -59,9 +58,7 @@ class MatchWarning:
           # Проверяем последние состояния
           for login in pending_logins:
             last_state = self.states.get(login)
-            logger.warning(
-              f"Account {login} timed out with state: {last_state}"
-            )
+            logger.warning(f"Account {login} timed out with state: {last_state}")
             if last_state == "registering":
               # По условию: если последнее сообщение registering - false
               return False
@@ -87,9 +84,7 @@ class MatchWarning:
 
         for task in done:
           login = task.get_name()
-          self.events[
-            login
-          ].clear()  # Сбрасываем событие для следующего обновления
+          self.events[login].clear()  # Сбрасываем событие для следующего обновления
 
           current_state = self.states.get(login)
 

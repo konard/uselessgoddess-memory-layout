@@ -1,19 +1,18 @@
 import asyncio
-import uuid
-import subprocess
+import contextlib
 import hashlib
 import random
-import requests
+import subprocess
+import uuid
 from dataclasses import dataclass
 from enum import Enum
 
+import requests
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from core.logging import get_logger
-from core.services import (
-  UserSettings,
-)
 from constants import CHECK_LICENSE
+from core.logging import get_logger
+from core.services.settings import UserSettings
 
 logger = get_logger("sv.license")
 
@@ -132,10 +131,8 @@ class LicenseService(QObject):
       r = requests.post(API_URL, json=payload, timeout=10)
 
       data = {}
-      try:
+      with contextlib.suppress(Exception):
         data = r.json()
-      except Exception:
-        pass
 
       token = data.get("magic_token", 1)
       if token is None:
@@ -176,9 +173,7 @@ class LicenseService(QObject):
       logger.critical(f"License fatal error: {resp.message}")
       self._set_state(LicenseKind.BANNED)
       # self._running = False -- DO NOT STOP WHEN BANNED
-      self.fatal_error.emit(
-        f"License Error ({resp.status_code}):\n{resp.message}"
-      )
+      self.fatal_error.emit(f"License Error ({resp.status_code}):\n{resp.message}")
       return
 
   def _handle_network_failure(self):

@@ -1,2 +1,2 @@
-from .model import Account, RunningAccount, FarmStatus
 from .lock import AccountsLock
+from .model import Account, FarmStatus, RunningAccount

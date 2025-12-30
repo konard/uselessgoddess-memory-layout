@@ -1,32 +1,32 @@
 from __future__ import annotations
 
-import onnxruntime as ort
-
-import os
-import sys
 import asyncio
-import qasync
+import contextlib
 import ctypes
+import os
 import subprocess
+import sys
+
+import onnxruntime as ort
+import qasync
 from pyuac import isUserAdmin, runAsAdmin
 
 # Add src to sys.path to allow imports from core, app, etc.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from PyQt6.QtWidgets import QApplication, QMessageBox
-
-from app.main_window import MainWindow
-from states.idle import Idle
-import pyautogui
-
 import urllib.request
 from datetime import datetime
-from src.constants import IS_DEV_MODE, CHECK_LICENSE
+
+import pyautogui
+from PyQt6.QtWidgets import QApplication, QMessageBox
+
+from app.license_dialog import LicenseInputDialog
+from app.main_window import MainWindow
+from core.services.license import LicenseKind
+from src.constants import CHECK_LICENSE, IS_DEV_MODE
 from src.core import license_old
 from src.core.context import Context
-from core.services.license import LicenseKind
-from app.license_dialog import LicenseInputDialog
-
+from states.idle import Idle
 
 pyautogui.FAILSAFE = False
 
@@ -52,9 +52,7 @@ async def bootstrap(app: QApplication):
     if ctx.lic.state() == LicenseKind.VALID:
       break
     if ctx.lic.state() == LicenseKind.BANNED:
-      QMessageBox.critical(
-        None, "License Error", "License is banned or invalid."
-      )
+      QMessageBox.critical(None, "License Error", "License is banned or invalid.")
       return None
     if ctx.lic.state() == LicenseKind.PAUSED_LIMIT:
       QMessageBox.warning(None, "Limit Reached", "Session limit reached.")
@@ -68,7 +66,9 @@ async def bootstrap(app: QApplication):
     QMessageBox.warning(
       None,
       "Network Error",
-      "Could not connect to license server.\nPlease check your connection!\nOr contact us (t.me/y_a_c_s_p)",
+      """Could not connect to license server.
+      Please check your connection!
+      Or contact us (t.me/y_a_c_s_p)""",
     )
     return None
 
@@ -128,10 +128,8 @@ if __name__ == "__main__":
     if not Path("cs2_runner.exe").exists():
       subprocess.run(["py", "build.py", "--runner"])
   else:
-    if sys.stderr is None:
-      sys.stderr = open(os.devnull, "w")
-    if sys.stdout is None:
-      sys.stdout = open(os.devnull, "w")
+    sys.stderr = open(os.devnull, "w")  # noqa: SIM115
+    sys.stdout = open(os.devnull, "w")  # noqa: SIM115
 
   if IS_DEV_MODE and not isUserAdmin():
     runAsAdmin()
@@ -153,7 +151,5 @@ if __name__ == "__main__":
 
   license_old.check_expiration(datetime(LIMIT_YEAR, LIMIT_MONTH, LIMIT_DAY))
 
-  try:
+  with contextlib.suppress(asyncio.CancelledError):
     qasync.run(main())
-  except asyncio.CancelledError:
-    pass

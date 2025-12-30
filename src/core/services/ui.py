@@ -1,5 +1,5 @@
-from typing import Set, List
 from PyQt6.QtCore import QObject, pyqtSignal
+
 from core.logging import get_logger
 
 logger = get_logger("sv.ui")
@@ -10,7 +10,7 @@ class UIService(QObject):
 
   def __init__(self):
     super().__init__()
-    self._selected: Set[str] = set()
+    self._selected: set[str] = set()
 
   def select(self, login: str):
     if login not in self._selected:
@@ -34,15 +34,15 @@ class UIService(QObject):
     self._selected.clear()
     self.selection_changed.emit()
 
-  def set_selection(self, logins: List[str]):
+  def set_selection(self, logins: list[str]):
     self._selected = set(logins)
     self.selection_changed.emit()
 
   @property
-  def selected_logins(self) -> List[str]:
+  def selected_logins(self) -> list[str]:
     return list(self._selected)
 
-  def capture_selected(self) -> List[str]:
+  def capture_selected(self) -> list[str]:
     res = list(self._selected)
     self.clear_selection()
     return res

@@ -1,8 +1,8 @@
 import argparse
 import os
+import subprocess
 import sys
 import time
-import subprocess
 
 # Local imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -10,14 +10,14 @@ if current_dir not in sys.path:
   sys.path.insert(0, current_dir)
 
 try:
-  import windows_utils
   import process_utils
   import steam_launch
+  import windows_utils
 except ImportError:
   sys.path.append(os.path.dirname(__file__))
-  import windows_utils
   import process_utils
   import steam_launch
+  import windows_utils
 
 
 def main() -> int:
@@ -46,9 +46,7 @@ def main() -> int:
   print(f"Launching Steam for {args.login}...")
 
   if args.experimental:
-    proc = steam_launch.launch_instance(
-      args.login, args.steamPath, args.w, args.h
-    )
+    proc = steam_launch.launch_instance(args.login, args.steamPath, args.w, args.h)
   else:
     opts = steam_launch.build_cs2_launch_args(
       args.steamPath,
@@ -78,7 +76,8 @@ def main() -> int:
 
       if real_parent_steam:
         print(
-          f"Detected actual Game Parent (Steam) PID: {real_parent_steam} (from CS2 PID: {cs2_pids[0]})"
+          f"Detected actual Game Parent (Steam) PID: {real_parent_steam}"
+          + f"(from CS2 PID: {cs2_pids[0]})"
         )
         target_steam_pid = real_parent_steam
       else:

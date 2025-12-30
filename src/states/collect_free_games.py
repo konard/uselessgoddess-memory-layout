@@ -1,17 +1,17 @@
 import asyncio
-from typing import List, Any
+from typing import Any
 
 from numpy import random
-
-from core.panel import State
-from core.context import Context
-from core.account import Account
-from core.logging import get_logger
-from ui.widgets import Progress, Label
-from core.services.api.free_fames_response import FreeGamesResponse
-import states
 from steam import Client
+
+import states
+from core.account import Account
+from core.context import Context
+from core.logging import get_logger
+from core.panel import State
 from core.services.api.api_controller import api_controller
+from core.services.api.free_fames_response import FreeGamesResponse
+from ui.widgets import Label, Progress
 from utils.client_login_wrapper import client_login_wrapper
 
 logger = get_logger("state.collect_free_games")
@@ -34,9 +34,7 @@ class FreeGamesClient(Client):
       owned_app_ids = await self.user.games()
       # Filter games
       # Assuming free_games is a list of dicts
-      games_to_add = [
-        g for g in self.free_games if g.get("app_id") not in owned_app_ids
-      ]
+      games_to_add = [g for g in self.free_games if g.get("app_id") not in owned_app_ids]
       results = []
       if not games_to_add:
         logger.info(f"[{self.user.name}] No new free games to add")
@@ -62,7 +60,7 @@ class FreeGamesClient(Client):
 
 
 class CollectFreeGames(State):
-  def __init__(self, accounts: List[Account]):
+  def __init__(self, accounts: list[Account]):
     self.accounts = accounts
 
   def layout(self, ctx: Context, dispatch):

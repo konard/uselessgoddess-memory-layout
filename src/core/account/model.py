@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict
 from enum import Enum
+from typing import Any
 
 import core
 from core.logging import get_logger
+
 from .lock import AccountsLock
 
 logger = get_logger("account.model")
@@ -40,7 +41,7 @@ class Metadata(dict):
 
 @dataclass(slots=True)
 class AccountMetadata:
-  _data: Dict[str, Any] = field(default_factory=Metadata, init=False)
+  _data: dict[str, Any] = field(default_factory=Metadata, init=False)
   _lock: AccountsLock | None = field(init=False, default=None)
   _login: str = field(init=False, default="")
 
@@ -136,11 +137,11 @@ class AccountMetadata:
       self._lock.set_field(self._login, "status", value)
 
   @property
-  def access_token_info(self) -> Dict[str, Any] | None:
+  def access_token_info(self) -> dict[str, Any] | None:
     return self._data.get("access_token_info")
 
   @access_token_info.setter
-  def access_token_info(self, value: Dict[str, Any]) -> None:
+  def access_token_info(self, value: dict[str, Any]) -> None:
     self._data["access_token_info"] = value
     if self._lock:
       self._lock.set_field(self._login, "access_token_info", value)
@@ -165,12 +166,12 @@ class Account:
   lock: AccountMetadata = field(default_factory=AccountMetadata, init=False)
 
   @staticmethod
-  def from_json(data: dict) -> "Account":
+  def from_json(data: dict) -> Account:
     return Account(
       login=data["login"],
       password=data["password"],
       shared_secret=data["shared_secret"],
-      identity_secret=data.get("identity_secret", None),
+      identity_secret=data.get("identity_secret"),
       steam_id=data["steam_id"],
     )
 
@@ -183,7 +184,7 @@ class Account:
       "steam_id": self.steam_id,
     }
 
-  def update_from_lock(self, accounts_lock: "AccountsLock") -> None:
+  def update_from_lock(self, accounts_lock: AccountsLock) -> None:
     """
     Обновить метаданные аккаунта из lock.
     """

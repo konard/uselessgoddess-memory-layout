@@ -1,14 +1,14 @@
 import asyncio
-from core.services.windows_service import WindowService
+
 import states
-from typing import Optional, Tuple
-from core.panel.state import State
-from core.services import CS2Controller
-from core.yass import Yass
 from core import game_constants
-from states.types import PartySchema
 from core.context import Context
 from core.logging import get_logger
+from core.panel.state import State
+from core.services import CS2Controller
+from core.services.windows_service import WindowService
+from core.yass import Yass
+from states.types import PartySchema
 from utils.name_generator import generate_preset_name
 
 logger = get_logger("state.wait_for_game")
@@ -17,8 +17,8 @@ logger = get_logger("state.wait_for_game")
 class WaitForGame(State):
   def __init__(
     self,
-    party_schema: Tuple[PartySchema, PartySchema],
-    retries: Optional[int] = None,
+    party_schema: tuple[PartySchema, PartySchema],
+    retries: int | None = None,
   ):
     self.party_schema = party_schema
     self.retries = retries or 0
@@ -38,9 +38,7 @@ class WaitForGame(State):
       if count >= ctx.su.times_to_shuffle:
         return states.ShuffleLobby(self.party_schema, retries=self.retries + 1)
 
-      await Yass.press_resource_async(
-        "img/ready_button_left_corner.png", leaders
-      )
+      await Yass.press_resource_async("img/ready_button_left_corner.png", leaders)
 
       while not ctx.gc.lobby_service.match_warning.is_searching(leaders[0]):
         await Yass.press_resource_single_async(
@@ -72,20 +70,14 @@ class WaitForGame(State):
       await asyncio.sleep(3)
       print("Verif")
 
-      await Yass.press_resource_async(
-        "img/ready_button_left_corner.png", leaders
-      )
+      await Yass.press_resource_async("img/ready_button_left_corner.png", leaders)
 
       await asyncio.sleep(1)
 
-      if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(
-        leaders
-      ):
+      if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(leaders):
         logger.warn("Got different match_ids for accounts, coninue searching")
 
-        await Yass.press_resource_async(
-          "img/cancel_button_left_corner.png", leaders
-        )
+        await Yass.press_resource_async("img/cancel_button_left_corner.png", leaders)
 
         await asyncio.sleep(1)
         if ctx.ss.shuffle_lobbies:
@@ -98,9 +90,7 @@ class WaitForGame(State):
         for account in party.all:
           await WindowService.focus_window_async(account.win_cs_title)
 
-          await CS2Controller.wait_for_image_async(
-            "img/accept_game_button.png", account
-          )
+          await CS2Controller.wait_for_image_async("img/accept_game_button.png", account)
 
           await asyncio.sleep(0.1)
 
@@ -128,9 +118,7 @@ class WaitForGame(State):
 
       new_preset_name = generate_preset_name()
 
-      logger.info(
-        f"Current match accounts not in any preset. Creating {new_preset_name}"
-      )
+      logger.info(f"Current match accounts not in any preset. Creating {new_preset_name}")
 
       if ctx.presets.create_preset(new_preset_name):
         ctx.presets.update_preset_accounts(new_preset_name, current_logins)

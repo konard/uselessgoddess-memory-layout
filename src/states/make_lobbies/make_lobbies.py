@@ -1,18 +1,19 @@
 import asyncio
-from typing import Optional, Tuple
+
+from core import game_constants
 from core.account.model import Account
-from core.panel import State
 from core.context import Context
 from core.logging import get_logger
+from core.panel import State
 from core.services.cs_controller import CS2Controller
 from core.services.gc.lobby_service import EventNames
 from core.services.windows_service import WindowService
-from core import game_constants
 from states.select_accounts import SelectAccounts
 from states.types import PartySchema
-from utils.friend_code_generator import generate_friend_code
-from .generate_party_schema import generate_party_schema
 from ui.widgets import Progress
+from utils.friend_code_generator import generate_friend_code
+
+from .generate_party_schema import generate_party_schema
 
 logger = get_logger("state.farm")
 
@@ -20,11 +21,11 @@ logger = get_logger("state.farm")
 class MakeLobbies(State):
   def __init__(
     self,
-    party_schema: Optional[Tuple[PartySchema, PartySchema]],
-    retries: Optional[int] = None,
+    party_schema: tuple[PartySchema, PartySchema] | None,
+    retries: int | None = None,
   ):
-    self.party_schema: Optional[Tuple[PartySchema, PartySchema]] = party_schema
-    self.retries: Optional[int] = retries
+    self.party_schema: tuple[PartySchema, PartySchema] | None = party_schema
+    self.retries: int | None = retries
 
   def layout(self, ctx: Context, dispatch):
     self.progress = Progress()

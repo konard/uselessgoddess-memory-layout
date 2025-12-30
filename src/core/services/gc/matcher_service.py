@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Tuple, Optional
 import asyncio
+from typing import Optional
 
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientReserve
 
@@ -13,9 +13,9 @@ logger = get_logger("sv.matcher")
 
 class MatcherService:
   def __init__(self):
-    self.matches: dict[str, Tuple[Optional[int], asyncio.Event]] = {}
+    self.matches: dict[str, tuple[int | None, asyncio.Event]] = {}
 
-  async def get_match_id(self, account: Account) -> Optional[int]:
+  async def get_match_id(self, account: Account) -> int | None:
     if account.login not in self.matches:
       new_event = asyncio.Event()
       self.matches[account.login] = (None, new_event)

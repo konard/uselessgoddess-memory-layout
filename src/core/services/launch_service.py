@@ -4,23 +4,24 @@ LaunchService - сервис для запуска аккаунтов
 
 import asyncio
 import os
-from os.path import isdir
-from typing import List, TYPE_CHECKING
 import time
+from os.path import isdir
+from typing import TYPE_CHECKING
 
 from core.account.model import RunningAccount
 from core.logging import get_logger
 
 if TYPE_CHECKING:
   from core.context import Context
+from core import game_constants, utils
 from core.account import Account
 from core.process_config import ConfigService
 from core.services.account import AccountsService
 from core.services.cs_controller import CS2Controller
 from core.services.settings import UserSettings
 from core.services.windows_service import WindowService
-from core import game_constants, utils
 from utils import cs2_terminator, steam_web_helper_limiter
+
 from .steam_login import steam_login
 
 logger = get_logger("launch")
@@ -39,8 +40,8 @@ class LaunchService:
 
   @staticmethod
   async def launch_accounts_with_steam(
-    accounts: List[Account], ctx: "Context"
-  ) -> List[RunningAccount]:
+    accounts: list[Account], ctx: "Context"
+  ) -> list[RunningAccount]:
     maps_path = os.path.join(ctx.s.u.cs_path, MAPS_DIR)
     if isdir(maps_path):
       logger.debug(f"remove backgrounds from {maps_path}")
@@ -49,14 +50,14 @@ class LaunchService:
     config_service = ConfigService(ctx)
     config_service.ensure_cs_cfgs()
     config_service.block_steam_store()
-    running_accounts: List[RunningAccount] = []
+    running_accounts: list[RunningAccount] = []
     for account in accounts:
       cs2_terminator.close_cs2_mutex()
 
       logger.info(f"launching account +{account.login}")
 
       config_service.apply_video_config(account.steam_id)
-      running_account: RunningAccount = await utils.block_on(  # noqa: F841 FIXME
+      running_account: RunningAccount = await utils.block_on(
         LaunchService.launch_account_with_steam
       )(account, ctx.settings.user, ctx.accounts())
       logger.info(f"{account.login} launched")
@@ -67,7 +68,7 @@ class LaunchService:
 
   @staticmethod
   def launch_account_with_steam(
-    account: Account, settings: UserSettings, accounts: List[Account]
+    account: Account, settings: UserSettings, accounts: list[Account]
   ) -> RunningAccount:
     """Запустить аккаунт через Steam"""
     try:
@@ -83,9 +84,7 @@ class LaunchService:
 
     except Exception as ex:
       if str(ex) == "run program failed":
-        logger.error(
-          "\nНе правильно указан путь до steam.exe!\nИзмените в настройках.\n"
-        )
+        logger.error("\nНе правильно указан путь до steam.exe!\nИзмените в настройках.\n")
         logger.error(f"[{account.login}] run program failed. Check steam_path")
       else:
         logger.exception(
@@ -95,7 +94,7 @@ class LaunchService:
       return False
 
   @staticmethod
-  def _launch_cs2(account: Account, accounts: List[Account]) -> bool:
+  def _launch_cs2(account: Account, accounts: list[Account]) -> bool:
     try:
       logger.debug(f"[{account.login}] Waiting for CS window after launch...")
       counter_strike_2_title = "Counter-Strike 2"
@@ -113,9 +112,7 @@ class LaunchService:
 
       while True:
         if WindowService.window_exists(counter_strike_2_title):
-          logger.debug(
-            f"[{account.login}] Window found. Killing mutex immediately!"
-          )
+          logger.debug(f"[{account.login}] Window found. Killing mutex immediately!")
           cs2_terminator.close_cs2_mutex()
           break
         else:
@@ -135,9 +132,7 @@ class LaunchService:
       time.sleep(15)  # sleep saves all
 
       while WindowService.window_exists(counter_strike_2_title):
-        logger.trace(
-          f"trying to rename window into {running_account.win_cs_title}"
-        )
+        logger.trace(f"trying to rename window into {running_account.win_cs_title}")
 
         WindowService.rename_window(
           counter_strike_2_title,
@@ -146,9 +141,7 @@ class LaunchService:
 
         time.sleep(1)
 
-      WindowService.wait_for_window(
-        running_account.win_cs_title, timeout_sec=10
-      )
+      WindowService.wait_for_window(running_account.win_cs_title, timeout_sec=10)
 
       next_x, next_y = WindowService.get_next_window_position(accounts)
 
@@ -174,9 +167,7 @@ class LaunchService:
 
           elapsed = time.time() - stability_start
           if elapsed >= STABILITY_REQUIRED:
-            logger.debug(
-              f"[{account.login}] Позиция стабильна ({elapsed:.1f}s)."
-            )
+            logger.debug(f"[{account.login}] Позиция стабильна ({elapsed:.1f}s).")
             break
           time.sleep(0.5)
         else:
@@ -206,9 +197,7 @@ class LaunchService:
 
       time.sleep(0.5)
 
-      CS2Controller.click_if_exists(
-        "img/close_reward.png", running_account, 0.9, True
-      )
+      CS2Controller.click_if_exists("img/close_reward.png", running_account, 0.9, True)
 
       time.sleep(0.5)
 

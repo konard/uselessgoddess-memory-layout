@@ -1,6 +1,6 @@
 """Plugins package: manager and available plugins."""
 
-from typing import Protocol, Dict, Any
+from typing import Any, Protocol
 
 
 class PluginBase(Protocol):
@@ -12,9 +12,9 @@ class PluginBase(Protocol):
   - meta: свойство с метаданными (dict)
   """
 
-  def setup(self, app_context: Dict[str, Any]) -> None: ...
+  def setup(self, app_context: dict[str, Any]) -> None: ...
 
   def teardown(self) -> None: ...
 
   @property
-  def meta(self) -> Dict[str, Any]: ...
+  def meta(self) -> dict[str, Any]: ...

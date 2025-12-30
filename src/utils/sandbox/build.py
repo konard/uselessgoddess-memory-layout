@@ -1,3 +1,4 @@
+import contextlib
 import os
 import subprocess
 import sys
@@ -21,7 +22,10 @@ def find_vcvars64():
     editions = ["Community", "Professional", "Enterprise"]
     for year in years:
       for ed in editions:
-        path = rf"C:\Program Files\Microsoft Visual Studio\{year}\{ed}\VC\Auxiliary\Build\vcvars64.bat"
+        path = (
+          rf"C:\Program Files\Microsoft Visual Studio\{year}\{ed}"
+          + r"\VC\Auxiliary\Build\vcvars64.bat"
+        )
         if os.path.exists(path):
           return path
     return None
@@ -73,15 +77,16 @@ def build():
 
   if not vcvars_bat:
     print("[-] Не удалось найти Visual Studio (vcvars64.bat).")
-    print(
-      "    Убедись, что установлена 'Разработка классических приложений на C++'."
-    )
+    print("    Убедись, что установлена 'Разработка классических приложений на C++'.")
     return
 
   print(f"[+] Нашел: {vcvars_bat}")
 
   # 4. Формируем команду
-  build_cmd = f'cl main.cpp /LD /std:c++20 /DUNICODE /D_UNICODE /DLIB_CS2CH /O2 /nologo /Fe:"{output_path}" /link ntdll.lib'
+  build_cmd = (
+    "cl main.cpp /LD /std:c++20 /DUNICODE /D_UNICODE /DLIB_CS2CH /O2 /nologo"
+    + f'/Fe:"{output_path}" /link ntdll.lib'
+  )
 
   full_command = f'"{vcvars_bat}" && {build_cmd}'
 
@@ -96,14 +101,9 @@ def build():
     print("=" * 30)
 
     for ext in [".obj", ".exp", ".lib"]:
-      try:
+      with contextlib.suppress(BaseException):
         os.remove(output_path.replace(".dll", ext))
-      except:  # noqa: E722
-        pass
-      try:
         os.remove("main.obj")
-      except:  # noqa: E722
-        pass
 
   except subprocess.CalledProcessError:
     print("[-] Ошибка во время компиляции.")

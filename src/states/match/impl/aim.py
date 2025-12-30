@@ -1,30 +1,26 @@
 import enum
 import random
 import time
-from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
 import win32api
 import win32con
 
-from core.logging import get_logger
-from core.services.ai import Target, InferenceService
 from core.keys import Key
+from core.logging import get_logger
+from core.services.ai import InferenceService, Target
+from core.services.ai.tracker import ByteTracker
 
 from .config import config
 from .detector import MinimapDirectionDetector
 from .rotation import rotate_step
 from .utils import Action, Context, Step
 
-from core.services.ai.tracker import ByteTracker
-
 logger = get_logger("match.aim")
 
 
-def choose_target(
-  targets: List[Target], center: Tuple[float, float]
-) -> Optional[Target]:
+def choose_target(targets: list[Target], center: tuple[float, float]) -> Target | None:
   if not targets:
     return None
   if config.center_of_screen:
@@ -38,8 +34,8 @@ def choose_target(
 
 
 def compute_mouse_move(
-  target: Target, center: Tuple[float, float], headshot: bool
-) -> Tuple[float, float]:
+  target: Target, center: tuple[float, float], headshot: bool
+) -> tuple[float, float]:
   cx, cy = center
   box_height = target.height
   headshot_offset = box_height * (0.38 if headshot else 0.2)
@@ -63,7 +59,7 @@ def shoot_mouse() -> None:
   time.sleep(float(random.randint(60, 120)) / 10000)
 
 
-def should_shoot(target: Target, center: Tuple[float, float]) -> bool:
+def should_shoot(target: Target, center: tuple[float, float]) -> bool:
   cx, cy = center
   distance = ((target.mid_x - cx) ** 2 + (target.mid_y - cy) ** 2) ** 0.5
   return distance <= config.shoot_distance_threshold
@@ -124,9 +120,7 @@ class CpsMonitor:
       self.time = 0
 
 
-def filter_by_aspect(
-  aspect_filter: float, targets: List[Target]
-) -> List[Target]:
+def filter_by_aspect(aspect_filter: float, targets: list[Target]) -> list[Target]:
   filtered = []
   for t in targets:
     if t.height > 0:
@@ -158,7 +152,7 @@ class AimController(Action):
     self.cooldown_timer = Timer(0)
     self.rotation_timer = Timer(0)
 
-    self.last_known_target: Optional[Target] = None
+    self.last_known_target: Target | None = None
     self.grace_timer = Timer(config.target_persistence)
 
     self.targets = []
@@ -208,11 +202,10 @@ class AimController(Action):
           current_target = t
           break
 
-    if current_target is None:
-      if tracked_targets:
-        current_target = choose_target(tracked_targets, self.center)
-        if current_target:
-          self.locked_track_id = getattr(current_target, "track_id", None)
+    if current_target is None and tracked_targets:
+      current_target = choose_target(tracked_targets, self.center)
+      if current_target:
+        self.locked_track_id = getattr(current_target, "track_id", None)
 
     # if self.model_timer.tick():
     #   self.targets = targets
@@ -222,9 +215,7 @@ class AimController(Action):
       self.last_known_target = current_target
       self.grace_timer = Timer(config.target_persistence)
     else:
-      if self.last_known_target is not None and not self.grace_timer.tick(
-        delta
-      ):
+      if self.last_known_target is not None and not self.grace_timer.tick(delta):
         current_target = self.last_known_target
       else:
         self.last_known_target = None

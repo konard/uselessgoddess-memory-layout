@@ -1,16 +1,16 @@
-from PyQt6.QtWidgets import (
-  QTableWidget,
-  QWidget,
-  QHBoxLayout,
-  QHeaderView,
-  QTableWidgetItem,
-)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import (
+  QHBoxLayout,
+  QHeaderView,
+  QTableWidget,
+  QTableWidgetItem,
+  QWidget,
+)
 
 from core.services import srt
-from ui.widgets import Switch
 from ui.theme import CURRENT_THEME
+from ui.widgets import Switch
 
 
 class SortableItem(QTableWidgetItem):

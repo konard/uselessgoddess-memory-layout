@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 from core.account.model import Account
 
@@ -42,10 +42,7 @@ class MafilesService:
             or mafile_data.get("accountName")
             or mafile_data.get("login")
           )
-          if (
-            isinstance(account_name, str)
-            and account_name.lower() == login.lower()
-          ):
+          if isinstance(account_name, str) and account_name.lower() == login.lower():
             return {
               "shared_secret": mafile_data.get("shared_secret"),
               "identity_secret": mafile_data.get("identity_secret"),
@@ -66,12 +63,8 @@ class MafilesService:
 
     # Проверяем, нужны ли восстановления
     needs_steam_id = "steam_id" not in data or not data["steam_id"]
-    needs_shared_secret = (
-      "shared_secret" not in data or not data["shared_secret"]
-    )
-    needs_identity_secret = (
-      "identity_secret" not in data or not data["identity_secret"]
-    )
+    needs_shared_secret = "shared_secret" not in data or not data["shared_secret"]
+    needs_identity_secret = "identity_secret" not in data or not data["identity_secret"]
 
     if not (needs_steam_id or needs_shared_secret or needs_identity_secret):
       return

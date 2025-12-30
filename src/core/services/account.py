@@ -1,7 +1,6 @@
-import json
 import asyncio
+import json
 from pathlib import Path
-from typing import Dict, List, Set
 
 from core.account import Account, AccountsLock
 from core.logging import get_logger
@@ -13,11 +12,11 @@ ACCOUNTS_FILE = "accounts.json"
 
 
 class AccountsService:
-  accounts: Dict[str, Account] = {}
+  accounts: dict[str, Account] = {}
 
-  def __init__(self, accounts: Dict[str, Account], lock: AccountsLock):
+  def __init__(self, accounts: dict[str, Account], lock: AccountsLock):
     self.accounts = accounts
-    self._selected: Set[str] = set()
+    self._selected: set[str] = set()
     self.lock: AccountsLock = lock
 
     for account in self.accounts.values():
@@ -25,9 +24,9 @@ class AccountsService:
 
   @staticmethod
   def load(file: str = "accounts.json"):
-    accounts: Dict[str, Account] = {}
+    accounts: dict[str, Account] = {}
     try:
-      with open(file, "r") as f:
+      with open(file) as f:
         accounts_data = json.load(f)
       for login, data in accounts_data.items():
         try:
@@ -63,20 +62,18 @@ class AccountsService:
     logger.trace(f"account deselected: {login}")
 
   # TODO!: maybe use `class Select` to manage selection
-  def selected(self) -> List[Account]:
+  def selected(self) -> list[Account]:
     accounts = [
       self.accounts[login] for login in self._selected if login in self.accounts
     ]
     return accounts
 
-  def capture_selected(self) -> List[Account]:
+  def capture_selected(self) -> list[Account]:
     accounts = self.selected()
     logger.trace(f"acquire selected accounts: {accounts}")
     self._selected.clear()
     return accounts
 
-  async def stop_account_processes(self, logins: List[str]):
-    logger.warn(
-      f"Process stopping is not yet implemented. Requested for: {logins}"
-    )
+  async def stop_account_processes(self, logins: list[str]):
+    logger.warn(f"Process stopping is not yet implemented. Requested for: {logins}")
     await asyncio.sleep(1)

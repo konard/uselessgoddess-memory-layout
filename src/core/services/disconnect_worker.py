@@ -1,6 +1,8 @@
 import asyncio
 from typing import TYPE_CHECKING
+
 from core import game_constants
+from core.logging import get_logger
 from core.panel.state import StateManager
 from core.services.cs_controller import CS2Controller
 from core.services.windows_service import WindowService
@@ -8,7 +10,6 @@ from states.continue_farm import ContinueFarm
 from states.disconnect import DisconnectState, DisconnectType
 from states.make_lobbies.make_lobbies import MakeLobbies
 from states.match.state import MatchState
-from core.logging import get_logger
 from states.select_accounts import SelectAccounts
 
 if TYPE_CHECKING:
@@ -30,10 +31,9 @@ class DisconnectWorker:
       launched_accounts = len(self.ctx.launched_accounts)
       current_state = self.stateManager.acquire_state()
 
-      # Fix: use isinstance because current_state is an instance, and the list contains classes
-      should_fill_accounts = isinstance(
-        current_state, (MakeLobbies, ContinueFarm)
-      )
+      # Fix: use isinstance because current_state is an instance,
+      #  and the list contains classes
+      should_fill_accounts = isinstance(current_state, (MakeLobbies, ContinueFarm))
 
       if (
         launched_accounts != game_constants.farm_mode_size[farm_mode]
@@ -57,6 +57,12 @@ class DisconnectWorker:
         is_disconnected = await CS2Controller.check_if_exists_async(
           "img/disconnected.png", account
         )
+
+        if is_disconnected:
+          await WindowService.focus_window_async(account.win_cs_title)
+          await asyncio.sleep(0.1)
+          if not await CS2Controller.check_if_exists_async("img/play.png", account):
+            is_match = True
 
         if is_disconnected:
           disconnected_accounts.append(account)

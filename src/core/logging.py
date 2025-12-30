@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import cast
 from logging.handlers import RotatingFileHandler
-from core.security import EncryptedRotatingFileHandler
+from typing import cast
+
 from constants import IS_DEV_MODE
+from core.security import EncryptedRotatingFileHandler
 
 FATAL = 50
 ERROR = 40
@@ -34,10 +35,7 @@ def setup_logger(name: str) -> logging.Logger:
 
   logger.setLevel(TRACE)
 
-  if IS_DEV_MODE:
-    HandlerType = RotatingFileHandler
-  else:
-    HandlerType = EncryptedRotatingFileHandler
+  HandlerType = RotatingFileHandler if IS_DEV_MODE else EncryptedRotatingFileHandler
 
   has_file_handler = any(isinstance(h, HandlerType) for h in logger.handlers)
   if not has_file_handler:

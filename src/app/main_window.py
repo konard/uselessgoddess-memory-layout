@@ -1,21 +1,22 @@
-import sys
 import asyncio
+import sys
+
+from PyQt6.QtGui import QCloseEvent, QFont
 from PyQt6.QtWidgets import (
   QMainWindow,
   QTabWidget,
 )
-from PyQt6.QtGui import QFont, QCloseEvent
 
+from core.logging import get_logger, logging
+from core.panel import StateManager
 from core.process_config import ConfigService
 from core.services.disconnect_worker import DisconnectWorker
 from core.services.gc.gc_server_http import start_gc_server
 from core.services.status_reset_service import StatusResetService
-from core.panel import StateManager
-from core.logging import get_logger, logging
 from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
-from .log_view import LogHandler, QtLogHandler
-from .tabs import DashboardTab, SRTTab, GSITab
 
+from .log_view import LogHandler, QtLogHandler
+from .tabs import DashboardTab, GSITab, SRTTab
 
 logger = get_logger("ui.main")
 
@@ -25,9 +26,7 @@ class MainWindow(QMainWindow):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
     self.resize(1100, 800)
-    self.setFont(
-      QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL)
-    )
+    self.setFont(QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL))
 
     self.ctx = context
     self._closing = False
@@ -90,7 +89,7 @@ class MainWindow(QMainWindow):
       # Windows 10 20H1+ / Windows 11
       DWMWA_USE_IMMERSIVE_DARK_MODE = 20
       hwnd = int(self.winId())
-      from ctypes import c_int, byref, windll
+      from ctypes import byref, c_int, windll
 
       windll.dwmapi.DwmSetWindowAttribute(
         hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, byref(c_int(1)), 4

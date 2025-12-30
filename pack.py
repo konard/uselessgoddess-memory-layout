@@ -19,9 +19,7 @@ def draw_progress_bar(current, total, bar_length=40):
   arrow = "#" * int(percent / 100 * bar_length)
   spaces = "." * (bar_length - len(arrow))
 
-  sys.stdout.write(
-    f"\rPacking: [{arrow}{spaces}] {int(percent)}% ({current}/{total})"
-  )
+  sys.stdout.write(f"\rPacking: [{arrow}{spaces}] {int(percent)}% ({current}/{total})")
   sys.stdout.flush()
 
 
@@ -49,7 +47,7 @@ def generate_resource_module():
       with open(filepath, "rb") as f:
         content = f.read()
 
-      out.write(f'_DATA["{rel_path}"] = {repr(content)}\n')
+      out.write(f'_DATA["{rel_path}"] = {content!r}\n')
 
       draw_progress_bar(i + 1, total_files)
 
@@ -58,9 +56,7 @@ def generate_resource_module():
     out.write("    try:\n")
     out.write("        return _DATA[path]\n")
     out.write("    except KeyError:\n")
-    out.write(
-      "        raise FileNotFoundError(f'Embedded resource not found: {path}')\n"
-    )
+    out.write("        raise FileNotFoundError(f'Embedded resource not found: {path}')\n")
 
     out.write("\n")
     out.write("def list_files() -> list:\n")

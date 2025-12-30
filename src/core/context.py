@@ -1,19 +1,21 @@
 from __future__ import annotations
-from typing import List, Set, Tuple, TYPE_CHECKING
+
+from typing import TYPE_CHECKING
+
+from core.account import FarmStatus
 from core.logging import get_logger
 from core.services import (
-  SRTService,
+  GCService,
+  GSIService,
+  LicenseService,
+  MetricsService,
+  PresetsService,
   ScreenCaptureService,
-  ai,
+  SRTService,
   UIService,
   WindowService,
-  GSIService,
-  GCService,
-  LicenseService,
-  PresetsService,
-  MetricsService,
+  ai,
 )
-from core.account import FarmStatus
 
 from .account import Account
 from .services import AccountsService, SettingsService
@@ -55,18 +57,16 @@ class Context:
     self.lic = LicenseService(self.settings.user)
     self.presets = PresetsService()
     self.metrics = MetricsService(self.lic)
-    self.blacklisted_accounts: Set[str] = set()
+    self.blacklisted_accounts: set[str] = set()
 
-  def accounts(self) -> List[Account]:
+  def accounts(self) -> list[Account]:
     return sorted(
-      list(self.account.accounts.values()),
+      self.account.accounts.values(),
       key=lambda x: 0 if x.lock.lvl is None else x.lock.lvl,
     )
 
-  def unfarmed_accounts(self) -> List[Account]:
-    launched_accounts = WindowService.scan_cs2_windows(
-      self.accounts(), values=False
-    )
+  def unfarmed_accounts(self) -> list[Account]:
+    launched_accounts = WindowService.scan_cs2_windows(self.accounts(), values=False)
     accounts = self.accounts()
     unfarmed_accounts_list = filter(
       lambda x: x.lock.status == FarmStatus.NEED_TO_FARM
@@ -76,7 +76,7 @@ class Context:
     return list(unfarmed_accounts_list)
 
   @property
-  def launched_accounts(self) -> List[Account]:
+  def launched_accounts(self) -> list[Account]:
     return WindowService.scan_cs2_windows(self.accounts(), values=True)
 
   @property  # shorthand to `settings`
@@ -91,7 +91,7 @@ class Context:
   def ss(self):
     return self.settings.system
 
-  def window_size(self) -> Tuple[int, int]:
+  def window_size(self) -> tuple[int, int]:
     return self.su.win_w, self.su.win_h
 
   async def send_message(self, text: str, image=None):

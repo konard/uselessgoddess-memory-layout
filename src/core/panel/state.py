@@ -1,12 +1,15 @@
 from __future__ import annotations
-import asyncio
-import time
 
-from typing import Optional, Callable, Type, TYPE_CHECKING
+import asyncio
+import contextlib
+import time
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Optional
 
 from core.logging import get_logger
-from core.utils import name_of, type_of
 from core.services.license import LicenseKind
+from core.utils import name_of, type_of
+
 from .message import Message
 
 if TYPE_CHECKING:
@@ -18,7 +21,7 @@ from constants import CHECK_LICENSE
 logger = get_logger("state")
 
 
-def handles(message_type: Type[Message]):
+def handles(message_type: type[Message]):
   def decorator(func):
     func._handled_message_type = message_type
     return func
@@ -30,7 +33,7 @@ class State:
   async def execute(self):
     pass
 
-  async def react(self, manager: "StateManager", message: Message):
+  async def react(self, manager: StateManager, message: Message):
     if not hasattr(self, "_message_handlers"):
       self._message_handlers = {}
       for attr_name in dir(self):
@@ -43,9 +46,7 @@ class State:
     if handler:
       await handler(message, manager)
     else:
-      logger.warn(
-        f"`{type_of(message)}` handler is not registred for `{name_of(self)}`"
-      )
+      logger.warn(f"`{type_of(message)}` handler is not registred for `{name_of(self)}`")
 
   def layout(self, ctx: Context, dispatch: Callable[[Message], None]):
     return []
@@ -60,7 +61,7 @@ class State:
 
     return inner
 
-  def then(self, next: "State") -> "State":
+  def then(self, next: State) -> State:
     _base = self.execute
 
     async def _execute(ctx: Context):
@@ -78,12 +79,12 @@ class State:
 class StateManager:
   def __init__(self, context: Context, callback: Callable):
     self.context = context
-    self._current_state: Optional[State] = None
-    self._current_task: Optional[asyncio.Task] = None
+    self._current_state: State | None = None
+    self._current_task: asyncio.Task | None = None
     self._update_ui = callback
     self._state_start_time = time.time()
 
-  def acquire_state(self) -> Optional[State]:
+  def acquire_state(self) -> State | None:
     return self._current_state
 
   def is_state_equal(self, state: State) -> bool:
@@ -113,14 +114,10 @@ class StateManager:
         title = "License expired"
         desc = "Please renew your license"
 
-      logger.warning(
-        f"License suspended ({kind.value}). Please enter new license."
-      )
+      logger.warning(f"License suspended ({kind.value}). Please enter new license.")
       import states
 
-      await self.into_state(
-        states.LicenseState(state, title, desc), check=False
-      )
+      await self.into_state(states.LicenseState(state, title, desc), check=False)
       return
 
     if self._current_state:
@@ -135,10 +132,8 @@ class StateManager:
 
     if self._current_task and not self._current_task.done():
       self._current_task.cancel()
-      try:
+      with contextlib.suppress(asyncio.CancelledError):
         await self._current_task
-      except asyncio.CancelledError:
-        pass
 
     self._current_state = state
 

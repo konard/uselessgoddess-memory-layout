@@ -1,32 +1,29 @@
-import os
 import asyncio
-import time
 import base64
-import subprocess
-import pyautogui
-import struct
 import hmac
-import pyperclip
-import sys
-
 import io
-from core.account.model import Account
-from core.services.cs_controller import CS2Controller, ZeroPosAccount
-import resources
+import os
+import struct
+import subprocess
+import sys
+import time
 
 import numpy as np
+import pyautogui
+import pyperclip
 import zxingcpp
-from steam import Client
 from PIL import Image
+from steam import Client
 
-
+import resources
+from constants import PROJECT_ROOT
+from core.account.model import Account
 from core.logging import get_logger
-from core.services.settings import UserSettings
 from core.services.api.api_controller import api_controller
 from core.services.api.free_fames_response import FreeGamesResponse
+from core.services.cs_controller import CS2Controller, ZeroPosAccount
+from core.services.settings import UserSettings
 from core.services.windows_service import WindowService
-
-from constants import PROJECT_ROOT
 from utils import steam_web_helper_limiter
 
 logger = get_logger("sv.launch")
@@ -93,14 +90,11 @@ def steam_login(
   args = build_runner_launch_args(account.login, settings)
   proc = subprocess.Popen(
     args,
-    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-    | subprocess.DETACHED_PROCESS,
+    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
     close_fds=True,
   )
 
-  logger.debug(
-    f"[{account.login}] Process started. Entering monitoring loop..."
-  )
+  logger.debug(f"[{account.login}] Process started. Entering monitoring loop...")
 
   login_window_title = "Войти в Steam"
   game_window_title = "Counter-Strike 2"
@@ -134,9 +128,7 @@ def steam_login(
       return proc.pid
 
     if WindowService.window_exists(renamed_game_title):
-      logger.info(
-        f"[{account.login}] Renamed game window detected. Already running."
-      )
+      logger.info(f"[{account.login}] Renamed game window detected. Already running.")
       return proc.pid
 
     if WindowService.window_exists("Steam"):
@@ -152,15 +144,11 @@ def steam_login(
       found_qr = wait_qr(account.login, timeout=5)
 
       if found_qr:
-        logger.info(
-          f"[{account.login}] Valid QR found. Attempting login sequence..."
-        )
+        logger.info(f"[{account.login}] Valid QR found. Attempting login sequence...")
         if _perform_login_with_qr_url(account, settings, found_qr):
           logger.info(f"[{account.login}] Login submitted.")
         else:
-          logger.warn(
-            f"[{account.login}] Login attempt failed, retrying loop..."
-          )
+          logger.warn(f"[{account.login}] Login attempt failed, retrying loop...")
       else:
         pass
 
@@ -177,9 +165,7 @@ def _perform_login_with_qr_url(account: Account, settings, qr_url):
   loop = asyncio.ProactorEventLoop()
   asyncio.set_event_loop(loop)
   try:
-    return loop.run_until_complete(
-      _async_login_qr(account, settings, qr_url, loop)
-    )
+    return loop.run_until_complete(_async_login_qr(account, settings, qr_url, loop))
   except Exception as e:
     logger.error(f"Login error: {e}")
     return False
@@ -196,9 +182,7 @@ def wait_qr(login: str, timeout: int = 5) -> str | None:
   while time.time() - start < timeout:
     for title in game_titles:
       if WindowService.window_exists(title):
-        logger.info(
-          f"[{login}] Game window detected inside wait_qr! Aborting QR search."
-        )
+        logger.info(f"[{login}] Game window detected inside wait_qr! Aborting QR search.")
         return None
 
     try:
@@ -304,9 +288,7 @@ def load_image(path: str) -> Image.Image:
   return Image.open(io.BytesIO(resources.load(path)))
 
 
-def login_fallback(
-  login: str, password: str, shared_secret: str, settings: UserSettings
-):
+def login_fallback(login: str, password: str, shared_secret: str, settings: UserSettings):
   logger.debug(f"[{login}] Steam launched")
   paste_text(login)
   logger.debug(f"[{login}] Login pasted")

@@ -1,16 +1,16 @@
 import json
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, TYPE_CHECKING
 from pathlib import Path
+from typing import TYPE_CHECKING, Optional
 
-from core.logging import get_logger
 from core.account.model import FarmStatus, RunningAccount
+from core.logging import get_logger
 from utils.name_generator import generate_preset_name
 
 if TYPE_CHECKING:
   from core.context import Context
-  from states.types import GameSchema
   from core.services.settings import FarmMode
+  from states.types import GameSchema
 
 logger = get_logger("sv.presets")
 
@@ -21,7 +21,7 @@ PRESETS_FILE = Path("data/presets.json")
 class Preset:
   name: str
 
-  accounts: List[str] = field(default_factory=list)
+  accounts: list[str] = field(default_factory=list)
   has_error: bool = False
 
   def to_json(self) -> dict:
@@ -42,7 +42,7 @@ class Preset:
     return len(self.accounts) in [4, 10]
 
   def get_party_schema(
-    self, launched_accounts: List[RunningAccount]
+    self, launched_accounts: list[RunningAccount]
   ) -> Optional["GameSchema"]:
     """
     Splits accounts into 2 parties based on specific indices.
@@ -122,13 +122,13 @@ class Preset:
 
 class PresetsService:
   def __init__(self):
-    self.presets: Dict[str, Preset] = {}
+    self.presets: dict[str, Preset] = {}
     self.load()
 
   def load(self):
     try:
       if Path(PRESETS_FILE).exists():
-        with open(PRESETS_FILE, "r", encoding="utf-8") as f:
+        with open(PRESETS_FILE, encoding="utf-8") as f:
           data = json.load(f)
           for name, schema_data in data.items():
             self.presets[name] = Preset.from_json(schema_data)
@@ -144,7 +144,7 @@ class PresetsService:
     except Exception as e:
       logger.error(f"Failed to save presets: {e}")
 
-  def create_preset(self, name: Optional[str] = None) -> bool:
+  def create_preset(self, name: str | None = None) -> bool:
     if not name:
       while True:
         name = generate_preset_name()
@@ -162,16 +162,13 @@ class PresetsService:
       del self.presets[name]
       self.save()
 
-  def get_preset(self, name: str) -> Optional[Preset]:
+  def get_preset(self, name: str) -> Preset | None:
     return self.presets.get(name)
 
   def is_account_used(self, login: str) -> bool:
-    for schema in self.presets.values():
-      if login in schema.accounts:
-        return True
-    return False
+    return any(login in schema.accounts for schema in self.presets.values())
 
-  def get_preset_by_account(self, login: str) -> Optional[str]:
+  def get_preset_by_account(self, login: str) -> str | None:
     for schema in self.presets.values():
       if login in schema.accounts:
         return schema.name
@@ -196,10 +193,9 @@ class PresetsService:
     return False
 
   def remove_account(self, preset_name: str, login: str):
-    if preset_name in self.presets:
-      if login in self.presets[preset_name].accounts:
-        self.presets[preset_name].accounts.remove(login)
-        self.save()
+    if preset_name in self.presets and login in self.presets[preset_name].accounts:
+      self.presets[preset_name].accounts.remove(login)
+      self.save()
 
   def move_account_up(self, preset_name: str, index: int):
     if preset_name in self.presets:
@@ -215,7 +211,7 @@ class PresetsService:
         schema.swap_accounts(index, index + 1)
         self.save()
 
-  def update_preset_accounts(self, preset_name: str, new_accounts: List[str]):
+  def update_preset_accounts(self, preset_name: str, new_accounts: list[str]):
     if preset_name in self.presets:
       self.presets[preset_name].accounts = new_accounts
       self.save()
@@ -225,14 +221,17 @@ class PresetsService:
       self.presets[name].has_error = True
       self.save()
 
-  def get_next_available_preset(self, ctx: "Context") -> Optional[Preset]:
+  def get_next_available_preset(self, ctx: "Context") -> Preset | None:
     for preset in self.presets.values():
-      if not preset.has_error and preset.is_valid:
-        if preset.get_status(ctx) == FarmStatus.NEED_TO_FARM:
-          return preset
+      if (
+        not preset.has_error
+        and preset.is_valid
+        and preset.get_status(ctx) == FarmStatus.NEED_TO_FARM
+      ):
+        return preset
     return None
 
-  def find_preset_by_accounts(self, accounts: List[str]) -> Optional[Preset]:
+  def find_preset_by_accounts(self, accounts: list[str]) -> Preset | None:
     """Find a preset that contains exactly the given accounts (order ignored)."""
     target_set = set(accounts)
     for preset in self.presets.values():
@@ -240,9 +239,7 @@ class PresetsService:
         return preset
     return None
 
-  def find_preset_by_game_schema(
-    self, schema: "GameSchema"
-  ) -> Optional[Preset]:
+  def find_preset_by_game_schema(self, schema: "GameSchema") -> Preset | None:
     current_logins = []
     for party in schema:
       current_logins.extend([acc.login for acc in party.all])
@@ -256,7 +253,7 @@ class PresetsService:
     return None
 
   def get_schema_for_launched_accounts(
-    self, launched_accounts: List[RunningAccount]
+    self, launched_accounts: list[RunningAccount]
   ) -> Optional["GameSchema"]:
     if not launched_accounts:
       return None
@@ -271,12 +268,12 @@ class PresetsService:
 
     return None
 
-  def get_all_presets(self) -> List[Preset]:
+  def get_all_presets(self) -> list[Preset]:
     return list(self.presets.values())
 
   def find_similar_preset_missing_account(
-    self, launched_logins: List[str], ctx: "Context"
-  ) -> Optional[str]:
+    self, launched_logins: list[str], ctx: "Context"
+  ) -> str | None:
     from core.services.settings import FarmMode
 
     farm_mode = ctx.settings.system.farm_mode
@@ -302,7 +299,8 @@ class PresetsService:
           account = ctx.account.accounts[missing_login]
           if account.lock.status == FarmStatus.NEED_TO_FARM:
             logger.info(
-              f"Found similar preset '{preset.name}' with {threshold}/{required_count} accounts, missing: {missing_login}"
+              f"Found similar preset '{preset.name}' with {threshold}/{required_count}"
+              + f"accounts, missing: {missing_login}"
             )
             return missing_login
 

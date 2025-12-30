@@ -1,16 +1,17 @@
 import math
 import traceback
 from typing import TYPE_CHECKING
+
+from steam._const import CLEAR_PROTO_BIT, READ_U32
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientHello
+from steam.ext.csgo.protobufs.econ import ClientRedeemFreeReward
+
 from core.account.lock import AccountsLock
 from core.account.model import FarmStatus
+from core.logging import get_logger
 from core.services.gc.gc_parser import decode_bytes, decode_gc_bytes
-from steam.ext.csgo.protobufs.econ import ClientRedeemFreeReward
 from core.services.gc.matcher_service import MatcherService
 from utils.is_in_wednesday_range import is_in_wednesday_range
-
-from steam._const import READ_U32, CLEAR_PROTO_BIT
-from core.logging import get_logger
 
 if TYPE_CHECKING:
   from core.context import Context
@@ -57,7 +58,7 @@ class PlayerInfoService:
       if i.type_id == 4:
         data = ClientRedeemFreeReward().parse(i.object_data[0])
         in_wd_range = is_in_wednesday_range(data.generation_time)
-        neg = any(map(lambda x: x < 0, data.items))
+        neg = any(x < 0 for x in data.items)
         logger.trace("generation time: %s, neg: %s", data.generation_time, neg)
         print(in_wd_range)
         return
@@ -65,6 +66,4 @@ class PlayerInfoService:
   def parse_player_stats(self, data: bytes, login: str):
     msg: MatchmakingClientHello = decode_gc_bytes(data)
     self.ctx.account.accounts[login].lock.lvl = msg.player_level
-    self.ctx.account.accounts[login].lock.xp = max(
-      msg.player_cur_xp - 327680000, 0
-    )
+    self.ctx.account.accounts[login].lock.xp = max(msg.player_cur_xp - 327680000, 0)

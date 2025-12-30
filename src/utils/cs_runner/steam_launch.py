@@ -2,13 +2,10 @@ import os
 import random
 import string
 import subprocess
-from typing import List
 
 
 def generate_random_id(length=8):
-  return "".join(
-    random.choices(string.ascii_lowercase + string.digits, k=length)
-  )
+  return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 def build_cs2_launch_args(
@@ -16,7 +13,7 @@ def build_cs2_launch_args(
   appid: str = "730",
   win_w: int = 360,
   win_h: int = 270,
-) -> List[str]:
+) -> list[str]:
   steam_args = [
     steam_path,
     "-dev",

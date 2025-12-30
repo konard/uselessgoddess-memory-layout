@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import os
+import contextlib
 import json
+import os
 from pathlib import Path
-from typing import Dict, Optional, Any
-from tinydb import TinyDB, Query
+from typing import Any, Optional
+
+from tinydb import Query, TinyDB
+
 from core.logging import get_logger
 from core.security import EncryptedJSONStorage
 
@@ -30,7 +33,7 @@ class AccountsLock:
     logger.trace("migrating from plain test")
 
     try:
-      with open(self._db_path, "r", encoding="utf-8") as f:
+      with open(self._db_path, encoding="utf-8") as f:
         content = f.read().strip()
 
       if not content:
@@ -39,7 +42,7 @@ class AccountsLock:
       data = json.loads(content)
 
       logger.warning(
-        f"Detected plaintext storage at {self._db_path}. Migrating to encrypted storage..."
+        f"Detected plaintext storage at {self._db_path}. Migrating to encrypted storage"
       )
 
       storage = EncryptedJSONStorage(str(self._db_path))
@@ -48,11 +51,10 @@ class AccountsLock:
 
     except (UnicodeDecodeError, json.JSONDecodeError):
       logger.debug("storage appears to be encrypted already.")
-      pass
     except Exception as e:
       logger.error(f"error during storage migration check: {e}")
 
-  def get_account_info(self, login: str) -> Dict[str, Any] | None:
+  def get_account_info(self, login: str) -> dict[str, Any] | None:
     result = self._table.get(self._query.login == login)
     if result:
       return {k: v for k, v in result.items() if k != "login"}
@@ -83,7 +85,5 @@ class AccountsLock:
       self._db.close()
 
   def __del__(self) -> None:
-    try:
+    with contextlib.suppress(Exception):
       self.close()
-    except Exception:
-      pass

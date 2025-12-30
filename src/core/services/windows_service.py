@@ -1,16 +1,16 @@
-from typing import Tuple, List, Dict
+import contextlib
 import time
+
 import autoit
 import pyautogui
-import win32gui
 import win32api
 import win32con
+import win32gui
 import win32process
 
-from constants import win_w, win_h
+from constants import win_h, win_w
+from core.account import Account, RunningAccount
 from core.logging import get_logger
-from core.account import RunningAccount
-from core.account import Account
 from core.services.process import ProcessService
 from core.utils import async_methods
 
@@ -80,9 +80,7 @@ class WindowService:
       return {"posX": pos_x, "posY": pos_y, "pid": pid, "hwnd": hwnd}
 
     except Exception as e:
-      logger.error(
-        f"Ошибка при получении информации об окне '{window_title}': {e}"
-      )
+      logger.error(f"Ошибка при получении информации об окне '{window_title}': {e}")
       return None
 
   @staticmethod
@@ -92,16 +90,14 @@ class WindowService:
       hwnd = win32gui.FindWindow(None, window_title)
       return hwnd != 0
     except Exception as e:
-      logger.error(
-        f"Ошибка при проверке существования окна '{window_title}': {e}"
-      )
+      logger.error(f"Ошибка при проверке существования окна '{window_title}': {e}")
       return False
 
   @staticmethod
   def find_window_by_partial_title(partial_title: str) -> str | None:
     """Найти окно по частичному совпадению заголовка"""
     try:
-      for hwnd, title in WindowService.enum_windows():
+      for _, title in WindowService.enum_windows():
         if partial_title in title:
           return title
     except Exception as e:
@@ -113,7 +109,7 @@ class WindowService:
   @staticmethod
   def rename_window(window_title: str, new_title: str) -> str | None:
     try:
-      for hwnd, title in WindowService.enum_windows():
+      for _, title in WindowService.enum_windows():
         if title and (window_title in title):
           try:
             autoit.win_activate(title)
@@ -130,10 +126,8 @@ class WindowService:
   def move_window_to_position(title: str, pos_x: int, pos_y: int):
     logger.trace(f"move window={title} to x={pos_x} y={pos_y}")
 
-    try:
+    with contextlib.suppress(Exception):
       autoit.auto_it_set_option("WinTitleMatchMode", 2)
-    except Exception:
-      pass
 
     try:
       if autoit.win_exists(title):
@@ -146,17 +140,12 @@ class WindowService:
 
   @staticmethod
   def get_next_window_position(
-    accounts: List[Account],
-  ) -> Tuple[int, int]:
+    accounts: list[Account],
+  ) -> tuple[int, int]:
     window_width, window_height = win_w, win_h
     screen_width = pyautogui.size()[0]
 
-    if isinstance(accounts, dict):
-      accounts = list(accounts.values())
-
-    running_accounts: List[RunningAccount] = WindowService.scan_cs2_windows(
-      accounts
-    )
+    running_accounts: list[RunningAccount] = WindowService.scan_cs2_windows(accounts)
 
     max_cols = max(1, screen_width // window_width)
     occupied = set()
@@ -204,8 +193,8 @@ class WindowService:
 
   @staticmethod
   def scan_cs2_windows(
-    accounts: List[Account], values=True
-  ) -> List[RunningAccount] | List[str]:
+    accounts: list[Account], values=True
+  ) -> list[RunningAccount] | list[str]:
     running = {}
 
     if isinstance(accounts, dict):
@@ -241,7 +230,6 @@ class WindowService:
             running[login].lock = acc.lock
         except Exception as e:
           print(e)
-          pass
 
     win32gui.EnumWindows(callback, None)
     if values:
@@ -249,7 +237,7 @@ class WindowService:
     return list(running.keys())
 
   @staticmethod
-  def arrange_windows(accounts: List[Account], dimension: Tuple[int, int]):
+  def arrange_windows(accounts: list[Account], dimension: tuple[int, int]):
     width, height = dimension
 
     try:
@@ -293,6 +281,4 @@ class WindowService:
   async def focus_window_async(window_title: str): ...
 
   @staticmethod
-  async def wait_for_window_async(
-    window_title: str, timeout_sec: int = 120
-  ) -> bool: ...
+  async def wait_for_window_async(window_title: str, timeout_sec: int = 120) -> bool: ...

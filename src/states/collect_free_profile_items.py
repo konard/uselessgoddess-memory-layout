@@ -1,22 +1,22 @@
 import asyncio
-from typing import List, Any
-from numpy import random
-import steam
+from typing import Any
 
-from core.panel import State
-from core.context import Context
+import steam
+from numpy import random
+from steam import Client, enums
+from steam.protobufs import loyalty_rewards
+
+import states
 from core.account import Account
+from core.context import Context
 from core.logging import get_logger
+from core.panel import State
+from core.services.api.api_controller import api_controller
 from core.services.api.free_profile_items import (
   FreeProfileItem,
   FreeProfileItemsResponse,
 )
-from ui.widgets import Progress, Label
-import states
-from steam import Client, enums
-from core.services.api.api_controller import api_controller
-from steam.protobufs import loyalty_rewards
-
+from ui.widgets import Label, Progress
 from utils.client_login_wrapper import client_login_wrapper
 
 logger = get_logger("state.collect_free_profile_items")
@@ -38,10 +38,8 @@ class FreeProfileItemsClient(Client):
       results = []
 
       inv = await self.user.inventory(steam.STEAM)
-      flat_names = list(map(lambda x: x.name, inv.items))
-      items_to_redeem = [
-        item for item in self.items if item.name not in flat_names
-      ]
+      flat_names = [x.name for x in inv.items]
+      items_to_redeem = [item for item in self.items if item.name not in flat_names]
       print(items_to_redeem)
       for item in items_to_redeem:
         try:
@@ -71,7 +69,7 @@ class FreeProfileItemsClient(Client):
 
 
 class CollectFreeProfileItems(State):
-  def __init__(self, accounts: List[Account]):
+  def __init__(self, accounts: list[Account]):
     self.accounts = accounts
 
   def layout(self, ctx: Context, dispatch):
@@ -81,12 +79,8 @@ class CollectFreeProfileItems(State):
   async def execute(self, ctx: Context):
     # TODO use api
 
-    items = list(
-      map(
-        lambda x: FreeProfileItem(**x),
-        api_controller.get("/api/cache/steam/free-items"),
-      )
-    )
+    raw_data = api_controller.get("/api/cache/steam/free-items")
+    items = [FreeProfileItem(**x) for x in (raw_data or [])]
 
     print(items)
     for account in self.accounts:

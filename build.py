@@ -1,7 +1,7 @@
-import os
-import sys
 import argparse
+import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -96,25 +96,20 @@ def build_executable():
   try:
     subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
     print("\n--- Build SUCCESSFUL! ---")
-    print(
-      f"Executable is in: {PROJECT_ROOT / EXE_NAME}{'.exe' if sys.platform == 'win32' else ''}"
-    )
+    ext = ".exe" if sys.platform == "win32" else ""
+    print(f"Executable is in: {PROJECT_ROOT / EXE_NAME}{ext}")
 
   except subprocess.CalledProcessError as e:
     print("\n--- Build FAILED! ---")
     print(f"Nuitka exited with error code {e.returncode}.")
   except FileNotFoundError:
     print("\n--- Build FAILED! ---")
-    print(
-      "Error: Nuitka command not found. Please ensure Nuitka is installed (`uv run nuitka`)."
-    )
+    print("Error: Nuitka command not found. Please ensure Nuitka is installed.")
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="YACSP Build Tool")
-  parser.add_argument(
-    "--runner", action="store_true", help="Build ONLY the CS2 Runner"
-  )
+  parser.add_argument("--runner", action="store_true", help="Build ONLY the CS2 Runner")
   parser.add_argument(
     "--main", action="store_true", help="Build ONLY the Main Application"
   )

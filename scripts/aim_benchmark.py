@@ -1,11 +1,12 @@
+import math
+import random
+import sys
+import time
+from collections import deque
+from pathlib import Path
+
 import cv2
 import numpy as np
-import time
-import math
-import sys
-import random
-from pathlib import Path
-from collections import deque
 
 sys.path.append(str(Path(__file__).parents[1] / "src"))
 
@@ -215,9 +216,7 @@ def run_benchmark():
 
     def draw_ui(text, col=(200, 200, 200)):
       nonlocal y_off
-      cv2.putText(
-        display_frame, text, (10, y_off), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2
-      )
+      cv2.putText(display_frame, text, (10, y_off), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
       y_off += 25
 
     draw_ui(f"Status: {status_text}", status_color)

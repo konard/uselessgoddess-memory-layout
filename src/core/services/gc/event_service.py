@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.logging import get_logger
 
@@ -15,12 +15,10 @@ logger = get_logger("event_service")
 class EventService:
   def __init__(self):
     # data, event, expiration_time
-    self._events: Dict[
-      str, Dict[str, Tuple[Any, asyncio.Event, Optional[float]]]
-    ] = {}
+    self._events: dict[str, dict[str, tuple[Any, asyncio.Event, float | None]]] = {}
 
   async def wait_for_event(
-    self, account: Account, event_name: str, timeout: Optional[float] = None
+    self, account: Account, event_name: str, timeout: float | None = None
   ) -> Any:
     login = account.login
 
@@ -34,9 +32,9 @@ class EventService:
 
     try:
       await asyncio.wait_for(event.wait(), timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError as error:
       logger.debug(f"Timeout waiting for event {event_name} for {login}")
-      raise Exception(f"Timeout waiting for event {event_name} for {login}")
+      raise Exception(f"Timeout waiting for event {event_name} for {login}") from error
 
     if login not in self._events or event_name not in self._events[login]:
       return None
@@ -60,7 +58,7 @@ class EventService:
     return data
 
   def emit_event(
-    self, login: str, event_name: str, data: Any, ttl: Optional[float] = None
+    self, login: str, event_name: str, data: Any, ttl: float | None = None
   ) -> bool:
     if login not in self._events:
       self._events[login] = {}

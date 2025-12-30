@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from .models import GameState, Team, RoundPhase, MapPhase
+
+from .models import GameState, MapPhase, RoundPhase, Team
 
 
 @dataclass
@@ -10,9 +11,7 @@ class GSIEvent:
 @dataclass
 class RoundEndEvent(GSIEvent):
   winner: Team
-  reason: str = (
-    ""  # Often not provided clearly by simple GSI, but implies win condition
-  )
+  reason: str = ""  # Often not provided clearly by simple GSI, but implies win condition
 
 
 @dataclass

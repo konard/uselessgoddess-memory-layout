@@ -1,10 +1,12 @@
-import cv2
+import queue
+import threading
 import time
 import uuid
-import threading
-import queue
-import numpy as np
 from pathlib import Path
+
+import cv2
+import numpy as np
+
 from core.logging import get_logger
 
 logger = get_logger("ai.recorder")

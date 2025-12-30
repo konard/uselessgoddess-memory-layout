@@ -1,26 +1,27 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import Tuple, TYPE_CHECKING
 import asyncio
-import time
-
 import struct
+import time
+from enum import Enum
+from typing import TYPE_CHECKING
+
 import vdf
+from steam.protobufs.client_server_2 import CMsgClientOfflineMessageNotification
 from steam.protobufs.clientserver_mms import (
   CMsgClientMMSLobbyData,
 )
-from steam.protobufs.client_server_2 import CMsgClientOfflineMessageNotification
 
 if TYPE_CHECKING:
   from core.context import Context
 
-from core.services.gc.gc_parser import decode_bytes
 from steam.protobufs.client_server import CMsgClientChatInvite
+
 from core.account import Account
 from core.logging import get_logger
-from core.services.gc.match_warning import MatchWarning
 from core.services.gc.event_service import EventService
+from core.services.gc.gc_parser import decode_bytes
+from core.services.gc.match_warning import MatchWarning
 
 logger = get_logger("lobby_service")
 
@@ -32,13 +33,9 @@ INVITE_WAIT_TIMEOUT = 15
 class InviteExpiredError(Exception):
   """Исключение, выбрасываемое когда инвайт просрочен"""
 
-  pass
-
 
 class InviteTimeoutError(Exception):
   """Исключение, выбрасываемое когда инвайт не получен в течение таймаута"""
-
-  pass
 
 
 class EventNames(str, Enum):
@@ -54,7 +51,7 @@ class LobbyService:
     self.ctx = ctx
     self.event_service = EventService()
     self.invites: dict[
-      str, Tuple[CMsgClientChatInvite | None, asyncio.Event, float | None]
+      str, tuple[CMsgClientChatInvite | None, asyncio.Event, float | None]
     ] = {}
 
   async def wait_for_invite(self, account: Account) -> CMsgClientChatInvite:
@@ -84,20 +81,18 @@ class LobbyService:
     # Ждем получения инвайта с таймаутом
     try:
       await asyncio.wait_for(event.wait(), timeout=INVITE_WAIT_TIMEOUT)
-    except asyncio.TimeoutError:
+    except TimeoutError as error:
       # Удаляем запись при таймауте
       if steam_id in self.invites:
         del self.invites[steam_id]
       raise InviteTimeoutError(
         f"Invite timeout for steam_id {steam_id}. Waited {INVITE_WAIT_TIMEOUT}s"
-      )
+      ) from error
 
     # После того как event зарезолвился, читаем актуальные данные из словаря
     # (они могли измениться пока мы ждали)
     if steam_id not in self.invites:
-      raise ValueError(
-        f"Invite entry was removed while waiting for steam_id {steam_id}"
-      )
+      raise ValueError(f"Invite entry was removed while waiting for steam_id {steam_id}")
 
     invite, _, received_at = self.invites[steam_id]
 
@@ -144,9 +139,7 @@ class LobbyService:
       event.set()
       self.invites[steam_id_str] = (invite, event, received_at)
 
-    logger.trace(
-      f"Invite set for steam_id: {steam_id_str} at {received_at:.2f}"
-    )
+    logger.trace(f"Invite set for steam_id: {steam_id_str} at {received_at:.2f}")
     return True
 
   def process_chat_invite(self, data: bytes):

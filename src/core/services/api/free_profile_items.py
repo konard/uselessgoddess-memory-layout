@@ -1,4 +1,3 @@
-from typing import List
 from dataclasses import dataclass
 
 
@@ -10,4 +9,4 @@ class FreeProfileItem:
   updated_at: str
 
 
-FreeProfileItemsResponse = List[FreeProfileItem]
+FreeProfileItemsResponse = list[FreeProfileItem]

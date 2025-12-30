@@ -1,14 +1,14 @@
 import asyncio
-import states
-
 from enum import Enum
-from core.panel.state import State
-from core.context import Context
+
+import states
 from core.account import Account
+from core.context import Context
+from core.keys import Key
 from core.logging import get_logger
+from core.panel.state import State
 from core.services.cs_controller import CS2Controller
 from core.services.windows_service import WindowService
-from core.keys import Key
 
 logger = get_logger("state.disconnect")
 

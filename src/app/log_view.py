@@ -1,13 +1,12 @@
 import html
 import logging
-from typing import List
 
-from PyQt6.QtWidgets import QTextEdit, QComboBox, QLineEdit
-from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QTextCursor
+from PyQt6.QtWidgets import QComboBox, QLineEdit, QTextEdit
 
-from ui.theme import CURRENT_THEME
 from constants import IS_DEV_MODE
+from ui.theme import CURRENT_THEME
 
 
 class QtLogHandler(logging.Handler):
@@ -30,7 +29,7 @@ class LogHandler:
     self.level_combo = level_combo
     self.filter_edit = filter_edit
 
-    self.buffer: List[logging.LogRecord] = []
+    self.buffer: list[logging.LogRecord] = []
 
     # TODO! configurable env
     private_build = False
@@ -118,7 +117,4 @@ class LogHandler:
       return False
 
     filter_text = self.filter_edit.text().strip()
-    if filter_text and filter_text.lower() not in record.getMessage().lower():
-      return False
-
-    return True
+    return not filter_text or filter_text.lower() in record.getMessage().lower()

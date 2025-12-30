@@ -1,3 +1,4 @@
+import steam.ext.csgo.protobufs
 from steam import Message
 from steam._gc import (
   CLEAR_PROTO_BIT,
@@ -7,9 +8,6 @@ from steam._gc import (
   GCProtobufMessage,
 )
 from steam.protobufs import ProtobufMessage
-
-
-import steam.ext.csgo.protobufs
 from steam.protobufs.headers import READ_U32
 
 
@@ -48,9 +46,7 @@ def decode_gc_bytes(data: bytes, app_id: int = 730):
   emsg_value = READ_U32(data)
 
   if IS_PROTO(emsg_value):
-    msg = GCProtobufMessage().parse(
-      data[4:], CLEAR_PROTO_BIT(emsg_value), AppID(app_id)
-    )
+    msg = GCProtobufMessage().parse(data[4:], CLEAR_PROTO_BIT(emsg_value), AppID(app_id))
   else:
     msg = GCMessage().parse(data[4:], emsg_value, AppID(app_id))
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
-from typing import Dict, List, Any, Optional
+from typing import Any, Optional
 
 
 class Team(StrEnum):
@@ -143,12 +143,12 @@ class Player:
   team: Team = Team.UNDEFINED
   activity: PlayerActivity = PlayerActivity.UNDEFINED
   state: PlayerStateData = field(default_factory=PlayerStateData)
-  weapons: List[Weapon] = field(default_factory=list)
+  weapons: list[Weapon] = field(default_factory=list)
   match_stats: MatchStats = field(default_factory=MatchStats)
   spectation_target: str = ""
 
   @property
-  def active_weapon(self) -> Optional[Weapon]:
+  def active_weapon(self) -> Weapon | None:
     for w in self.weapons:
       if w.state == WeaponState.ACTIVE:
         return w
@@ -192,7 +192,7 @@ class GameState:
 
   # Raw handling helper
   @staticmethod
-  def _parse_weapons(data: dict | list) -> List[Weapon]:
+  def _parse_weapons(data: dict | list) -> list[Weapon]:
     weapons = []
     if isinstance(data, dict):
       # CS2 GSI returns weapons as Dict often {"weapon_0": {...}, "weapon_1": ...}
@@ -218,7 +218,7 @@ class GameState:
     )
 
   @classmethod
-  def from_dict(cls, data: Dict[str, Any]) -> GameState:
+  def from_dict(cls, data: dict[str, Any]) -> GameState:
     # Auth & Provider
     auth = Auth(**data.get("auth", {}))
     prov_d = data.get("provider", {})

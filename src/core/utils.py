@@ -38,7 +38,6 @@ def block_on(func):
 
 
 def async_methods(cls):
-  """Декоратор класса, который создает асинхронные версии всех методов с суффиксом _async"""
   # Сначала собираем все методы в список, чтобы не изменять словарь во время итерации
   methods_to_process = []
   for attr_name, attr in cls.__dict__.items():
@@ -53,11 +52,7 @@ def async_methods(cls):
     async_name = attr_name + "_async"
     # Всегда перезаписываем, даже если stub метод уже существует
     actual_func = attr.__func__ if isinstance(attr, staticmethod) else attr
-    doc = (
-      getattr(actual_func, "__doc__", None)
-      or getattr(attr, "__doc__", None)
-      or ""
-    )
+    doc = getattr(actual_func, "__doc__", None) or getattr(attr, "__doc__", None) or ""
 
     # Сохраняем сигнатуру и аннотации типов для IDE
     try:

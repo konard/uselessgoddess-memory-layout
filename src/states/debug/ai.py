@@ -1,16 +1,17 @@
 import asyncio
 import threading
 import time
+from dataclasses import dataclass
+
 import cv2
 import numpy as np
 import pyautogui
-from dataclasses import dataclass
 
-from core.panel import State
 from core.context import Context
 from core.logging import get_logger
+from core.panel import State
 from core.services import Region  # TODO: move out from services
-from ui.widgets import Label, Button
+from ui.widgets import Button, Label
 
 logger = get_logger("state.debug.ai")
 
@@ -62,9 +63,7 @@ class DebugWorker(threading.Thread):
 
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        cv2.putText(
-          frame, f"{t.confidence:.2f}", (x1, y1 - 5), font, 0.5, color, 1
-        )
+        cv2.putText(frame, f"{t.confidence:.2f}", (x1, y1 - 5), font, 0.5, color, 1)
 
       frame_count += 1
       if frame_count % 10 == 0:
@@ -109,5 +108,9 @@ class AIState(State):
     self.worker = DebugWorker(ctx)
     self.worker.start()
 
-    while self.worker.is_alive():
-      await asyncio.sleep(0.1)
+    try:
+      await asyncio.to_thread(self.worker.join)
+    except asyncio.CancelledError:
+      self.stop_signal()
+      await asyncio.to_thread(self.worker.join)
+      raise

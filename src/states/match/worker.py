@@ -1,23 +1,22 @@
-import time
-import threading
+import enum
 import queue
 import random
-import enum
+import threading
+import time
 import traceback
-from typing import Optional, Dict, List
 from dataclasses import dataclass
 
 from core.account import Account
 from core.context import Context
-from core.services.gsi.models import GameState, Team, RoundPhase, Map
-from core.services import WindowService, CS2Controller
-from core.services.settings import MatchMode
-from core.services.capture import Region
 from core.keys import Key
 from core.logging import get_logger
+from core.services import CS2Controller, WindowService
+from core.services.capture import Region
+from core.services.gsi.models import GameState, Map, RoundPhase, Team
+from core.services.settings import MatchMode
 from states.match.impl.walk import scancode
 
-from .impl import infer_path, config, Path
+from .impl import Path, config, infer_path
 
 logger = get_logger("match.worker")
 
@@ -25,7 +24,7 @@ logger = get_logger("match.worker")
 # internal mode settings with extra dev flags
 @dataclass
 class ModeSettings:
-  teams: List[Team] = None
+  teams: list[Team] = None
   prefer_plant: bool = False
   max_round: int = 8  # todo allow non-tie
 
@@ -71,7 +70,7 @@ class MatchWorker(threading.Thread):
     self.status = "Initializing..."
 
     self.path: Path = None
-    self.players: Dict[str, PlayerEntry] = {}
+    self.players: dict[str, PlayerEntry] = {}
     self.score = {Team.CT: 0, Team.T: 0}
     self.round = -1
     self.state = State.Prepare
@@ -103,7 +102,8 @@ class MatchWorker(threading.Thread):
           self.state = State.Round
           WindowService.focus_window(self.player.win_cs_title)
         else:
-          self.status = f"Round {self.round}: {self.player.account.login} ({self.state.name})"
+          login = self.player.account.login
+          self.status = f"Round {self.round}: {login} ({self.state.name})"
 
           x, y = self.player.account.posX, self.player.account.posY
           w, h = self.ctx.su.win_w, self.ctx.su.win_h
@@ -147,11 +147,11 @@ class MatchWorker(threading.Thread):
     return (
       len(self.accounts) > 0
       and len(self.active_players()) == len(self.accounts)
-      and all([p.phase == RoundPhase.LIVE for p in self.active_players()])
+      and all(p.phase == RoundPhase.LIVE for p in self.active_players())
     )
 
-  def filter_team(self, team: Team) -> List[PlayerEntry]:
-    return list(p for k, p in self.players.items() if p.team == team)
+  def filter_team(self, team: Team) -> list[PlayerEntry]:
+    return [p for k, p in self.players.items() if p.team == team]
 
   def on_game_state(self, event: GameState):
     try:
@@ -235,9 +235,7 @@ class MatchWorker(threading.Thread):
     else:
       self.player = random.choice(mates)
 
-    self.path = infer_path(
-      map_name, mode, team, self.player.bomb, reach_maxround
-    )
+    self.path = infer_path(map_name, mode, team, self.player.bomb, reach_maxround)
     if self.path is None:
       logger.error(f"path not found for {debug}")
       self.exit()

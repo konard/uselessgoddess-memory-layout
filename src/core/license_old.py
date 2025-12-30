@@ -2,13 +2,13 @@ import sys
 import urllib.request
 from datetime import datetime
 
-from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout
 
+from core.logging import get_logger
 from ui.theme import CURRENT_THEME, ButtonType
 from ui.widgets import Button
-from core.logging import get_logger
 
 logger = get_logger("license")
 
@@ -19,9 +19,7 @@ class LicenseDialog(QDialog):
     self.setWindowTitle(title)
     self.setFixedWidth(400)
 
-    self.setWindowFlags(
-      self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
-    )
+    self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
     self.setStyleSheet(f"""
             QDialog {{
@@ -53,9 +51,7 @@ class LicenseDialog(QDialog):
     lbl_text = QLabel(html_text)
     lbl_text.setWordWrap(True)
     lbl_text.setOpenExternalLinks(True)
-    lbl_text.setTextInteractionFlags(
-      Qt.TextInteractionFlag.TextBrowserInteraction
-    )
+    lbl_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
     lbl_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     lbl_text.setStyleSheet(f"""
@@ -72,7 +68,7 @@ class LicenseDialog(QDialog):
     """Хак для темного заголовка окна в Windows"""
     try:
       import ctypes
-      from ctypes import c_int, byref, windll
+      from ctypes import byref, c_int, windll
 
       DWMWA_USE_IMMERSIVE_DARK_MODE = 20
       hwnd = int(self.winId())
@@ -91,8 +87,7 @@ def _show_styled_block_message(
     app = QApplication(sys.argv)
 
   html_text = (
-    f"{message}<br><br>"
-    f"Contact support: <a href='{contact_link}'>t.me/y_a_c_s_p</a>"
+    f"{message}<br><br>Contact support: <a href='{contact_link}'>t.me/y_a_c_s_p</a>"
   )
 
   dialog = LicenseDialog(title, html_text)
@@ -118,8 +113,7 @@ def check_expiration(expiration_date: datetime):
         logger.critical(f"License expired on {expiration_date.date()}")
         _show_styled_block_message(
           "LICENSE EXPIRED",
-          f"Access denied.<br>"
-          f"Your license expired on <b>{expiration_date.date()}</b>.",
+          f"Access denied.<br>Your license expired on <b>{expiration_date.date()}</b>.",
         )
 
   except Exception as e:

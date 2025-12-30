@@ -1,13 +1,14 @@
 import asyncio
 import datetime
 from typing import Optional
+
+import states
 from core import context, game_constants
 from core.account.model import FarmStatus, RunningAccount
 from core.logging import get_logger
 from core.panel import state
 from core.services.cs_controller import CS2Controller
 from core.services.windows_service import WindowService
-import states
 from states.make_lobbies.generate_party_schema import generate_party_schema
 from states.start_unfarmed import StartUnfarmed
 from states.types import GameSchema
@@ -16,7 +17,7 @@ logger = get_logger("state.continue_farm")
 
 
 class ContinueFarm(state.State):
-  def __init__(self, game_schema: Optional[GameSchema], delay: int = 20):
+  def __init__(self, game_schema: GameSchema | None, delay: int = 20):
     self.game_schema = game_schema
     self.delay = delay
 
@@ -28,9 +29,7 @@ class ContinueFarm(state.State):
 
       await asyncio.sleep(0.1)
 
-      if not await CS2Controller.check_if_exists_async(
-        "img/exit.png", account, 0.9
-      ):
+      if not await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9):
         all_in_lobby = False
         break
 
@@ -38,14 +37,10 @@ class ContinueFarm(state.State):
       for account in accounts:
         await WindowService.focus_window_async(account.win_cs_title)
         await asyncio.sleep(0.1)
-        in_lobby = await CS2Controller.check_if_exists_async(
-          "img/exit.png", account, 0.9
-        )
+        in_lobby = await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9)
         if in_lobby:
           await asyncio.sleep(0.2)
-          await CS2Controller.click_if_exists_async(
-            "img/exit.png", account, 0.9, True
-          )
+          await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9, True)
           await asyncio.sleep(0.1)
 
   async def execute(self, ctx: context.Context):
@@ -54,18 +49,14 @@ class ContinueFarm(state.State):
 
     await asyncio.sleep(self.delay)
 
-    launched_accounts = WindowService.scan_cs2_windows(
-      ctx.accounts(), values=True
-    )
+    launched_accounts = WindowService.scan_cs2_windows(ctx.accounts(), values=True)
 
     await self.check_if_all_in_lobby(launched_accounts)
 
     if self.game_schema is None:
       preset_applied = False
       if launched_accounts:
-        new_schema = ctx.presets.get_schema_for_launched_accounts(
-          launched_accounts
-        )
+        new_schema = ctx.presets.get_schema_for_launched_accounts(launched_accounts)
         if new_schema:
           self.game_schema = new_schema
           preset_applied = True
@@ -83,9 +74,7 @@ class ContinueFarm(state.State):
     if ctx.settings.user.farm_until:
       try:
         now = datetime.datetime.now()
-        t = datetime.datetime.strptime(
-          ctx.settings.user.farm_until, "%H:%M"
-        ).time()
+        t = datetime.datetime.strptime(ctx.settings.user.farm_until, "%H:%M").time()
         target_min = t.hour * 60 + t.minute
         now_min = now.hour * 60 + now.minute
         if 0 <= (now_min - target_min) % 1440 <= 120:
@@ -140,15 +129,11 @@ class ContinueFarm(state.State):
 
         await asyncio.sleep(0.3)
 
-        await CS2Controller.wait_for_image_async(
-          "img/friend_id_modal.png", account
-        )
+        await CS2Controller.wait_for_image_async("img/friend_id_modal.png", account)
 
         await asyncio.sleep(0.3)
 
-        if not await CS2Controller.check_if_exists_async(
-          "img/exit.png", account, 0.9
-        ):
+        if not await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9):
           all_lobbies = False
 
       if all_lobbies:
@@ -161,9 +146,7 @@ class ContinueFarm(state.State):
 
           await asyncio.sleep(0.3)
 
-          await CS2Controller.click_if_exists_async(
-            "img/exit.png", account, 0.9, True
-          )
+          await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9, True)
 
           await asyncio.sleep(0.3)
 

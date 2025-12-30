@@ -1,7 +1,6 @@
 # TODO: move to ХЗ КУДА
 from core.services.settings import FarmMode
 
-
 farm_mode_size = {
   FarmMode.TWO_BY_TWO: 4,
   FarmMode.FIVE_BY_FIVE: 10,

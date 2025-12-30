@@ -7,8 +7,8 @@
     python scripts/read_bin.py <путь_к_файлу.bin> --raw   # только raw bytes
 """
 
-import sys
 import re
+import sys
 from pathlib import Path
 
 # Add src to python path
@@ -36,13 +36,10 @@ def read_bin_file(filepath: Path):
   with open(filepath, "rb") as f:
     data = f.read()
 
-
   msg_id = parse_filename(filepath.name)
 
   print(msg_id)
   GCService(Context()).process_message(data, msg_id, "test")
-
-
 
 
 def main():

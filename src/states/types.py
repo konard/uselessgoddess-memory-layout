@@ -1,5 +1,5 @@
-from typing import List, Tuple
 from dataclasses import dataclass
+
 from core.account.model import RunningAccount
 from core.services.settings import FarmMode
 
@@ -7,7 +7,7 @@ from core.services.settings import FarmMode
 @dataclass
 class PartySchema:
   leader: RunningAccount
-  members: List[RunningAccount]
+  members: list[RunningAccount]
 
   @property
   def farm_mode(self) -> FarmMode:
@@ -20,8 +20,8 @@ class PartySchema:
       raise ValueError(f"Неизвестный режим для {len(self.members)} членов")
 
   @property
-  def all(self) -> List[RunningAccount]:
+  def all(self) -> list[RunningAccount]:
     return [self.leader, *self.members]
 
 
-GameSchema = Tuple[PartySchema, PartySchema]
+GameSchema = tuple[PartySchema, PartySchema]

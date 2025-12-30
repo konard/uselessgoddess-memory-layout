@@ -1,11 +1,12 @@
 import asyncio
-import time
-import requests
-import gzip
-import base64
-import json
 import atexit
-from typing import Any, Dict
+import base64
+import gzip
+import json
+import time
+from typing import Any
+
+import requests
 
 from core.logging import get_logger
 from core.services.license import LicenseService
@@ -38,7 +39,7 @@ class MetricsService:
     except Exception:
       pass
 
-  async def send(self, type: str, payload: Dict[str, Any]):
+  async def send(self, type: str, payload: dict[str, Any]):
     data = {
       "type": type,
       "license_key": self.lic.license_key,
@@ -48,7 +49,7 @@ class MetricsService:
     }
     await self._send_request(data)
 
-  async def _send_request(self, payload: Dict[str, Any]):
+  async def _send_request(self, payload: dict[str, Any]):
     def _request():
       try:
         compressed = gzip.compress(json.dumps(payload).encode("utf-8"))

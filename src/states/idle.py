@@ -1,29 +1,25 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from states.continue_farm import ContinueFarm
-from states.launch_accounts import LaunchAccounts
-from ui import ButtonType
-from states.select_map import SelectMap
-from ui.widgets import Button, HStack
-
-from core.context import Context
+import states
+from constants import IS_DEV_MODE
 from core.account import Account
+from core.context import Context
 from core.logging import get_logger
 from core.panel import Message, State, StateManager, handles
-
-from constants import IS_DEV_MODE
-
 from states import (
-  debug,
-  MatchState,
   MakeLobbies,
-  WaitForGame,
+  MatchState,
   StartFarm,
+  WaitForGame,
+  debug,
 )
-
+from states.continue_farm import ContinueFarm
+from states.launch_accounts import LaunchAccounts
+from states.select_map import SelectMap
 from states.types import GameSchema
-import states
+from ui import ButtonType
+from ui.widgets import Button, HStack
 
 logger = get_logger("state.idle")
 
@@ -74,9 +70,7 @@ class Idle(State):
       def inner():
         logins = ctx.ui.capture_selected()
         accounts = [
-          ctx.account.accounts[login]
-          for login in logins
-          if login in ctx.account.accounts
+          ctx.account.accounts[login] for login in logins if login in ctx.account.accounts
         ]
         # TODO!: maybe rethink dispatch propogation
         if not accounts:
@@ -160,8 +154,8 @@ class Idle(State):
     return buttons
 
   async def execute(self, ctx: Context):
-    while True:
-      await asyncio.sleep(1)
+    wait_forever = asyncio.Event()
+    await wait_forever.wait()
 
   @handles(Farm)
   async def _on_start_farm(self, message: Farm, manager: StateManager):
@@ -192,18 +186,14 @@ class Idle(State):
     )
 
   @handles(WaitForGame)
-  async def _on_wait_for_game(
-    self, message: WaitForGame, manager: StateManager
-  ):
+  async def _on_wait_for_game(self, message: WaitForGame, manager: StateManager):
     logger.debug(f"wait for game {message.accounts}")
     await manager.into_state(
       states.WaitForGame(message.accounts).then(self),
     )
 
   @handles(StartFarm)
-  async def _on_launch_accounts(
-    self, message: StartFarm, manager: StateManager
-  ):
+  async def _on_launch_accounts(self, message: StartFarm, manager: StateManager):
     logger.debug(f"launch accounts {message.accounts_to_launch}")
     await manager.into_state(
       states.StartFarm(message.accounts_to_launch).then(self),

@@ -14,14 +14,13 @@ import atexit
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from core.logging import get_logger
 
 if TYPE_CHECKING:
   from core.context import Context
 from utils.map_steam64_to_steam3 import map_steam64_to_steam3
-
 
 logger = get_logger("yacs.config")
 
@@ -36,7 +35,7 @@ HOSTS_PATH = Path(r"C:\Windows\System32\drivers\etc\hosts")
 STEAM_STORE_BLOCK_LINE = "0.0.0.0 store.steampowered.com"
 
 # Глобальная переменная для хранения контекста при закрытии
-_cleanup_context: Optional["Context"] = None
+_cleanup_context: Context | None = None
 
 
 def _cleanup_steam_store_block():
@@ -59,7 +58,7 @@ atexit.register(_cleanup_steam_store_block)
 class ConfigService:
   """Сервис для применения конфигураций CS2."""
 
-  def __init__(self, ctx: "Context") -> None:
+  def __init__(self, ctx: Context) -> None:
     self.ctx = ctx
     # Регистрируем контекст для очистки при закрытии
     global _cleanup_context
@@ -138,17 +137,13 @@ class ConfigService:
     ]
 
     for candidate in candidates:
-      if candidate.exists() or (
-        not candidate.exists() and candidate.parent.exists()
-      ):
+      if candidate.exists() or (not candidate.exists() and candidate.parent.exists()):
         return candidate
 
     # Fallback: возвращаем предполагаемую директорию
     return steam_dir / "userdata"
 
-  def _ensure_cfg_directory(
-    self, userdata_dir: Path, steam_id: str
-  ) -> Optional[Path]:
+  def _ensure_cfg_directory(self, userdata_dir: Path, steam_id: str) -> Path | None:
     """Создает директорию конфигурации для указанного Steam ID."""
     target_cfg_dir = userdata_dir / str(steam_id) / "730" / "local" / "cfg"
     try:
@@ -158,7 +153,7 @@ class ConfigService:
       logger.exception(f"Не удалось создать каталог: {target_cfg_dir}")
       return None
 
-  def _load_video_template(self) -> Optional[Dict[str, str]]:
+  def _load_video_template(self) -> dict[str, str] | None:
     """Загружает шаблон видео конфигурации."""
     if not VIDEO_TEMPLATE_PATH.exists():
       logger.warning(f"Шаблон video.txt не найден: {VIDEO_TEMPLATE_PATH}")
@@ -168,12 +163,10 @@ class ConfigService:
       template_text = VIDEO_TEMPLATE_PATH.read_text(encoding="utf-8")
       return _parse_video_kv(template_text)
     except Exception:
-      logger.exception(
-        f"Не удалось прочитать шаблон video.txt: {VIDEO_TEMPLATE_PATH}"
-      )
+      logger.exception(f"Не удалось прочитать шаблон video.txt: {VIDEO_TEMPLATE_PATH}")
       return None
 
-  def _load_current_video_config(self, cfg_dir: Path) -> Dict[str, str]:
+  def _load_current_video_config(self, cfg_dir: Path) -> dict[str, str]:
     """Загружает текущую видео конфигурацию, если она существует."""
     target_video = cfg_dir / "video.txt"
     if not target_video.exists():
@@ -183,29 +176,25 @@ class ConfigService:
       current_text = target_video.read_text(encoding="utf-8", errors="ignore")
       return _parse_video_kv(current_text)
     except Exception:
-      logger.exception(
-        f"Не удалось прочитать текущий video.txt: {target_video}"
-      )
+      logger.exception(f"Не удалось прочитать текущий video.txt: {target_video}")
       return {}
 
   def _merge_video_configs(
-    self, current: Dict[str, str], template: Dict[str, str]
-  ) -> Dict[str, str]:
+    self, current: dict[str, str], template: dict[str, str]
+  ) -> dict[str, str]:
     """Объединяет текущую и шаблонную конфигурации (шаблон имеет приоритет)."""
     merged = current.copy()
     merged.update(template)
     return merged
 
   def _save_video_config(
-    self, cfg_dir: Path, config: Dict[str, str], steam_id: str
+    self, cfg_dir: Path, config: dict[str, str], steam_id: str
   ) -> None:
     """Сохраняет видео конфигурацию в файл."""
     target_video = cfg_dir / "cs2_video.txt"
     try:
       target_video.write_text(_render_video_kv(config), encoding="utf-8")
-      logger.debug(
-        f"Применена cs2_video.txt steam_id={steam_id}: {target_video}"
-      )
+      logger.debug(f"Применена cs2_video.txt steam_id={steam_id}: {target_video}")
     except Exception:
       logger.exception(f"Не удалось записать cs2_video.txt: {target_video}")
 
@@ -218,9 +207,7 @@ class ConfigService:
 
       # Проверяем, есть ли уже эта строка
       if self._has_steam_store_block(content):
-        logger.debug(
-          "Блокировка store.steampowered.com уже присутствует в hosts"
-        )
+        logger.debug("Блокировка store.steampowered.com уже присутствует в hosts")
         return True
 
       # Добавляем строку в конец файла
@@ -266,10 +253,7 @@ class ConfigService:
         if (
           stripped == STEAM_STORE_BLOCK_LINE
           or stripped == "0.0.0.0\tstore.steampowered.com"
-          or (
-            stripped.startswith("0.0.0.0")
-            and "store.steampowered.com" in stripped
-          )
+          or (stripped.startswith("0.0.0.0") and "store.steampowered.com" in stripped)
         ):
           continue
         filtered_lines.append(line)
@@ -281,7 +265,7 @@ class ConfigService:
       logger.exception("Не удалось разблокировать store.steampowered.com")
       return False
 
-  def _read_hosts_file(self) -> Optional[str]:
+  def _read_hosts_file(self) -> str | None:
     """Читает содержимое файла hosts."""
     if not HOSTS_PATH.exists():
       logger.error(f"Файл hosts не найден: {HOSTS_PATH}")
@@ -290,27 +274,22 @@ class ConfigService:
     try:
       return HOSTS_PATH.read_text(encoding="utf-8", errors="ignore")
     except PermissionError:
-      logger.error(
-        "Недостаточно прав для чтения файла hosts. Запустите программу от имени администратора."
-      )
+      logger.error("REPORT IF THIS HAPPENS!")
       return None
     except Exception:
-      logger.exception(f"Не удалось прочитать файл hosts: {HOSTS_PATH}")
+      logger.exception(f"Unable to read hosts file: {HOSTS_PATH}")
       return None
 
   def _write_hosts_file(self, content: str) -> bool:
-    """Записывает содержимое в файл hosts."""
     try:
       HOSTS_PATH.write_text(content, encoding="utf-8")
       logger.info("Файл hosts успешно обновлен")
       return True
     except PermissionError:
-      logger.error(
-        "Недостаточно прав для записи в файл hosts. Запустите программу от имени администратора."
-      )
+      logger.error("REPORT IF THIS HAPPENS!")
       return False
     except Exception:
-      logger.exception(f"Не удалось записать файл hosts: {HOSTS_PATH}")
+      logger.exception(f"Unable to write to hosts: {HOSTS_PATH}")
       return False
 
   def _has_steam_store_block(self, content: str) -> bool:
@@ -324,21 +303,16 @@ class ConfigService:
       if (
         stripped == STEAM_STORE_BLOCK_LINE
         or stripped == "0.0.0.0\tstore.steampowered.com"
-        or (
-          stripped.startswith("0.0.0.0")
-          and "store.steampowered.com" in stripped
-        )
+        or (stripped.startswith("0.0.0.0") and "store.steampowered.com" in stripped)
       ):
         return True
     return False
 
 
-def _parse_video_kv(text: str) -> Dict[str, str]:
-  """Примитивный парсер KeyValues для блока "VideoConfig" со строками вида "key" "value"."""
-  # Извлекаем содержимое между { }
+def _parse_video_kv(text: str) -> dict[str, str]:
   m = re.search(r"VideoConfig\"\s*\{([\s\S]*?)\}", text, re.IGNORECASE)
   body = m.group(1) if m else text
-  entries: Dict[str, str] = {}
+  entries: dict[str, str] = {}
   for line in body.splitlines():
     line = line.strip()
     if not line or line.startswith("//"):
@@ -350,7 +324,7 @@ def _parse_video_kv(text: str) -> Dict[str, str]:
   return entries
 
 
-def _render_video_kv(entries: Dict[str, str]) -> str:
+def _render_video_kv(entries: dict[str, str]) -> str:
   lines = ['"VideoConfig"', "{"]
   for key, value in entries.items():
     lines.append(f'  "{key}"    "{value}"')

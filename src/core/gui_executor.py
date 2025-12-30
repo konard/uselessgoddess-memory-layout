@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from core.logging import get_logger
-
 
 logger = get_logger("GuiExecutor")
 
@@ -28,5 +28,5 @@ class GuiExecutor(QObject):
   ) -> None:  # type: ignore[override]
     try:
       func(*args, **kwargs)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
       logger.exception("Ошибка при выполнении GUI-коллбэка: %s", exc)

@@ -1,8 +1,9 @@
+import math
+from dataclasses import dataclass
+from typing import Optional
+
 import cv2
 import numpy as np
-from typing import Optional
-from dataclasses import dataclass
-import math
 
 
 @dataclass
@@ -18,9 +19,7 @@ class MinimapDirectionDetector:
   def __init__(self, config: MinimapConfig):
     self.config = config
 
-  def extract_rotation(
-    self, frame: np.ndarray, visuals=False
-  ) -> Optional[float]:
+  def extract_rotation(self, frame: np.ndarray, visuals=False) -> float | None:
     height, width = frame.shape[:2]
 
     x = min(width, self.config.x)
@@ -34,9 +33,7 @@ class MinimapDirectionDetector:
     h, w = minimap.shape[:2]
     center = (w // 2, h // 2)
 
-    minimap = cv2.circle(
-      minimap, center, self.config.radius * self.config.scale, 0, -1
-    )
+    minimap = cv2.circle(minimap, center, self.config.radius * self.config.scale, 0, -1)
 
     white_mask = np.all(minimap > self.config.threshold, axis=-1)
     channels = minimap.shape[2] if len(minimap.shape) > 2 else 1
@@ -56,9 +53,7 @@ class MinimapDirectionDetector:
 
     angle = None
     if angle_position is not None:
-      angle = math.atan2(
-        angle_position[1] - center[1], angle_position[0] - center[0]
-      )
+      angle = math.atan2(angle_position[1] - center[1], angle_position[0] - center[0])
       angle = angle * 180 / math.pi + 180
 
     if visuals:

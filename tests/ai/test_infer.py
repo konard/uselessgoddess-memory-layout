@@ -1,11 +1,10 @@
-import onnxruntime  # FIXME: RESEARCH ONNX import problem
-
-import pytest
 import cv2
 import numpy as np
+import onnxruntime  # FIXME: RESEARCH ONNX import problem
+import pytest
 
-from core.services.ai import InferenceService, Target
 import resources
+from core.services.ai import InferenceService, Target
 
 
 def test_scale():
@@ -23,9 +22,7 @@ def test_scale():
 
   assert target == target.scale_to(1, 1).scale_to(640, 640)
 
-  scaled = Target(
-    360, 270, 180, 135, 90, 67.5, confidence=0.95, label="", laidx=0
-  )
+  scaled = Target(360, 270, 180, 135, 90, 67.5, confidence=0.95, label="", laidx=0)
   assert scaled == target.scale_to(360, 270)
 
 
@@ -53,7 +50,7 @@ def test_provider_selection(service):
 
   assert len(providers) > 0
 
-  if "CPUExecutionProvider" == providers[0] and len(providers) == 1:
+  if providers[0] == "CPUExecutionProvider" and len(providers) == 1:
     pytest.warns(UserWarning, match="Running on CPU only")
 
 

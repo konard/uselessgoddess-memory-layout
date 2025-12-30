@@ -1,6 +1,6 @@
 import argparse
-import sys
 import os
+import sys
 from pathlib import Path
 
 try:
@@ -26,7 +26,7 @@ def decrypt_log(input_path: str, output_path: str = None):
 
   try:
     with open(input_file, "rb") as f:
-      for line_num, line in enumerate(f, 1):
+      for _, line in enumerate(f, 1):
         line = line.strip()
         if not line:
           continue
@@ -57,9 +57,7 @@ def decrypt_log(input_path: str, output_path: str = None):
 
 
 def main():
-  parser = argparse.ArgumentParser(
-    description="YACSP decryptor DO NOT DISTRIBUTE PLS."
-  )
+  parser = argparse.ArgumentParser(description="YACSP decryptor DO NOT DISTRIBUTE PLS.")
   parser.add_argument("file", help="Path to encrypted file")
   parser.add_argument(
     "-o",
