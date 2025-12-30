@@ -13,20 +13,20 @@
 //     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
 //         return false;
 //     }
-
+//
 //     TOKEN_PRIVILEGES tp;
 //     tp.PrivilegeCount = 1;
 //     if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid)) {
 //         CloseHandle(hToken);
 //         return false;
 //     }
-
+//
 //     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 //     if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL)) {
 //         CloseHandle(hToken);
 //         return false;
 //     }
-
+//
 //     CloseHandle(hToken);
 //     return true;
 // }
@@ -59,7 +59,7 @@ bool EnumProcessesByName(const TCHAR* processName, std::function<bool(DWORD)> ca
 }
 
 bool EnumHandles(DWORD processId, std::function<bool(SYSTEM_HANDLE_TABLE_ENTRY_INFO)> callback) {
-    std::vector<BYTE> buffer(0x10000);
+    std::vector<BYTE> buffer(0x100000); // 1MB buffer to reduce reallocation
     while (true) {
         DWORD needed;
         NTSTATUS status = NtQuerySystemInformation(SystemHandleInformation, buffer.data(), (ULONG)buffer.size(), &needed);
@@ -99,8 +99,27 @@ bool CloseMutexForProcess(DWORD pid) {
             return true;
         }
 
-        // get the name of the object
+        // Check Object Type to prevent hangs on Named Pipes / Sockets
         ULONG returnLength;
+        std::vector<BYTE> typeBuffer(0x1000);
+        if (NtQueryObject(hDuplicate, ObjectTypeInformation, typeBuffer.data(), (ULONG)typeBuffer.size(), &returnLength) != STATUS_SUCCESS) {
+            CloseHandle(hDuplicate);
+            return true;
+        }
+
+        POBJECT_TYPE_INFORMATION typeInfo = (POBJECT_TYPE_INFORMATION)typeBuffer.data();
+        if (typeInfo->TypeName.Buffer) {
+            std::wstring typeStr(typeInfo->TypeName.Buffer, typeInfo->TypeName.Length / sizeof(WCHAR));
+            if (typeStr != L"Mutant") {
+                CloseHandle(hDuplicate);
+                return true;
+            }
+        } else {
+            CloseHandle(hDuplicate);
+            return true;
+        }
+
+        // get the name of the object
         if (NtQueryObject(hDuplicate, ObjectNameInformation, NULL, 0, &returnLength) != STATUS_INFO_LENGTH_MISMATCH) {
             CloseHandle(hDuplicate);
             return true;
