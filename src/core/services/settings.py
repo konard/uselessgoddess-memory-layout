@@ -4,6 +4,8 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 
+from pydantic import BaseModel, Field, ValidationError, field_validator
+
 from core.logging import get_logger
 from core.utils import name_of
 
@@ -29,27 +31,30 @@ def _load_settings(path, ty, label="settings"):
         data = json.load(f)
         logger.info(f"{label} loaded successfully.")
         return ty(**data)
+  except ValidationError as e:
+    from PyQt6.QtWidgets import QMessageBox
+
+    error_msg = "\n".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
+    QMessageBox.critical(None, "Config error", f"Check settings.json:\n{error_msg}")
+
   except Exception as e:
     logger.error(f"Failed to load '{path}': {e}.")
+
   logger.debug(f"Using default {label}.")
   return ty()
 
 
 def _save_settings(path, settings, label="settings"):
   try:
-    data = asdict(settings)
-    # Преобразуем enum в строку для JSON сериализации
-    for key, value in data.items():
-      if isinstance(value, Enum):
-        data[key] = value.value
-    with open(path, "w") as f:
-      json.dump(data, f, indent=2)
+    data = settings.model_dump(mode="json")
+    with open(path, "w", encoding="utf-8") as f:
+      json.dump(data, f, indent=2, ensure_ascii=False)
     logger.debug(f"{label} saved to '{path}'.")
   except Exception as e:
     logger.error(f"Failed to save '{path}': {e}")
 
 
-class Settings:
+class Settings(BaseModel):
   def path_of(self, settings: "SettingsService"):
     pass
 
@@ -67,32 +72,34 @@ class Settings:
     return updater
 
 
-@dataclass
 class UserSettings(Settings):
-  license_key: str = ""
-  trade_url: str = ""
-  steam_path: str = ""
-  cs_path: str = ""
-  win_w: int = 360
-  win_h: int = 270
+  license_key: str = Field("")
+  trade_url: str = Field("", description="Main trade url link")
+  steam_path: str = Field("", description="Path to steam exe")
+  cs_path: str = Field("", description="Path to CS2 folder")
+  win_w: int = Field(360, ge=360)
+  win_h: int = Field(270, ge=270)
 
-  experimental_launch: bool = True
+  experimental_launch: bool = Field(True)
 
-  telegram_token: str | None = None
-  telegram_whitelist: list[str] = field(default_factory=list)
+  telegram_token: str | None = Field(None)
+  telegram_whitelist: list[str] = Field(
+    default_factory=list, description="Your and your friends' tg ids"
+  )
 
-  collect_available_steam_games_on_login: bool = False
+  collect_available_steam_games_on_login: bool = Field(False)
 
-  extension_ids: list[str] = field(
-    default_factory=lambda: ["cmeakgjggjdlcpncigglobpjbkabhmjl"]
+  extension_ids: list[str] = Field(
+    default_factory=lambda: ["cmeakgjggjdlcpncigglobpjbkabhmjl"],
+    description="Chrome required extensions (SIH, etc.)",
   )
 
   # farm settings
-  match_mode: MatchMode = MatchMode.TIE
-  times_to_shuffle: int = 3
-  times_to_brute_force: int = 3
-  farm_until: str | None = None
-  overfarm: int | None = None
+  match_mode: MatchMode = Field(MatchMode.TIE)
+  times_to_shuffle: int = Field(3)
+  times_to_brute_force: int = Field(3)
+  farm_until: str | None = Field(None)
+  overfarm: int | None = Field(None)
 
   def path_of(self, settings: "SettingsService"):
     return settings.user_file
@@ -105,12 +112,11 @@ class UserSettings(Settings):
     _save_settings(path, self, "user settings")
 
 
-@dataclass
 class SystemState(Settings):
-  shuffle_lobbies: bool = True
-  collect_drop: bool = False
-  farm_on_launch: bool = True
-  farm_mode: FarmMode = FarmMode.TWO_BY_TWO
+  shuffle_lobbies: bool = Field(True)
+  collect_drop: bool = Field(False)
+  farm_on_launch: bool = Field(True)
+  farm_mode: FarmMode = Field(FarmMode.TWO_BY_TWO)
 
   def path_of(self, settings: "SettingsService"):
     return settings.system_file
