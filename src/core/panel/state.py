@@ -30,7 +30,7 @@ def handles(message_type: type[Message]):
 
 
 class State:
-  async def execute(self):
+  async def execute(self, ctx: Context):
     pass
 
   async def react(self, manager: StateManager, message: Message):
@@ -51,7 +51,31 @@ class State:
   def layout(self, ctx: Context, dispatch: Callable[[Message], None]):
     return []
 
-  # helpers
+  @property
+  def _tasks(self) -> set[asyncio.Task]:
+    if not hasattr(self, "_lazy_background_tasks"):
+      self._lazy_background_tasks = set()
+    return self._lazy_background_tasks
+
+  def spawn(self, coro) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    self._tasks.add(task)
+    task.add_done_callback(self._tasks.discard)
+    return task
+
+  async def cleanup(self):
+    tasks = getattr(self, "_lazy_background_tasks", None)
+
+    if tasks:
+      logger.debug(f"Cleaning up {len(tasks)} tasks for {name_of(self)}")
+      for task in tasks:
+        if not task.done():
+          task.cancel()
+
+      if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+      tasks.clear()
 
   def block(self, func):
     async def inner(*args, **kwargs):
@@ -120,6 +144,11 @@ class StateManager:
       await self.into_state(states.LicenseState(state, title, desc), check=False)
       return
 
+    if self._current_task and not self._current_task.done():
+      self._current_task.cancel()
+      with contextlib.suppress(asyncio.CancelledError):
+        await self._current_task
+
     if self._current_state:
       duration = time.time() - self._state_start_time
       payload = {
@@ -128,15 +157,11 @@ class StateManager:
       }
       asyncio.create_task(self.context.metrics.send("state", payload))
 
+      logger.trace(self._current_state)
+      await self._current_state.cleanup()
+
     self._state_start_time = time.time()
-
-    if self._current_task and not self._current_task.done():
-      self._current_task.cancel()
-      with contextlib.suppress(asyncio.CancelledError):
-        await self._current_task
-
     self._current_state = state
-
     self._update_ui()
     self._current_task = asyncio.create_task(
       self._current_state.execute(self.context),

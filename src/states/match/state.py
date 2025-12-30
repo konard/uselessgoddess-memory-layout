@@ -35,6 +35,14 @@ class MatchState(State):
       self.worker.running = False
     self.running = False
 
+  async def cleanup(self):
+    await super().cleanup()
+
+    if self.worker:
+      self.worker.running = False
+
+      await asyncio.to_thread(self.worker.join, timeout=2.0)
+
   async def execute(self, ctx: Context):
     from states.continue_farm import ContinueFarm
 
