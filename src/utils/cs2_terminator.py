@@ -2,18 +2,21 @@ import ctypes
 import os
 import subprocess
 
+from constants import PROJECT_ROOT
+from core.logging import get_logger
+
+logger = get_logger("terminator")
+
 dll_name = "pyautogui.dll"
 
 
-def close_cs2_mutex():
-  script_dir = os.path.dirname(os.path.abspath(__file__))
-  project_root = os.path.abspath(os.path.join(script_dir, "..", ".."))
-  dll_path = os.path.join(project_root, "data", dll_name)
+def close_cs2_mutex() -> bool:
+  dll_path = os.path.join(PROJECT_ROOT, "data", dll_name)
+  exe_path = os.path.join(PROJECT_ROOT, "pyautogui.exe")
 
   if not os.path.exists(dll_path):
-    print(f"[-] Файл {dll_name} не найден!")
-    print(f"[-] Путь к DLL: {dll_path}")
-    return
+    logger.warn(f"pyautogui dll not found: {dll_name}")
+    return False
 
   try:
     lib = ctypes.CDLL(dll_path)
@@ -22,27 +25,29 @@ def close_cs2_mutex():
     CloseAllMutexes.argtypes = []
     CloseAllMutexes.restype = ctypes.c_ulong
 
-    print("[*] Вызываем CloseAllMutexes...")
+    logger.debug("calling CloseAllMutexes...")
     result = CloseAllMutexes()
 
     if result:
-      print("[+] Успех! Мьютексы закрыты.")
+      logger.debug("mutexes are closed.")
+      return True
     else:
-      print("[-] Не удалось закрыть мьютексы через DLL, пробую через exe...")
-      exe_path = os.path.join(project_root, "pyautogui.exe")
+      logger.debug("unable to close throught DLL, trying exe...")
       if os.path.exists(exe_path):
-        print(f"[*] Запускаю pyautogui.exe: {exe_path}")
+        logger.debug(f"run pyautogui.exe: {exe_path}")
         subprocess.run([exe_path], check=False)
+        return True
       else:
-        print(f"[-] Файл pyautogui.exe не найден: {exe_path}")
+        logger.warn(f"pyautogui.exe not found: {exe_path}")
 
   except OSError as e:
-    print(f"[-] Ошибка загрузки DLL: {e}")
+    logger.warn(f"DLL loading error: {e}")
+
+  return False
 
 
 if __name__ == "__main__":
-  # Проверка на админа (обязательно для работы с чужими процессами)
   if not ctypes.windll.shell32.IsUserAnAdmin():
-    print("[-] Запусти скрипт от имени Администратора!")
+    print("[-] Run this by admin!")
   else:
     close_cs2_mutex()
