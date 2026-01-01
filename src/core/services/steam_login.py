@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import contextlib
 import hmac
 import io
 import os
@@ -17,11 +18,8 @@ from PIL import Image
 from steam import Client
 
 import resources
-from constants import PROJECT_ROOT
 from core.account.model import Account
 from core.logging import get_logger
-from core.services.api.api_controller import api_controller
-from core.services.api.free_fames_response import FreeGamesResponse
 from core.services.cs_controller import CS2Controller, ZeroPosAccount
 from core.services.settings import UserSettings
 from core.services.windows_service import WindowService
@@ -176,7 +174,16 @@ def _perform_login_with_qr_url(account: Account, settings, qr_url):
     logger.error(f"Login error: {e}")
     return False
   finally:
-    loop.close()
+    try:
+      pending = asyncio.all_tasks(loop)
+      if pending:
+        for task in pending:
+          task.cancel()
+        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    except Exception:
+      pass
+    with contextlib.suppress(Exception):
+      loop.close()
 
 
 def wait_qr(login: str, timeout: int = 5) -> str | None:
@@ -253,6 +260,13 @@ async def _async_login_qr(account: Account, settings, qr_url, loop):
     for task in pending:
       task.cancel()
 
+    if pending:
+      with contextlib.suppress(Exception):
+        await asyncio.gather(*pending, return_exceptions=True)
+
+    with contextlib.suppress(Exception):
+      await client.close()
+
     if client.completion in done:
       return client.completion.result()
 
@@ -261,6 +275,8 @@ async def _async_login_qr(account: Account, settings, qr_url, loop):
 
   except Exception as e:
     logger.error(f"Exception during async login: {e}")
+    with contextlib.suppress(Exception):
+      await client.close()
     return False
 
 

@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import json
 from typing import Any
 
@@ -117,6 +118,10 @@ async def process_trade(
 
     for task in pending:
       task.cancel()
+
+    if pending:
+      with contextlib.suppress(Exception):
+        await asyncio.gather(*pending, return_exceptions=True)
 
     if send_trade_client.complete in done:
       return await send_trade_client.complete

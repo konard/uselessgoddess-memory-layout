@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from typing import Any
 
 from numpy import random
@@ -85,6 +86,10 @@ class CollectFreeGames(State):
 
         for task in pending:
           task.cancel()
+
+        if pending:
+          with contextlib.suppress(Exception):
+            await asyncio.gather(*pending, return_exceptions=True)
 
         if client.completion in done:
           result = await client.completion

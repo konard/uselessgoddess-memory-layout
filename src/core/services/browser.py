@@ -1,7 +1,6 @@
 import asyncio
-import base64
+import contextlib
 import io
-import json
 import os
 import time
 import urllib.parse
@@ -91,7 +90,10 @@ class BrowserService:
     finally:
       if not login_task.done():
         login_task.cancel()
-      await client.close()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+          await login_task
+      with contextlib.suppress(Exception):
+        await client.close()
 
   @staticmethod
   async def launch_browser(

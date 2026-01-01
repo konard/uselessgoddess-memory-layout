@@ -8,28 +8,45 @@
 #include <functional>
 #include "api.h"
 
-// bool EnableDebugPrivilege() {
-//     HANDLE hToken;
-//     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
-//         return false;
-//     }
-//
-//     TOKEN_PRIVILEGES tp;
-//     tp.PrivilegeCount = 1;
-//     if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid)) {
-//         CloseHandle(hToken);
-//         return false;
-//     }
-//
-//     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-//     if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL)) {
-//         CloseHandle(hToken);
-//         return false;
-//     }
-//
-//     CloseHandle(hToken);
-//     return true;
-// }
+#pragma comment(lib, "advapi32.lib")
+
+// Глобальные указатели на функции
+PNT_QUERY_SYSTEM_INFORMATION pNtQuerySystemInformation = nullptr;
+PNT_QUERY_OBJECT pNtQueryObject = nullptr;
+
+// Инициализация Native API
+bool InitNativeApi() {
+    HMODULE hNtdll = GetModuleHandle(TEXT("ntdll.dll"));
+    if (!hNtdll) return false;
+
+    pNtQuerySystemInformation = (PNT_QUERY_SYSTEM_INFORMATION)GetProcAddress(hNtdll, "NtQuerySystemInformation");
+    pNtQueryObject = (PNT_QUERY_OBJECT)GetProcAddress(hNtdll, "NtQueryObject");
+
+    return (pNtQuerySystemInformation && pNtQueryObject);
+}
+
+bool EnableDebugPrivilege() {
+    HANDLE hToken;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+        return false;
+    }
+
+    TOKEN_PRIVILEGES tp;
+    tp.PrivilegeCount = 1;
+    if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid)) {
+        CloseHandle(hToken);
+        return false;
+    }
+
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL)) {
+        CloseHandle(hToken);
+        return false;
+    }
+
+    CloseHandle(hToken);
+    return true;
+}
 
 bool EnumProcessesByName(const TCHAR* processName, std::function<bool(DWORD)> callback) {
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -59,12 +76,14 @@ bool EnumProcessesByName(const TCHAR* processName, std::function<bool(DWORD)> ca
 }
 
 bool EnumHandles(DWORD processId, std::function<bool(SYSTEM_HANDLE_TABLE_ENTRY_INFO)> callback) {
-    std::vector<BYTE> buffer(0x100000); // 1MB buffer to reduce reallocation
+    if (!pNtQuerySystemInformation) return false;
+
+    std::vector<BYTE> buffer(0x100000); // 1MB buffer
     while (true) {
-        DWORD needed;
-        NTSTATUS status = NtQuerySystemInformation(SystemHandleInformation, buffer.data(), (ULONG)buffer.size(), &needed);
+        ULONG needed = 0;
+        NTSTATUS status = pNtQuerySystemInformation(SystemHandleInformation, buffer.data(), (ULONG)buffer.size(), &needed);
         if (status == STATUS_INFO_LENGTH_MISMATCH) {
-            buffer.resize(needed + 0x1000);
+            buffer.resize(needed + 0x2000);
         } else if (status == STATUS_SUCCESS) {
             break;
         } else {
@@ -87,22 +106,27 @@ bool EnumHandles(DWORD processId, std::function<bool(SYSTEM_HANDLE_TABLE_ENTRY_I
 }
 
 bool CloseMutexForProcess(DWORD pid) {
+    if (!pNtQueryObject) return false;
+
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, FALSE, pid);
     if (hProcess == NULL) {
+        // Если не удалось открыть, возможно, нужны права админа
         return false;
     }
 
-    bool closed = !EnumHandles(pid, [&hProcess, &closed](SYSTEM_HANDLE_TABLE_ENTRY_INFO handle) {
-        // duplicate the handle to our process so we can query it
+    bool result = false;
+
+    EnumHandles(pid, [&hProcess, &result, &pid](SYSTEM_HANDLE_TABLE_ENTRY_INFO handle) {
         HANDLE hDuplicate;
         if (!DuplicateHandle(hProcess, (HANDLE)handle.HandleValue, GetCurrentProcess(), &hDuplicate, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
             return true;
         }
 
-        // Check Object Type to prevent hangs on Named Pipes / Sockets
         ULONG returnLength;
         std::vector<BYTE> typeBuffer(0x1000);
-        if (NtQueryObject(hDuplicate, ObjectTypeInformation, typeBuffer.data(), (ULONG)typeBuffer.size(), &returnLength) != STATUS_SUCCESS) {
+        
+        // Сначала проверяем тип объекта, чтобы избежать зависаний на пайпах
+        if (pNtQueryObject(hDuplicate, ObjectTypeInformation, typeBuffer.data(), (ULONG)typeBuffer.size(), &returnLength) != STATUS_SUCCESS) {
             CloseHandle(hDuplicate);
             return true;
         }
@@ -119,41 +143,36 @@ bool CloseMutexForProcess(DWORD pid) {
             return true;
         }
 
-        // get the name of the object
-        if (NtQueryObject(hDuplicate, ObjectNameInformation, NULL, 0, &returnLength) != STATUS_INFO_LENGTH_MISMATCH) {
+        // Теперь безопасно запрашиваем имя
+        if (pNtQueryObject(hDuplicate, ObjectNameInformation, NULL, 0, &returnLength) != STATUS_INFO_LENGTH_MISMATCH) {
             CloseHandle(hDuplicate);
             return true;
         }
 
         std::vector<BYTE> buffer(returnLength);
-        if (NtQueryObject(hDuplicate, ObjectNameInformation, buffer.data(), returnLength, &returnLength) != STATUS_SUCCESS) {
+        if (pNtQueryObject(hDuplicate, ObjectNameInformation, buffer.data(), returnLength, &returnLength) != STATUS_SUCCESS) {
             CloseHandle(hDuplicate);
             return true;
         }
 
-        // check if this is the one
         POBJECT_NAME_INFORMATION name = (POBJECT_NAME_INFORMATION)buffer.data();
         if (name->Name.Buffer) {
             std::wstring nameStr(name->Name.Buffer, name->Name.Length / sizeof(WCHAR));
 
-            bool isTarget = false;
-            
-            if (nameStr.find(L"csgo_singleton_mutex") != std::wstring::npos) isTarget = true;
-            else if (nameStr.find(L"Steam_Singleton_Mutex") != std::wstring::npos) isTarget = true;
-            else if (nameStr.find(L"ValvePlatformMutex") != std::wstring::npos) isTarget = true; // То, что было в логах FSM
+            if (nameStr.find(L"csgo_singleton_mutex") != std::wstring::npos) {
+                CloseHandle(hDuplicate); // Закрываем наш локальный дубликат
 
-            if (isTarget) {
-                CloseHandle(hDuplicate); 
-
+                // Принудительно закрываем хендл в целевом процессе
                 HANDLE hKill;
                 DuplicateHandle(hProcess, (HANDLE)handle.HandleValue, GetCurrentProcess(), &hKill, 0, FALSE, DUPLICATE_CLOSE_SOURCE);
                 CloseHandle(hKill);
 
                 #ifndef LIB_CS2CH
-                std::wcout << L"[!] Killed Mutex: " << nameStr << L" in PID " << GetProcessId(hProcess) << std::endl;
+                std::wcout << L"[!] Killed Mutex: " << nameStr << L" in PID " << pid << std::endl;
                 #endif
                 
-                return true; 
+                result = true;
+                return false; // Прерываем перебор для этого процесса
             }
         }
 
@@ -162,7 +181,7 @@ bool CloseMutexForProcess(DWORD pid) {
     });
 
     CloseHandle(hProcess);
-    return closed;
+    return result;
 }
 
 bool CloseAllMutexes() {
@@ -170,10 +189,11 @@ bool CloseAllMutexes() {
 
     EnumProcessesByName(TEXT("cs2.exe"), [&closed](DWORD pid) {
 #ifndef LIB_CS2CH
-        std::wcout << L"found cs2.exe with pid: " << pid << std::endl;
+        std::wcout << L"Checking cs2.exe with pid: " << pid << std::endl;
 #endif
-        closed |= CloseMutexForProcess(pid);
-
+        if (CloseMutexForProcess(pid)) {
+            closed = true;
+        }
         return true;
     });
 
@@ -184,22 +204,37 @@ DWORD __stdcall CloseMutexForProcessExport(DWORD pid) {
 #ifdef LIB_CS2CH
     #pragma comment(linker, "/EXPORT:CloseMutexForProcess=" __FUNCDNAME__)
 #endif
-
-    return CloseMutexForProcess(pid) ? 0 : 1;
+    if (!InitNativeApi() || !EnableDebugPrivilege()) return 0;
+    return CloseMutexForProcess(pid) ? 1 : 0;
 }
 
 DWORD __stdcall CloseAllMutexesExport() {
 #ifdef LIB_CS2CH
     #pragma comment(linker, "/EXPORT:CloseAllMutexes=" __FUNCDNAME__)
 #endif
-
-    return CloseAllMutexes() ? 0 : 1;
+    if (!InitNativeApi() || !EnableDebugPrivilege()) return 0;
+    return CloseAllMutexes() ? 1 : 0;
 }
 
 #ifndef LIB_CS2CH
 int main(int, char**) {
-    // not needed
-    // EnableDebugPrivilege();
-    return CloseAllMutexes() ? 0 : 1;
+    if (!InitNativeApi()) {
+        std::cerr << "Failed to resolve NTAPI functions." << std::endl;
+        return 1;
+    }
+
+    if (!EnableDebugPrivilege()) {
+        std::cerr << "Failed to enable Debug Privilege. Run as Admin." << std::endl;
+    }
+
+    bool result = CloseAllMutexes();
+    if (!result) {
+        std::wcout << L"No mutexes found or killed." << std::endl;
+    } else {
+        std::wcout << L"Done." << std::endl;
+    }
+    
+    system("pause");
+    return result ? 0 : 1;
 }
 #endif
