@@ -117,7 +117,6 @@ class LaunchService:
       running_account.lock = account.lock
 
       while True:
-        logger.trace(stop_event)
         if stop_event and stop_event.is_set():
           logger.warn(f"[{account.login}] Launch cancelled by user/state switch.")
           return False

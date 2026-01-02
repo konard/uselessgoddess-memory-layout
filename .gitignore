@@ -79,6 +79,7 @@ src/resources.py
 data/dataset
 data/extensions/*
 data/sandboxes/*
+!data/handle64.exe
 
 *.exe
 /*.dist
