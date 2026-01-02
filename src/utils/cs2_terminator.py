@@ -47,9 +47,7 @@ def close_cs2_mutex() -> bool:
     result = subprocess.run(
       cmd_list,
       capture_output=True,
-      text=True,
-      stdout=subprocess.DEVNULL,
-      stderr=subprocess.DEVNULL,
+      stdin=subprocess.DEVNULL,
     )
   except Exception as e:
     logger.error(f"Failed to run handle64: {e}")
