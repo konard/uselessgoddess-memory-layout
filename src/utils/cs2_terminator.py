@@ -102,16 +102,15 @@ def close_cs2_mutex() -> bool:
     try:
       res = subprocess.run(
         close_cmd,
-        capture_output=True,
-        text=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
       )
 
       if res.returncode == 0:
         success_count += 1
       else:
         logger.warn(
-          f"Failed to close handle {target['handle']} \n"
-          f"for PID {target['pid']}: {res.stdout.strip()}"
+          f"Failed to close handle {target['handle']} \nfor PID {target['pid']}"
         )
     except Exception as e:
       logger.error(f"Exception while closing handle: {e}")
