@@ -53,8 +53,6 @@ class LaunchService:
     config_service.block_steam_store()
     running_accounts: list[RunningAccount] = []
     for account in accounts:
-      cs2_terminator.close_cs2_mutex()
-
       logger.info(f"launching account +{account.login}")
 
       config_service.apply_video_config(account.steam_id)
@@ -123,7 +121,6 @@ class LaunchService:
 
         if WindowService.window_exists(counter_strike_2_title):
           logger.debug(f"[{account.login}] Window found. Killing mutex immediately!")
-          cs2_terminator.close_cs2_mutex()
           break
         else:
           steam_web_helper_limiter.limit_steam_web_helper(
