@@ -51,7 +51,8 @@ def close_cs2_mutex() -> bool:
     logger.debug("No handles returned (CS2 might not be running).")
     return True
 
-  lines = result.stdout.splitlines()
+  stdout_text = result.stdout.decode("utf-8", errors="replace")
+  lines = stdout_text.splitlines()
   targets_to_kill = []
   current_pid = None
 
@@ -103,8 +104,6 @@ def close_cs2_mutex() -> bool:
         close_cmd,
         capture_output=True,
         text=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
       )
 
       if res.returncode == 0:
