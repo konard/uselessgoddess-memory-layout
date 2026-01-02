@@ -73,4 +73,4 @@ class MatchState(State):
     if self.running:
       return ContinueFarm(self.game_schema)
     else:
-      states.Idle()
+      return states.Idle()
