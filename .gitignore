@@ -59,7 +59,7 @@ data/settings.lock
 data/accounts.lock
 settings.json
 presets.json
-
+release/
 # Local trash
 pyuac.*
 report.json

@@ -27,11 +27,9 @@ def close_cs2_mutex() -> bool:
   используя утилиту Sysinternals handle64.exe.
   """
 
-  # 1. Определяем путь к handle64.exe (ожидается в папке data)
   handle_path = os.path.join(PROJECT_ROOT, "data", HANDLE_TOOL_NAME)
 
   if not os.path.exists(handle_path):
-    # Фолбэк: если вдруг запускаем не из корня или файл лежит рядом со скриптом
     local_path = os.path.join(
       os.path.dirname(os.path.abspath(__file__)), HANDLE_TOOL_NAME
     )
@@ -43,21 +41,21 @@ def close_cs2_mutex() -> bool:
 
   logger.debug(f"Start scanning mutexes for {TARGET_PROCESS} via {HANDLE_TOOL_NAME}...")
 
-  # 2. Получаем список всех хэндлов для cs2.exe
   cmd_list = [handle_path, "-a", "-p", TARGET_PROCESS, "-nobanner", "-accepteula"]
 
   try:
-    # cp866 - стандартная кодировка русской консоли Windows.
-    # errors='replace' нужен, чтобы не крашилось на спецсимволах.
     result = subprocess.run(
-      cmd_list, capture_output=True, text=True, encoding="cp866", errors="replace"
+      cmd_list,
+      capture_output=True,
+      text=True,
+      stdout=subprocess.DEVNULL,
+      stderr=subprocess.DEVNULL,
     )
   except Exception as e:
     logger.error(f"Failed to run handle64: {e}")
     return False
 
   if result.returncode != 0 and not result.stdout:
-    # Если handle64 ничего не вернул, возможно CS2 не запущена
     logger.debug("No handles returned (CS2 might not be running).")
     return True
 
@@ -65,10 +63,7 @@ def close_cs2_mutex() -> bool:
   targets_to_kill = []
   current_pid = None
 
-  # Регулярки для парсинга вывода handle.exe
-  # Пример строки PID: "cs2.exe pid: 12345 ..."
   pid_regex = re.compile(r"pid:\s*(\d+)", re.IGNORECASE)
-  # Пример строки Handle: "  4C: Mutant  \Sessions\1\BaseNamedObjects\cs2_singleton_mutex"
   handle_regex = re.compile(r"^\s*([0-9A-Fa-f]+):\s+Mutant\s+(.*)", re.IGNORECASE)
 
   # 3. Парсим вывод
@@ -113,7 +108,11 @@ def close_cs2_mutex() -> bool:
 
     try:
       res = subprocess.run(
-        close_cmd, capture_output=True, text=True, encoding="cp866", errors="replace"
+        close_cmd,
+        capture_output=True,
+        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
       )
 
       if res.returncode == 0:
