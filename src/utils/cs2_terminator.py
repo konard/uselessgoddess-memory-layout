@@ -30,14 +30,8 @@ def close_cs2_mutex() -> bool:
   handle_path = os.path.join(PROJECT_ROOT, "data", HANDLE_TOOL_NAME)
 
   if not os.path.exists(handle_path):
-    local_path = os.path.join(
-      os.path.dirname(os.path.abspath(__file__)), HANDLE_TOOL_NAME
-    )
-    if os.path.exists(local_path):
-      handle_path = local_path
-    else:
-      logger.error(f"Handle tool not found! Expected at: {handle_path}")
-      return False
+    logger.error(f"Handle tool not found! Expected at: {handle_path}")
+    return False
 
   logger.debug(f"Start scanning mutexes for {TARGET_PROCESS} via {HANDLE_TOOL_NAME}...")
 
