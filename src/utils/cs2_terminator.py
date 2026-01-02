@@ -104,6 +104,7 @@ def close_cs2_mutex() -> bool:
         close_cmd,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
       )
 
       if res.returncode == 0:
