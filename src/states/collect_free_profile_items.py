@@ -63,8 +63,6 @@ class FreeProfileItemsClient(Client):
     except Exception as e:
       logger.error(f"Error in on_login: {e}")
       self.completion.set_result(e)
-    finally:
-      await self.close()
 
 
 class CollectFreeProfileItems(State):

@@ -65,5 +65,5 @@ async def client_login_wrapper(client: Client, account: Account) -> bool:
     return True
 
   except Exception as e:
-    logger.error(f"Failed to login to Steam: {e}")
+    logger.exception(f"Failed to login to Steam: {e}")
     return False

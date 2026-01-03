@@ -55,8 +55,6 @@ class FreeGamesClient(Client):
     except Exception as e:
       logger.error(f"Error in on_logged_on: {e}")
       self.completion.set_result(e)
-    finally:
-      await self.close()
 
 
 class CollectFreeGames(State):
