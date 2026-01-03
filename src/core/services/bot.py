@@ -135,22 +135,21 @@ class TelegramBotService:
     if not self._check_auth(update.effective_user.id):
       await self._send_sales_message(update)
       return
-
-    running_accounts = WindowService.scan_cs2_windows(self.ctx.accounts(), values=True)
-
-    if not running_accounts:
-      safe_user = html.escape(getpass.getuser())
-      await update.message.reply_text(
-        f"[<b>{safe_user}</b>] 💤 No accounts running.", parse_mode="HTML"
-      )
-      return
+    safe_user = html.escape(getpass.getuser())
 
     unfarmed_accounts_count = len(self.ctx.unfarmed_accounts())
     estimated_time_to_farm = math.floor(unfarmed_accounts_count / 4) * 240 + 20
     msg = (
+      f"-- [<b>{safe_user}</b>] --\n\n"
       f"<b>Accounts left to farm: {unfarmed_accounts_count}</b>\n"
       f"<b>Estimated time to farm: {estimated_time_to_farm} minutes</b>\n"
     )
+
+    running_accounts = WindowService.scan_cs2_windows(self.ctx.accounts(), values=True)
+    if not running_accounts:
+      await update.message.reply_text(msg, parse_mode="HTML")
+      return
+
     msg += f"<b>Active Sessions ({len(running_accounts)})</b>:\n\n"
 
     for acc in running_accounts:
