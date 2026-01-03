@@ -1,5 +1,5 @@
+import time
 from collections.abc import Callable
-from typing import Optional
 
 from PyQt6.QtWidgets import QPushButton
 
@@ -17,8 +17,23 @@ class Button(QPushButton):
   ):
     super().__init__(text, parent)
 
+    self._last_click_time = 0
+
     if on_click:
-      self.clicked.connect(on_click)
+
+      def safe_click(checked=False):
+        now = time.time()
+        if now - self._last_click_time < 0.5:
+          return
+
+        self._last_click_time = now
+
+        try:
+          on_click()
+        except TypeError:
+          on_click(checked)
+
+      self.clicked.connect(safe_click)
 
     if tooltip:
       self.setToolTip(tooltip)
