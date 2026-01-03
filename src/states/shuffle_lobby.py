@@ -1,10 +1,10 @@
 import asyncio
-from sre_parse import State
 
 import states
 from core import game_constants, utils
 from core.context import Context
 from core.logging import get_logger
+from core.panel.state import State
 from core.services.cs_controller import CS2Controller
 from core.services.launch_service import LaunchService
 from core.services.settings import FarmMode

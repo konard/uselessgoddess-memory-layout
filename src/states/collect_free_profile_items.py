@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any
 
 import steam
 from numpy import random

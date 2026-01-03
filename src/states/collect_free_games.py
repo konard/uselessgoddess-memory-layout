@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-from typing import Any
 
 from numpy import random
 from steam import Client

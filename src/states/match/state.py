@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 
 import states
 from core.context import Context

@@ -1,6 +1,5 @@
 import asyncio
 import json
-from os import name
 from pathlib import Path
 from typing import Any
 
@@ -13,8 +12,6 @@ from steam.ext.csgo.price_analizator.assembler import (
 
 import states
 from core.account import Account
-from core.account.lock import AccountsLock
-from core.account.model import FarmStatus
 from core.context import Context
 from core.logging import get_logger
 from core.panel import State

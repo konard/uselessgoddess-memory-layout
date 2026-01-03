@@ -1,8 +1,5 @@
-import asyncio
-import os
 from os.path import isdir, isfile
 
-from core import utils
 from core.account import Account
 from core.context import Context
 from core.logging import get_logger

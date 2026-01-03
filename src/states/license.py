@@ -1,11 +1,8 @@
 import asyncio
-import time
-from typing import Optional
 
 from core.context import Context
 from core.panel import State
-from ui.theme import CURRENT_THEME
-from ui.widgets import Button, Label, LabelType, VStack
+from ui.widgets import Label, LabelType, VStack
 
 
 class LicenseState(State):

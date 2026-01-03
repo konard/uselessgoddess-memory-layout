@@ -8,7 +8,6 @@ from core.panel import State
 from core.services.cs_controller import CS2Controller
 from core.services.gc.lobby_service import EventNames
 from core.services.windows_service import WindowService
-from states.select_accounts import SelectAccounts
 from states.types import PartySchema
 from ui.widgets import Progress
 from utils.friend_code_generator import generate_friend_code
