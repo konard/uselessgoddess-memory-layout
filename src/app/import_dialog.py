@@ -183,26 +183,27 @@ class ImportAccountsDialog(QDialog):
   def _process_files(self, files: list[Path]):
     pass_db = self._load_passwords()
 
-    if not pass_db:
-      QMessageBox.critical(
-        self,
-        "Missing Passwords",
-        f"Could not load passwords from '{LOGPASS_FILENAME}'.\n"
-        f"Please ensure the file exists in the root directory and has 'login:password'",
-      )
-      return
-
-    success_count = 0
-    skipped_logins = []
-
     accounts_file = Path("accounts.json")
     current_data = {}
+
     if accounts_file.exists():
       try:
         with open(accounts_file, encoding="utf-8") as f:
           current_data = json.load(f)
       except Exception:
         current_data = {}
+
+    if not pass_db and not current_data:
+      QMessageBox.critical(
+        self,
+        "Missing Passwords",
+        f"Couldn't load passwords '{LOGPASS_FILENAME}' and no existing accounts found.\n"
+        f"Please ensure the file exists in the root directory and has 'login:password'",
+      )
+      return
+
+    success_count = 0
+    skipped_logins = []
 
     for file_path in files:
       parsed = self._parse_mafile(file_path)
@@ -212,18 +213,18 @@ class ImportAccountsDialog(QDialog):
       login = parsed["login"]
       normalized_login = login.lower()
 
-      if normalized_login in pass_db:
-        password = pass_db[normalized_login]
-        parsed["password"] = password
-
-        if login in current_data:
-          current_data[login].update(parsed)
-        else:
-          current_data[login] = parsed
-
+      if login in current_data:
+        current_data[login].update(parsed)
+        if normalized_login in pass_db:
+          current_data[login]["password"] = pass_db[normalized_login]
         success_count += 1
       else:
-        skipped_logins.append(login)
+        if normalized_login in pass_db:
+          parsed["password"] = pass_db[normalized_login]
+          current_data[login] = parsed
+          success_count += 1
+        else:
+          skipped_logins.append(login)
 
     if success_count > 0:
       try:
@@ -281,8 +282,11 @@ class ImportAccountsDialog(QDialog):
       )
 
       if not steam_id or str(steam_id) == "0":
-        logger.warn(f"Skipped {path.name}: Invalid SteamID ({steam_id})")
-        return None
+        if path.stem.isdigit():
+          steam_id = path.stem
+        else:
+          logger.warn(f"Skipped {path.name}: Invalid SteamID ({steam_id})")
+          return None
 
       shared_secret = data.get("shared_secret")
       identity_secret = data.get("identity_secret")
@@ -294,7 +298,7 @@ class ImportAccountsDialog(QDialog):
         "login": login,
         "shared_secret": shared_secret,
         "identity_secret": identity_secret,
-        "steam_id": str(steam_id) if steam_id else "0",
+        "steam_id": str(steam_id),
       }
     except Exception as e:
       logger.error(f"Failed to parse {path}: {e}")

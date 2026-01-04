@@ -66,38 +66,34 @@ class ScanInventory(steam.Client):
           logger.warn(f"Could not fetch price for {item.name}: {e}")
 
     if not items_to_send:
-      if not self.complete.done():
+      if self.account.lock.status == FarmStatus.CAN_BE_LOOTED:
         self.account.lock.status = FarmStatus.TRADED
-        self.complete.set_result(("No tradable item in inventory", []))
-
+      self.complete.set_result(("No tradable item in inventory", []))
       return
 
-    try:
-      if self.identity_secret is not None:
-        try:
-          logger.info(f"Sending trade offer to {id64}")
-          trade_offer = TradeOffer(
-            sending=items_to_send,
-            receiving=[],
-            message="random message",
-            token=self.trade_url.token,
-          )
+    if self.identity_secret is not None:
+      try:
+        logger.info(f"Sending trade offer to {id64}")
+        trade_offer = TradeOffer(
+          sending=items_to_send,
+          receiving=[],
+          message="random message",
+          token=self.trade_url.token,
+        )
 
-          target = await self.fetch_user(id64)
-          await target.send(trade=trade_offer)
+        target = await self.fetch_user(id64)
+        await target.send(trade=trade_offer)
 
-          self.account.lock.status = FarmStatus.TRADED
-          if not self.complete.done():
-            self.complete.set_result(("Trade sent", items_to_report))
+        self.account.lock.status = FarmStatus.TRADED
+        if not self.complete.done():
+          self.complete.set_result(("Trade sent", items_to_report))
 
-        except Exception as e:
-          logger.error(f"Failed to send trade offer: {e}")
-          if not self.complete.done():
-            self.complete.set_result(("Trade failed", items_to_report))
-    except Exception as e:
-      logger.error(f"Failed to send trade offer: {e}")
-      if not self.complete.done():
-        self.complete.set_result(("Drop reported", items_to_report))
+      except Exception as e:
+        logger.error(f"Failed to send trade offer: {e}")
+        if not self.complete.done():
+          self.complete.set_result(("Trade failed", items_to_report))
+    else:
+      self.complete.set_result(("No idenity_secret set", items_to_report))
 
 
 async def process_trade(
@@ -160,11 +156,13 @@ class ScanAccounts(State):
     ]
 
   async def execute(self, ctx: Context):
+    from states.idle import Idle
+
     settings = ctx.settings.user
 
     if not settings.trade_url:
       logger.error("You must set `trade_url` in settings to send loot")
-      return
+      return Idle()
 
     for account in self.accounts:
       await asyncio.sleep(5)
@@ -202,8 +200,6 @@ class ScanAccounts(State):
     except Exception as e:
       logger.error(f"Failed to write report: {e}")
       self.status.set("Completed.")
-
-    from states.idle import Idle
 
     return Idle()
 
