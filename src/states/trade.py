@@ -84,7 +84,8 @@ class ScanInventory(steam.Client):
         target = await self.fetch_user(id64)
         await target.send(trade=trade_offer)
 
-        self.account.lock.status = FarmStatus.TRADED
+        if self.account.lock.status == FarmStatus.CAN_BE_LOOTED:
+          self.account.lock.status = FarmStatus.TRADED
         if not self.complete.done():
           self.complete.set_result(("Trade sent", items_to_report))
 
