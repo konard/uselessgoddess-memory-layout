@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientReserve
 
@@ -16,20 +15,23 @@ class MatcherService:
     self.matches: dict[str, tuple[int | None, asyncio.Event]] = {}
 
   async def get_match_id(self, account: Account) -> int | None:
-    if account.login not in self.matches:
+    login = account.login.lower()
+    if login not in self.matches:
       new_event = asyncio.Event()
-      self.matches[account.login] = (None, new_event)
+      self.matches[login] = (None, new_event)
 
-    _, event = self.matches[account.login]
+    _, event = self.matches[login]
 
     await event.wait()
     event.clear()
 
-    match_id, _ = self.matches[account.login]
+    match_id, _ = self.matches[login]
 
     return match_id
 
-  def set_match_id(self, login: str, match_id: int | None):
+  def set_match_id(self, raw_login: str, match_id: int | None):
+    login = raw_login.lower()
+
     if match_id is None:
       return
 
@@ -49,13 +51,17 @@ class MatcherService:
     match_id = decoded_message.reservation.match_id
 
     logger.trace(f"match_id from message {match_id} for {login}")
-    self.set_match_id(login, match_id)
+    self.set_match_id(login.lower(), match_id)
 
   async def wait_for_match_id(self, accounts: list[Account]):
     self.matches.clear()
 
+    logger.trace(
+      f"Waiting for match_ids for {[account.login.lower() for account in accounts]}"
+    )
+
     tasks = {
-      asyncio.create_task(self.get_match_id(account)): account.login
+      asyncio.create_task(self.get_match_id(account)): account.login.lower()
       for account in accounts
     }
 

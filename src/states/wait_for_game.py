@@ -75,7 +75,7 @@ class WaitForGame(State):
       await asyncio.sleep(1)
 
       if not await ctx.gc.player_info_service.matcher_service.wait_for_match_id(leaders):
-        logger.warn("Got different match_ids for accounts, coninue searching")
+        logger.warn("Got different match_ids for accounts, continue searching")
 
         await Yass.press_resource_async("img/cancel_button_left_corner.png", leaders)
 
