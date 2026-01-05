@@ -79,32 +79,34 @@ class ConfigService:
       return
 
     userdata_dir = self._find_userdata_dir()
-    target_cfg_dir = self._ensure_cfg_directory(
+    target_cfg_dirs = self._ensure_cfg_directories(
       userdata_dir, map_steam64_to_steam3(steam_id)
     )
-    if target_cfg_dir is None:
+    if not target_cfg_dirs:
       return
 
     template_kv = self._load_video_template()
     if template_kv is None:
       return
 
-    self._copy_file_if_exists(
-      CS2_MACHINE_CONVARS_SRC,
-      target_cfg_dir / "cs2_machine_convars.vcfg",
-      "cs2_machine_convars.vcfg",
-    )
-    current_kv = self._load_current_video_config(target_cfg_dir)
-    merged_kv = self._merge_video_configs(current_kv, template_kv)
-    self._save_video_config(target_cfg_dir, merged_kv, steam_id)
+    for target_cfg_dir in target_cfg_dirs:
+      self._copy_file_if_exists(
+        CS2_MACHINE_CONVARS_SRC,
+        target_cfg_dir / "cs2_machine_convars.vcfg",
+        "cs2_machine_convars.vcfg",
+      )
+      current_kv = self._load_current_video_config(target_cfg_dir)
+      merged_kv = self._merge_video_configs(current_kv, template_kv)
+      self._save_video_config(target_cfg_dir, merged_kv, steam_id)
 
   def delete_video_config(self, steam_id: str) -> None:
     userdata_dir = self._find_userdata_dir()
-    target_cfg_dir = self._ensure_cfg_directory(userdata_dir, steam_id)
-    if target_cfg_dir is None:
+    target_cfg_dirs = self._ensure_cfg_directories(userdata_dir, steam_id)
+    if not target_cfg_dirs:
       return
-    if target_cfg_dir.exists():
-      shutil.rmtree(target_cfg_dir)
+    for target_cfg_dir in target_cfg_dirs:
+      if target_cfg_dir.exists():
+        shutil.rmtree(target_cfg_dir)
 
   def _copy_config_files(self, cfg_dir: Path) -> None:
     """Копирует конфигурационные файлы в директорию CS2."""
@@ -143,15 +145,21 @@ class ConfigService:
     # Fallback: возвращаем предполагаемую директорию
     return steam_dir / "userdata"
 
-  def _ensure_cfg_directory(self, userdata_dir: Path, steam_id: str) -> Path | None:
-    """Создает директорию конфигурации для указанного Steam ID."""
-    target_cfg_dir = userdata_dir / str(steam_id) / "730" / "local" / "cfg"
-    try:
-      target_cfg_dir.mkdir(parents=True, exist_ok=True)
-      return target_cfg_dir
-    except Exception:
-      logger.exception(f"Не удалось создать каталог: {target_cfg_dir}")
-      return None
+  def _ensure_cfg_directories(self, userdata_dir: Path, steam_id: str) -> list[Path]:
+    """Создает директории конфигурации (local и remote) для указанного Steam ID."""
+    base_dir = userdata_dir / str(steam_id) / "730"
+    targets = [
+      base_dir / "local" / "cfg",
+      base_dir / "remote" / "cfg",
+    ]
+    created = []
+    for target in targets:
+      try:
+        target.mkdir(parents=True, exist_ok=True)
+        created.append(target)
+      except Exception:
+        logger.exception(f"Не удалось создать каталог: {target}")
+    return created
 
   def _load_video_template(self) -> dict[str, str] | None:
     """Загружает шаблон видео конфигурации."""
