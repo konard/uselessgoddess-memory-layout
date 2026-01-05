@@ -78,12 +78,16 @@ class State:
 
     if tasks:
       logger.debug(f"Cleaning up {len(tasks)} tasks for {name_of(self)}")
-      for task in tasks:
+
+      # copy tasks
+      pending_tasks = list(tasks)
+
+      for task in pending_tasks:
         if not task.done():
           task.cancel()
 
-      if tasks:
-        await asyncio.gather(*tasks, return_exceptions=True)
+      if pending_tasks:
+        await asyncio.gather(*pending_tasks, return_exceptions=True)
 
       tasks.clear()
 
@@ -117,6 +121,7 @@ class StateManager:
     self._current_task: asyncio.Task | None = None
     self._update_ui = callback
     self._state_start_time = time.time()
+    self._transition_lock = asyncio.Lock()
 
   def acquire_state(self) -> State | None:
     return self._current_state
@@ -128,55 +133,55 @@ class StateManager:
     self._update_ui()
 
   async def into_state(self, state: State, check: bool = True):
-    logger.trace(
-      f"is license valid {self.context.lic.is_working()}: {self.context.lic.state()}"
-    )
+    async with self._transition_lock:
+      logger.trace(
+        f"is license valid {self.context.lic.is_working()}: {self.context.lic.state()}"
+      )
 
-    if CHECK_LICENSE and check and not self.context.lic.is_working():
-      title = "Work Paused"
-      desc = "Unknown reason"
+      if CHECK_LICENSE and check and not self.context.lic.is_working():
+        title = "Work Paused"
+        desc = "Unknown reason"
+        kind = self.context.lic.state()
 
-      kind = self.context.lic.state()
+        if kind == LicenseKind.PAUSED_NETWORK:
+          title = "Connection Lost"
+          desc = "Internet connection is unstable. Waiting for recovery..."
+        elif kind == LicenseKind.PAUSED_LIMIT:
+          title = "Session Limit Reached"
+          desc = "Too many active sessions. Close other instances or wait."
+        elif kind == LicenseKind.INVALID:
+          title = "License expired"
+          desc = "Please renew your license"
 
-      if kind == LicenseKind.PAUSED_NETWORK:
-        title = "Connection Lost"
-        desc = "Internet connection is unstable. Waiting for recovery..."
-      elif kind == LicenseKind.PAUSED_LIMIT:
-        title = "Session Limit Reached"
-        desc = "Too many active sessions. Close other instances or wait."
-      elif kind == LicenseKind.INVALID:
-        title = "License expired"
-        desc = "Please renew your license"
+        logger.warn(f"License suspended ({kind.value}). Please enter new license.")
+        import states
 
-      logger.warn(f"License suspended ({kind.value}). Please enter new license.")
-      import states
+        state = states.LicenseState(state, title, desc)
 
-      await self.into_state(states.LicenseState(state, title, desc), check=False)
-      return
+      if self._current_task and not self._current_task.done():
+        self._current_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+          await self._current_task
 
-    if self._current_task and not self._current_task.done():
-      self._current_task.cancel()
-      with contextlib.suppress(asyncio.CancelledError):
-        await self._current_task
+      if self._current_state:
+        duration = time.time() - self._state_start_time
+        payload = {
+          "state": name_of(self._current_state),
+          "duration": duration,
+        }
+        asyncio.create_task(self.context.metrics.send("state", payload))
 
-    if self._current_state:
-      duration = time.time() - self._state_start_time
-      payload = {
-        "state": name_of(self._current_state),
-        "duration": duration,
-      }
-      asyncio.create_task(self.context.metrics.send("state", payload))
+        logger.trace(self._current_state)
+        await self._current_state.cleanup()
 
-      logger.trace(self._current_state)
-      await self._current_state.cleanup()
+      self._state_start_time = time.time()
+      self._current_state = state
+      self._update_ui()
 
-    self._state_start_time = time.time()
-    self._current_state = state
-    self._update_ui()
-    self._current_task = asyncio.create_task(
-      self._current_state.execute(self.context),
-    )
-    self._current_task.add_done_callback(self._handle_execute_completion)
+      self._current_task = asyncio.create_task(
+        self._current_state.execute(self.context),
+      )
+      self._current_task.add_done_callback(self._handle_execute_completion)
 
   async def dispatch(self, message: Message):
     if self._current_state:
