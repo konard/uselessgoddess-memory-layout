@@ -1010,7 +1010,8 @@ class AccountsPanel(QWidget):
     if index == 0:
       self.btn_mode_accounts._apply_style(ButtonType.PRIMARY)
       self.btn_mode_presets._apply_style(ButtonType.DEFAULT)
-      self.ctx.ui.clear_selection()
+      # disable selection
+      # self.ctx.ui.clear_selection()
     else:
       self.btn_mode_accounts._apply_style(ButtonType.DEFAULT)
       self.btn_mode_presets._apply_style(ButtonType.PRIMARY)
