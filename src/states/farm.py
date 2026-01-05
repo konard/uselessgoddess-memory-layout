@@ -39,8 +39,14 @@ class StartFarm(State):
       return
 
     if not ctx.gc.all_connected(self.accounts_to_launch):
-      logger.error("Not all accounts connected to GC")
-      return
+      logger.error(
+        """Not all accounts connected to GC.\n
+               This usually means that you 
+               are using an older version of Steam (32-bit), 
+               but very rarely there may be false alarms, 
+               if the panel accepts an invitation to the lobby, 
+               then panel works well."""
+      )
 
     if ctx.ss.farm_on_launch:
       return MakeLobbies(None)
