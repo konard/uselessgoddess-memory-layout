@@ -205,5 +205,36 @@ class ScanAccounts(State):
     return Idle()
 
   def _save_report_sync(self):
-    with open("report.json", "w", encoding="utf-8") as f:
-      json.dump(self.trade_report, f, indent=2, ensure_ascii=False)
+    import os
+
+    file_path = "report.json"
+    final_report = {}
+
+    if os.path.exists(file_path):
+      try:
+        with open(file_path, encoding="utf-8") as f:
+          content = f.read().strip()
+          if content:
+            loaded_data = json.loads(content)
+            if isinstance(loaded_data, dict):
+              final_report = loaded_data
+            else:
+              logger.warn("report.json has wrong format. Recreating...")
+      except json.JSONDecodeError:
+        logger.warn("report.json is curropted. Data will ovewrited.")
+      except Exception as e:
+        logger.error(f"report.json reading error: {e}")
+
+    for name, data in self.trade_report.items():
+      new_price = data["price"]
+      new_amount = data["amount"]
+
+      if name in final_report and isinstance(final_report[name], dict):
+        current_amount = final_report[name].get("amount", 0)
+        final_report[name]["amount"] = current_amount + new_amount
+        final_report[name]["price"] = new_price
+      else:
+        final_report[name] = {"price": new_price, "amount": new_amount}
+
+    with open(file_path, "w", encoding="utf-8") as f:
+      json.dump(final_report, f, indent=2, ensure_ascii=False)
