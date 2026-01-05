@@ -177,6 +177,24 @@ class MatchWorker(threading.Thread):
     if sum(probe_score.values()) > sum(self.score.values()):
       self.score = probe_score
 
+    match_ended = False
+    limit = self.mode.max_round
+
+    if (
+      self.ctx.su.match_mode == MatchMode.TIE
+      and self.score[Team.T] >= limit
+      and self.score[Team.CT] >= limit
+    ):
+      match_ended = True
+
+    if self.score[Team.T] > limit or self.score[Team.CT] > limit:
+      match_ended = True
+
+    if match_ended:
+      logger.info(f"Match finished by score: {self.score[Team.T]}:{self.score[Team.CT]}")
+      self.running = False
+      return
+
     contains_c4 = any(weapon.type == "C4" for weapon in player.weapons)
 
     for account in self.accounts:
