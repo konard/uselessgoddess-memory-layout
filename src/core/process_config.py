@@ -11,10 +11,12 @@ ConfigService - применение конфигураций CS2
 from __future__ import annotations
 
 import atexit
+import os
 import re
 import shutil
+import stat
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.logging import get_logger
 
@@ -101,12 +103,24 @@ class ConfigService:
 
   def delete_video_config(self, steam_id: str) -> None:
     userdata_dir = self._find_userdata_dir()
-    target_cfg_dirs = self._ensure_cfg_directories(userdata_dir, steam_id)
-    if not target_cfg_dirs:
-      return
-    for target_cfg_dir in target_cfg_dirs:
-      if target_cfg_dir.exists():
-        shutil.rmtree(target_cfg_dir)
+    steam3_id = map_steam64_to_steam3(steam_id)
+    account_dir = userdata_dir / str(steam3_id)
+
+    if account_dir.exists():
+
+      def on_rm_error(func, path, exc_info):
+        # Попытка исправить права доступа, если файл только для чтения
+        try:
+          os.chmod(path, stat.S_IWRITE)
+          func(path)
+        except Exception:
+          pass
+
+      try:
+        shutil.rmtree(account_dir, onerror=on_rm_error)
+        logger.debug(f"Удалена папка аккаунта: {account_dir}")
+      except Exception as e:
+        logger.warning(f"Не удалось удалить папку {account_dir}: {e}")
 
   def _copy_config_files(self, cfg_dir: Path) -> None:
     """Копирует конфигурационные файлы в директорию CS2."""
@@ -150,7 +164,7 @@ class ConfigService:
     base_dir = userdata_dir / str(steam_id) / "730"
     targets = [
       base_dir / "local" / "cfg",
-      base_dir / "remote" / "cfg",
+      # base_dir / "remote" / "cfg",
     ]
     created = []
     for target in targets:

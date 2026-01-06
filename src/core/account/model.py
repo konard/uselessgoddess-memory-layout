@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import core
 from core.logging import get_logger
+from core.process_config import ConfigService
 
 from .lock import AccountsLock
+
+if TYPE_CHECKING:
+  from core.context import Context
 
 logger = get_logger("account.model")
 
@@ -206,11 +209,16 @@ class RunningAccount(Account):
   def generate_window_title(login: str) -> str:
     return f"[{login}] # CS"
 
-  def stop_account(self, settings) -> bool:
+  def stop_account(self, ctx: Context) -> bool:
     from core.services.process import ProcessService
+
+    config_service = ConfigService(ctx)
+    logger.trace(f"Stopping account: {self.login}, runner_pid: {self.runner_pid}")
 
     if self.runner_pid > 0:
       ProcessService.kill_by_pid(self.runner_pid)
+      config_service.delete_video_config(self.steam_id)
       return True
 
+    config_service.delete_video_config(self.steam_id)
     return False

@@ -34,8 +34,6 @@ class SelectMap(State):
       await CS2Controller.click_async(**game_constants.play_button, account=party.leader)
       await CS2Controller.wait_for_image_async("img/play.png", party.leader)
 
-      await CS2Controller.click_async(**game_constants.real_games, account=party.leader)
-
       if party.farm_mode == FarmMode.TWO_BY_TWO:
         await CS2Controller.click_async(**game_constants.real_games, account=party.leader)
 
@@ -43,25 +41,25 @@ class SelectMap(State):
           **game_constants.wingman_button, account=party.leader
         )
 
-        await asyncio.sleep(3)
+      #   await asyncio.sleep(3)
 
-        await CS2Controller.click_bulk_async("img/check_2.png", party.leader, 0.8)
+      #   await CS2Controller.click_bulk_async("img/check_2.png", party.leader, 0.8)
 
-        await asyncio.sleep(4)
+      #   await asyncio.sleep(4)
 
-        await CS2Controller.click_if_exists_async(
-          "img/inferno_badge.png", party.leader, 0.8
-        )
+      #   await CS2Controller.click_if_exists_async(
+      #     "img/inferno_badge.png", party.leader, 0.8
+      #   )
 
-        await asyncio.sleep(1)
+      #   await asyncio.sleep(1)
 
-        matches = await CS2Controller.count_matches_async(
-          "img/check_2.png", party.leader, 0.8
-        )
-        print(matches)
-        if matches != 1:
-          continue
+      #   matches = await CS2Controller.count_matches_async(
+      #     "img/check_2.png", party.leader, 0.8
+      #   )
+      #   print(matches)
+      #   if matches != 1:
+      #     continue
 
-        party_retries += 1
+      party_retries += 1
 
     return WaitForGame(self.party_schema, self.retries)

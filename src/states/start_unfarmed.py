@@ -22,11 +22,8 @@ class StartUnfarmed(State):
   async def execute(self, ctx: Context):
     accounts = [account for party in self.game_schema for account in party.all]
 
-    config_service = ConfigService(ctx)
     for account in accounts:
-      account.stop_account(ctx.su)
-
-      config_service.delete_video_config(account.steam_id)
+      account.stop_account(ctx)
 
     await asyncio.sleep(5)
 

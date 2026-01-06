@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-from typing import Optional
 
 import states
 from core import context, game_constants
@@ -23,25 +22,45 @@ class ContinueFarm(state.State):
 
   async def check_if_all_in_lobby(self, accounts: list[RunningAccount]):
     all_in_lobby = True
+    logger.info("Starting lobby check for accounts...")
 
     for account in accounts:
+      logger.info(f"Checking lobby status for {account.login}")
       await WindowService.focus_window_async(account.win_cs_title)
 
       await asyncio.sleep(0.1)
 
-      if not await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9):
+      await CS2Controller.move_mouse_async(
+        **game_constants.open_side_bar, account=account
+      )
+
+      await CS2Controller.wait_for_image_async("img/friend_id_modal.png", account)
+
+      await asyncio.sleep(0.2)
+
+      in_lobby = await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9)
+      logger.info(f"Account {account.login} 'exit.png' found: {in_lobby}")
+
+      if not in_lobby:
+        logger.warning(f"Account {account.login} seems NOT to be in lobby.")
         all_in_lobby = False
         break
 
+    logger.info(f"check_if_all_in_lobby result: {all_in_lobby}")
+
     if not all_in_lobby:
+      logger.info("Attempting to exit lobbies for all accounts due to failure...")
       for account in accounts:
         await WindowService.focus_window_async(account.win_cs_title)
-        await asyncio.sleep(0.1)
-        in_lobby = await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9)
-        if in_lobby:
-          await asyncio.sleep(0.2)
-          await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9, True)
-          await asyncio.sleep(0.1)
+        await CS2Controller.move_mouse_async(
+          **game_constants.open_side_bar, account=account
+        )
+
+        await CS2Controller.wait_for_image_async("img/friend_id_modal.png", account)
+
+        await CS2Controller.click_if_exists_async("img/exit.png", account, 0.9, True)
+
+    return all_in_lobby
 
   async def execute(self, ctx: context.Context):
     from states.make_lobbies.make_lobbies import MakeLobbies
@@ -50,8 +69,6 @@ class ContinueFarm(state.State):
     await asyncio.sleep(self.delay)
 
     launched_accounts = WindowService.scan_cs2_windows(ctx.accounts(), values=True)
-
-    await self.check_if_all_in_lobby(launched_accounts)
 
     if self.game_schema is None:
       preset_applied = False
@@ -103,39 +120,9 @@ class ContinueFarm(state.State):
 
     logger.info(f"show_must_go_on: {show_must_go_on}")
     if show_must_go_on:
-      all_lobbies = True
-      for account in accounts:
-        await WindowService.focus_window_async(account.win_cs_title)
-
-        await asyncio.sleep(0.3)
-
-        await CS2Controller.wait_for_image_async("img/play.png", account)
-
-        await CS2Controller.click_if_exists_async(
-          "img/close_reward.png", account, 0.9, True
-        )
-
-        await asyncio.sleep(0.3)
-
-        await CS2Controller.click_if_exists_async(
-          "img/games_avaliable.png", account, 0.9, True
-        )
-
-        await asyncio.sleep(0.3)
-
-        await CS2Controller.move_mouse_async(
-          **game_constants.open_side_bar, account=account
-        )
-
-        await asyncio.sleep(0.3)
-
-        await CS2Controller.wait_for_image_async("img/friend_id_modal.png", account)
-
-        await asyncio.sleep(0.3)
-
-        if not await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9):
-          all_lobbies = False
-
+      logger.info(f"Checking lobbies for {len(launched_accounts)} launched accounts")
+      all_lobbies = await self.check_if_all_in_lobby(launched_accounts)
+      logger.info(f"All lobbies check result: {all_lobbies}")
       if all_lobbies:
         return SelectMap(self.game_schema)
       else:

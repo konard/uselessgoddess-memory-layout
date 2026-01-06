@@ -6,8 +6,6 @@ from steam._const import CLEAR_PROTO_BIT, READ_U32
 from steam.ext.csgo.protobufs.cstrike import MatchmakingClientHello
 from steam.ext.csgo.protobufs.econ import ClientRedeemFreeReward
 
-from core.account.lock import AccountsLock
-from core.account.model import FarmStatus
 from core.logging import get_logger
 from core.services.gc.gc_parser import decode_bytes, decode_gc_bytes
 from core.services.gc.matcher_service import MatcherService
@@ -37,8 +35,8 @@ class PlayerInfoService:
           try:
             self.parse_player_stats(decoded_message.payload, login)
           except Exception:
-            logger.error(
-              f"error parsing player stats for login: {login}",
+            logger.trace(
+              f"ERROR: parsing player stats for login: {login}",
             )
         case 9107:
           logger.trace("parsing player match id: %s", login)

@@ -57,6 +57,11 @@ class MakeLobbies(State):
 
       for party in self.party_schema:
         await WindowService.focus_window_async(party.leader.win_cs_title)
+
+        await CS2Controller.click_if_exists_async(
+          "img/close_reward.png", party.leader, 0.9
+        )
+
         await CS2Controller.move_mouse_async(
           **game_constants.invite_friend, account=party.leader
         )
@@ -72,6 +77,9 @@ class MakeLobbies(State):
         i = 0
         while i < len(party.members):
           member = party.members[i]
+
+          await CS2Controller.click_if_exists_async("img/close_reward.png", member, 0.9)
+
           await CS2Controller.copy_to_clipboard_async(
             generate_friend_code(member.steam_id)
           )

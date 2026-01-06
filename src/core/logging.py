@@ -32,6 +32,7 @@ logging.setLoggerClass(Logger)
 
 def setup_logger(name: str) -> logging.Logger:
   logger = logging.getLogger(f"yacs.{name}")
+  logger.propagate = False
 
   logger.setLevel(TRACE)
 

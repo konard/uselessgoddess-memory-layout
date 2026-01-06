@@ -7,19 +7,18 @@ from PyQt6.QtWidgets import (
   QHBoxLayout,
   QLabel,
   QLineEdit,
-  QMessageBox,
   QTextEdit,
   QVBoxLayout,
   QWidget,
 )
 
 import states
-from app import AccountsPanel, LogHandler, SettingsDialog
+from app import AccountsPanel, SettingsDialog
 from core.context import Context
 from core.logging import get_logger
 from core.panel import Message, StateManager
-from core.services.process import ProcessService
 from core.services.settings import MatchMode
+from core.services.windows_service import WindowService
 from ui import Align
 from ui.theme import CURRENT_THEME, ButtonType
 from ui.widgets import Button, Switch, TitledPanel, VStack
@@ -172,7 +171,10 @@ class DashboardTab(QWidget):
     logger.info(f"Match mode changed to: {new_mode.value}")
 
   def _kill_all_runners(self):
-    ProcessService.kill_all_runners()
+    running_accounts = WindowService.scan_cs2_windows(self.ctx.accounts(), values=True)
+    for account in running_accounts:
+      account.stop_account(self.ctx)
+
     asyncio.create_task(self.manager.into_state(states.Idle()))
 
   def _test_telegram(self):
