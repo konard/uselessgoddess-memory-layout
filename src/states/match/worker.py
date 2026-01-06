@@ -166,8 +166,8 @@ class MatchWorker(threading.Thread):
   def process_state(self, event: GameState):
     map, round, player = event.map, event.round, event.player
 
-    # kill after 10 minute of nothing
-    if self.lifetime > 10 * 60:
+    # kill after 6 minute of nothing
+    if self.lifetime > 6 * 60:
       self.running = False
     else:
       logger.trace(f"lifetime: {self.lifetime}")
