@@ -4,7 +4,7 @@ import threading
 from collections.abc import Callable
 
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import FastAPI, Request
 
 from core.logging import get_logger
 
@@ -34,19 +34,19 @@ class GSIService:
   def _setup_routes(self):
     @self.app.post("/")
     @self.app.post("/gsi")
-    async def receive_gsi(request: Request, background_tasks: BackgroundTasks):
+    async def receive_gsi(request: Request):
       if not self._running:
         return {"status": "ignored"}
 
       try:
         data = await request.json()
-        background_tasks.add_task(self._process_data, data)
+        self._process_data(data)
         return {"status": "ok"}
       except Exception as e:
-        logger.error(f"Error receiving GSI: {e}")
+        logger.error(f"Error parsing GSI: {e}")
         return {"status": "error"}
 
-  async def _process_data(self, data: dict):
+  def _process_data(self, data: dict):
     try:
       new_state = GameState.from_dict(data)
       self.current_state = new_state
@@ -63,7 +63,9 @@ class GSIService:
           for cb in self._subscribers[event_type]:
             try:
               if asyncio.iscoroutinefunction(cb):
-                await cb(event)
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(cb(event))
+                loop.close()
               else:
                 cb(event)
             except Exception as e:

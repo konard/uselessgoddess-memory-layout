@@ -214,9 +214,9 @@ def run_benchmark():
 
     y_off = 30
 
-    def draw_ui(text, col=(200, 200, 200)):
+    def draw_ui(text, col=(200, 200, 200), frame=display_frame):
       nonlocal y_off
-      cv2.putText(display_frame, text, (10, y_off), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
+      cv2.putText(frame, text, (10, y_off), cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
       y_off += 25
 
     draw_ui(f"Status: {status_text}", status_color)

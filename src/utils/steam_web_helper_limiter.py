@@ -221,12 +221,11 @@ class SteamWebHelperLimiter:
           # optionally force destroy after delay
           if self.force_close:
             # give it a short grace period then force
-            def _force():
+            def _force(hwnd=h):
               time.sleep(1)
               try:
-                # FIXME: B023
-                if win32gui.IsWindow(h):
-                  win32gui.PostMessage(h, win32con.WM_QUIT, 0, 0)
+                if win32gui.IsWindow(hwnd):
+                  win32gui.PostMessage(hwnd, win32con.WM_QUIT, 0, 0)
               except Exception:
                 pass
 

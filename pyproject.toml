@@ -69,7 +69,7 @@ line-length = 90
 indent-width = 2
 
 [tool.ruff.lint]
-ignore = ["F401", "N802", "N803", "N806", "N815", "B023"]
+ignore = ["F401", "N802", "N803", "N806", "N815"]
 select = [
   "E",   # pycodestyle (error)
   "F",   # pyflakes

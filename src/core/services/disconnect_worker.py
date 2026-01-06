@@ -22,9 +22,13 @@ class DisconnectWorker:
   def __init__(self, stateManager: StateManager, ctx: "Context"):
     self.stateManager = stateManager
     self.ctx = ctx
+    self._running = True
+
+  def stop(self):
+    self._running = False
 
   async def run(self):
-    while True:
+    while self._running:
       disconnected_accounts = []
       farm_mode = self.ctx.s.system.farm_mode
 
@@ -71,4 +75,8 @@ class DisconnectWorker:
             DisconnectState(DisconnectType.LOBBY, disconnected_accounts)
           )
           await asyncio.sleep(20)
-      await asyncio.sleep(3)
+      try:
+        await asyncio.sleep(3)
+      except asyncio.CancelledError:
+        break
+    logger.debug("DisconnectWorker stopped")

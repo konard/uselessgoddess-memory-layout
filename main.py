@@ -84,6 +84,7 @@ async def main():
     sys.exit(0)
   window.show()
 
+  await window.start_background_services()
   await window.manager.into_state(Idle())
 
   should_close = asyncio.Event()

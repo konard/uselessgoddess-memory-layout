@@ -34,14 +34,10 @@ class MainWindow(QMainWindow):
     self.manager = StateManager(self.ctx, callback=lambda: None)
 
     # FIXME: avoid this pls!
-    status_reset_service = StatusResetService()
-    asyncio.create_task(status_reset_service.start())
-    asyncio.create_task(self.ctx.bot.start())
-    disconnect_worker = DisconnectWorker(self.manager, self.ctx)
-    asyncio.create_task(disconnect_worker.run())
-    asyncio.create_task(self.ctx.lic.start())
-    asyncio.create_task(start_gc_server(self.ctx.gc))
-    self.ctx.gsi.start()
+    self.status_reset_service = StatusResetService()
+    self.disconnect_worker = DisconnectWorker(self.manager, self.ctx)
+
+    self._tasks: list[asyncio.Task] = []
 
     self.setup_ui()
     self._apply_dark_title_bar()
@@ -57,6 +53,19 @@ class MainWindow(QMainWindow):
     self.setup_logging()
 
     logger.debug("main window initialized.")
+
+  async def start_background_services(self):
+    logger.info("Starting background services...")
+
+    self._tasks.append(asyncio.create_task(self.status_reset_service.start()))
+    self._tasks.append(asyncio.create_task(self.ctx.bot.start()))
+    self._tasks.append(asyncio.create_task(self.disconnect_worker.run()))
+    self._tasks.append(asyncio.create_task(self.ctx.lic.start()))
+
+    self.gc_task = asyncio.create_task(start_gc_server(self.ctx.gc))
+    self._tasks.append(self.gc_task)
+
+    self.ctx.gsi.start()
 
   def setup_ui(self):
     self.setStyleSheet(MAIN_WINDOW_STYLESHEET)
@@ -106,24 +115,33 @@ class MainWindow(QMainWindow):
     self._closing = True
     asyncio.create_task(self._shutdown())
 
+  # TODO: use tipically IoC slop container
   async def _shutdown(self):
     try:
       logger.info("Starting graceful shutdown...")
 
-      # 1. Remove steam lock
-      config_service = ConfigService(self.ctx)
-      config_service.unblock_steam_store()
-      logger.debug("steal lock removed")
+      for task in self._tasks:
+        if not task.done():
+          task.cancel()
 
-      # 2. Stop services
-      await self.ctx.bot.stop()
-      logger.debug("telegram bot stopped")
+      if self._tasks:
+        await asyncio.gather(*self._tasks, return_exceptions=True)
 
       self.ctx.gsi.stop()
-      logger.debug("gsi service stopped")
 
-    except Exception:
-      logger.exception("error during gracefully shutdown")
+      if self.manager.acquire_state():
+        await self.manager.acquire_state().cleanup()
+
+      ConfigService(self.ctx).unblock_steam_store()
+
+    except Exception as e:
+      logger.error(f"Error during shutdown: {e}")
     finally:
-      logger.info("Shutdown complete. Closing window.")
+      logger.info("Shutdown complete.")
+      await asyncio.sleep(0.1)
       self.close()
+
+      import os
+      import signal
+
+      os.kill(os.getpid(), signal.SIGTERM)
