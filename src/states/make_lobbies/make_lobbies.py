@@ -35,10 +35,12 @@ class MakeLobbies(State):
     await ctx.gc.lobby_service.wait_for_invite(account)
 
     WindowService.focus_window(account.win_cs_title)
-    await asyncio.sleep(1)
-    CS2Controller.move_mouse(**game_constants.open_side_bar, account=account)
+    await asyncio.sleep(0.3)
+    await CS2Controller.click_if_exists_async("img/close_reward.png", account, 0.9)
+    await asyncio.sleep(0.1)
+    await CS2Controller.move_mouse_async(**game_constants.open_side_bar, account=account)
     await asyncio.sleep(0.5)
-    CS2Controller.click(**game_constants.accept_invite, account=account)
+    await CS2Controller.click_async(**game_constants.accept_invite, account=account)
     await asyncio.sleep(0.5)
 
     await ctx.gc.lobby_service.event_service.wait_for_event(
@@ -77,8 +79,6 @@ class MakeLobbies(State):
         i = 0
         while i < len(party.members):
           member = party.members[i]
-
-          await CS2Controller.click_if_exists_async("img/close_reward.png", member, 0.9)
 
           await CS2Controller.copy_to_clipboard_async(
             generate_friend_code(member.steam_id)
