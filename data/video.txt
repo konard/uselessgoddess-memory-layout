@@ -1,8 +1,6 @@
 "video.cfg"
 {
 	"Version"		"16"
-	"VendorID"		"4098"
-	"DeviceID"		"30032"
 	"setting.cpu_level"		"0"
 	"setting.gpu_mem_level"		"0"
 	"setting.gpu_level"		"0"
