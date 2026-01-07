@@ -89,9 +89,6 @@ class MatchWorker(threading.Thread):
     while self.running:
       curr = time.perf_counter()
 
-      if self.round == 1:
-        clean_memory()
-
       try:
         event: GameState = self._event_queue.get_nowait()
         self.process_state(event)
@@ -238,6 +235,8 @@ class MatchWorker(threading.Thread):
       self.coco_jambo(False)
 
   def start_round(self, map_name: str, mode: str, score: dict):
+    clean_memory()
+
     maxround = self.mode.max_round - 2
     reach_maxround = score[Team.T] >= maxround or score[Team.CT] >= maxround
 

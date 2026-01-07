@@ -45,7 +45,7 @@ class ShuffleLobby(State):
           # Stop all currently running accounts
           for party in self.party_schema:
             for acc in party.all:
-              if acc.stop_account(ctx.su):
+              if acc.stop_account(ctx):
                 logger.info(f"Stopped {acc.login}")
               else:
                 logger.warn(f"Failed to stop {acc.login}")
