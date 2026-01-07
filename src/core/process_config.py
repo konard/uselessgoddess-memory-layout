@@ -102,25 +102,27 @@ class ConfigService:
       self._save_video_config(target_cfg_dir, merged_kv, steam_id)
 
   def delete_video_config(self, steam_id: str) -> None:
-    userdata_dir = self._find_userdata_dir()
-    steam3_id = map_steam64_to_steam3(steam_id)
-    account_dir = userdata_dir / str(steam3_id)
+    try:
+      userdata_dir = self._find_userdata_dir()
+      steam3_id = map_steam64_to_steam3(steam_id)
+      account_dir = userdata_dir / str(steam3_id)
 
-    if account_dir.exists():
+      if account_dir.exists():
 
-      def on_rm_error(func, path, exc_info):
-        # Попытка исправить права доступа, если файл только для чтения
+        def on_rm_error(func, path, exc_info):
+          try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+          except Exception:
+            pass
+
         try:
-          os.chmod(path, stat.S_IWRITE)
-          func(path)
-        except Exception:
-          pass
-
-      try:
-        shutil.rmtree(account_dir, onerror=on_rm_error)
-        logger.debug(f"Удалена папка аккаунта: {account_dir}")
-      except Exception as e:
-        logger.warning(f"Не удалось удалить папку {account_dir}: {e}")
+          shutil.rmtree(account_dir, onerror=on_rm_error)
+          logger.debug(f"Удалена папка аккаунта: {account_dir}")
+        except Exception as e:
+          logger.warning(f"Не удалось удалить папку {account_dir}: {e}")
+    except Exception:
+      logger.warning(f"Не удалось удалить папку {account_dir}")
 
   def _copy_config_files(self, cfg_dir: Path) -> None:
     """Копирует конфигурационные файлы в директорию CS2."""
