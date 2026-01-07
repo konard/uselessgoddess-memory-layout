@@ -10,6 +10,8 @@ class Config:
   screenshot_width = 360
   screenshot_height = 270
 
+  reference_fps: float = 16.0
+
   # Autoaim mouse movement amplifier
   aa_movement_amp: float = 5.0
 

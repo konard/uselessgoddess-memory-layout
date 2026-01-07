@@ -76,18 +76,35 @@ def build_executable():
     "--onefile",
     "--standalone",
     f"--windows-icon-from-ico={PROJECT_ROOT / ICON_PATH}",
+    # === QT OPTIMIZATION ===
     "--plugin-enable=pyqt6",
+    "--noinclude-qt-translations",
+    "--nofollow-import-to=PyQt6.QtWebEngine",
+    "--nofollow-import-to=PyQt6.QtWebEngineCore",
+    "--nofollow-import-to=PyQt6.QtWebEngineWidgets",
+    "--nofollow-import-to=PyQt6.QtQml",
+    "--nofollow-import-to=PyQt6.QtQuick",
+    "--nofollow-import-to=PyQt6.QtQuickWidgets",
+    "--nofollow-import-to=PyQt6.QtSql",
+    "--nofollow-import-to=PyQt6.QtMultimedia",
+    "--nofollow-import-to=PyQt6.uic",
     f"--output-filename={EXE_NAME}",
     "--windows-console-mode=attach",
     "--windows-uac-admin",
+    "--report=compilation-report.html",
+    # === ANTI-BLOAT FLAGS ===
+    # Убирает pytest, unittest и прочий мусор, который любят тянуть либы
+    "--noinclude-pytest-mode=nofollow",
+    "--noinclude-unittest-mode=nofollow",
+    "--noinclude-setuptools-mode=nofollow",
   ]
 
   if False:
     # this shit takes time from the moon to the earth
     cmd.append("--lto=yes")
 
-  for pkg in INCLUDE_PACKAGES:
-    cmd.append(f"--include-package={pkg}")
+  # for pkg in INCLUDE_PACKAGES:
+  #   cmd.append(f"--include-package={pkg}")
 
   cmd.append(ENTRY_POINT)
 

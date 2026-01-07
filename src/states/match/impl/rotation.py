@@ -34,10 +34,12 @@ def smooth_rotate_to_target(current: float, target: float, speed: float) -> floa
 
 
 def rotate_step(speed: float) -> None:
-  win32api.mouse_event(
-    win32con.MOUSEEVENTF_MOVE,
-    int(speed * config.aa_movement_amp),
-    0,
-    0,
-    0,
-  )
+  val = int(speed * config.aa_movement_amp)
+  if val != 0:
+    win32api.mouse_event(
+      win32con.MOUSEEVENTF_MOVE,
+      val,
+      0,
+      0,
+      0,
+    )

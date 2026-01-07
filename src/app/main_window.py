@@ -17,7 +17,7 @@ from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
 from utils.bes import BesService
 
 from .log_view import LogHandler, QtLogHandler
-from .tabs import DashboardTab, GSITab, SRTTab
+from .tabs import AdvancedTab, DashboardTab, GSITab, SRTTab
 
 logger = get_logger("ui.main")
 
@@ -84,6 +84,9 @@ class MainWindow(QMainWindow):
 
     self.gsi_tab = GSITab(self.ctx)
     self.tabs.addTab(self.gsi_tab, "GSI")
+
+    self.advanced_tab = AdvancedTab(self.ctx)
+    self.tabs.addTab(self.advanced_tab, "Advanced")
 
   def setup_logging(self):
     text, combo, filt = self.dashboard_tab.get_log_handler_widgets()

@@ -42,11 +42,11 @@ def compute_mouse_move(
   return target.mid_x - cx, (target.mid_y - headshot_offset) - cy
 
 
-def maybe_move_mouse(dx: float, dy: float) -> None:
+def maybe_move_mouse(dx: int, dy: int) -> None:
   win32api.mouse_event(
     win32con.MOUSEEVENTF_MOVE,
-    int(dx * config.aa_movement_amp / model_multiplier),
-    int(dy * config.aa_movement_amp / model_multiplier),
+    dx,
+    dy,
     0,
     0,
   )
@@ -131,10 +131,8 @@ def filter_by_aspect(aspect_filter: float, targets: list[Target]) -> list[Target
   return filtered
 
 
-model_multiplier = 3  # TODO: research
-
-Kp = 0.4 * 6 / model_multiplier
-Kd = 0.2 * 6 / model_multiplier
+PID_KP = 0.45
+PID_KD = 0.20
 
 
 class AimController(Action):
@@ -146,7 +144,7 @@ class AimController(Action):
     self.burst = burst
 
     # timers
-    self.model_timer = FramesTimer(model_multiplier)
+    # self.model_timer = FramesTimer(model_multiplier)
     self.burst_timer = Timer(0)
     self.pistol_timer = Timer(0)
     self.cooldown_timer = Timer(0)
@@ -163,6 +161,9 @@ class AimController(Action):
     # persistent
     self.last_error_x = 0
     self.last_error_y = 0
+
+    self.acc_x = 0.0
+    self.acc_y = 0.0
 
     self.tracker = ByteTracker(track_thresh=0.5, match_thresh=0.8)
     self.locked_track_id = None
@@ -188,8 +189,9 @@ class AimController(Action):
     delta: float,
     headshot=False,
   ):
-    targets = model.infer(frame)
+    safe_delta = min(delta, 0.1)
 
+    targets = model.infer(frame)
     raw_targets = [t for t in targets if t.label == enemy_label]
     tracked_targets = self.tracker.update(raw_targets)
 
@@ -236,42 +238,52 @@ class AimController(Action):
       error_x = target_x - cx
       error_y = aim_y - cy
 
-      move_x = (error_x * Kp) + ((error_x - self.last_error_x) * Kd)
-      move_y = (error_y * Kp) + ((error_y - self.last_error_y) * Kd)
+      pid_move_x = (error_x * PID_KP) + ((error_x - self.last_error_x) * PID_KD)
+      pid_move_y = (error_y * PID_KP) + ((error_y - self.last_error_y) * PID_KD)
 
       self.last_error_x = error_x
       self.last_error_y = error_y
 
-      if abs(move_x) < 1.0:
-        move_x = 0
-      if abs(move_y) < 1.0:
-        move_y = 0
+      time_scale = safe_delta * config.reference_fps
 
-      if move_x != 0 or move_y != 0:
-        maybe_move_mouse(move_x, move_y)
+      scaled_x = pid_move_x * time_scale * config.aa_movement_amp
+      scaled_y = pid_move_y * time_scale * config.aa_movement_amp
+
+      self.acc_x += scaled_x
+      self.acc_y += scaled_y
+
+      move_x_int = int(self.acc_x)
+      move_y_int = int(self.acc_y)
+
+      self.acc_x -= move_x_int
+      self.acc_y -= move_y_int
+
+      if move_x_int != 0 or move_y_int != 0:
+        maybe_move_mouse(move_x_int, move_y_int)
 
       self.burst_fire(
         should_shoot(self.target, self.center),
-        delta,
+        safe_delta,
       )
 
       self.rotation_timer = Timer(config.rotation_interval)
     else:
+      self.acc_x = 0.0
+      self.acc_y = 0.0
+
       if config.enable_rotation:
-        should_force_rotate = self.rotation_timer.tick(delta)
+        should_force_rotate = self.rotation_timer.tick(safe_delta)
 
         if should_force_rotate:
           self.rotation_timer = Timer(0)
-          # logger.debug("force rotating to search for targets")
 
         if len(self.targets) != 0:
           self.rotation_timer = Timer(config.rotation_interval)
 
         if should_force_rotate and len(self.targets) == 0:
-          # todo rework rotation config values
-          rotate_step(self.direction * 400 * delta)
+          rotate_step(self.direction * 400 * safe_delta)
 
-    self.monitor.tick(delta)
+    self.monitor.tick(safe_delta)
 
   # todo!> use custom up/down functions instead of winapi
   def burst_fire(self, in_sight: bool, delta: float):

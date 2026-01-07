@@ -8,6 +8,7 @@ import onnxruntime as ort
 
 import resources
 from core.logging import get_logger
+from core.services.settings import InferenceDevice
 
 from .recorder import DataRecorder
 
@@ -61,6 +62,8 @@ class InferenceService:
     self,
     model_path: str,
     labels: list[str],
+    device: InferenceDevice = InferenceDevice.CPU,
+    threads: int = 1,
     conf_thres: float = 0.5,
     iou_thres: float = 0.45,
   ):
@@ -69,37 +72,82 @@ class InferenceService:
     self.iou_thres = iou_thres
     self.model_input_size = 320  # TODO: make prebuilt configurable
 
-    self.session = self._init_session(model_path)
+    self.model_path = model_path
+    self.device = device
+    self.threads = threads
+    self.session = self._init_session(model_path, device, threads)
 
     self.input_name = self.session.get_inputs()[0].name
     self.output_name = self.session.get_outputs()[0].name
     self.recorder = DataRecorder(active=True)
     self.frame_counter = 0
 
-  def _init_session(self, model_path: str) -> ort.InferenceSession:
-    providers = ort.get_available_providers()
-
+  def _init_session(
+    self, model_path: str, device: InferenceDevice, threads: int
+  ) -> ort.InferenceSession:
+    available = ort.get_available_providers()
     target_providers = []
 
-    target_providers.append("CPUExecutionProvider")
+    logger.debug(f"available providers: {available}")
 
-    # DirectML -> CUDA -> CPU
-    if "DmlExecutionProvider" in providers:
-      target_providers.append("DmlExecutionProvider")
-      logger.debug("DirectML detected (AMD/NVIDIA GPU acceleration enabled)")
-    elif "CUDAExecutionProvider" in providers:
-      target_providers.append("CUDAExecutionProvider")
-      logger.debug("CUDA detected (NVIDIA GPU acceleration enabled)")
+    logger.info(f"Requested inference device: {device.value}")
+
+    if device == InferenceDevice.GPU:
+      # Priority: DirectML (AMD/NVIDIA/Intel on Windows) -> CUDA -> CPU
+      if "DmlExecutionProvider" in available:
+        target_providers.append("DmlExecutionProvider")
+      elif "CUDAExecutionProvider" in available:
+        target_providers.append("CUDAExecutionProvider")
+      else:
+        logger.warn(
+          "GPU requested but no GPU provider found in ONNXRuntime. Falling back to CPU."
+        )
+        target_providers.append("CPUExecutionProvider")
+    else:
+      target_providers.append("CPUExecutionProvider")
+
+    sess_options = ort.SessionOptions()
+    if threads != 0:
+      sess_options.intra_op_num_threads = threads
+    sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
 
     try:
       session = ort.InferenceSession(
-        resources.load(model_path), providers=target_providers
+        resources.load(model_path), providers=target_providers, sess_options=sess_options
       )
-      logger.debug(f"Model loaded using providers: {session.get_providers()}")
+      logger.debug(f"Model loaded using: {session.get_providers()[0]}")
       return session
     except Exception as e:
       logger.error(f"Failed to load model: {e}")
       raise e
+
+  def reload(self, device: InferenceDevice, threads: int):
+    self.device = device
+    self.threads = threads
+    self.session = self._init_session(self.model_path, device, threads)
+
+  def benchmark(self, iterations: int = 50) -> dict:
+    dummy_frame = np.zeros(
+      (self.model_input_size, self.model_input_size, 3), dtype=np.uint8
+    )
+
+    for _ in range(5):
+      self.infer(dummy_frame)
+
+    start_time = time.perf_counter()
+    for _ in range(iterations):
+      self.infer(dummy_frame)
+    total_time = time.perf_counter() - start_time
+
+    avg_latency_ms = (total_time / iterations) * 1000
+    fps = iterations / total_time
+
+    return {
+      "provider": self.session.get_providers()[0],
+      "latency_ms": round(avg_latency_ms, 2),
+      "fps": round(fps, 1),
+      "iterations": iterations,
+    }
 
   def preprocess(self, raw_frame: np.ndarray) -> np.ndarray:
     img = cv2.resize(raw_frame, (self.model_input_size, self.model_input_size))

@@ -72,6 +72,19 @@ class Settings(BaseModel):
     return updater
 
 
+class InferenceDevice(str, Enum):
+  CPU = "cpu"
+  GPU = "gpu"
+
+
+class AdvancedSettings(BaseModel):
+  inference_device: InferenceDevice = Field(
+    InferenceDevice.CPU, description="Execution provider"
+  )
+  inference_threads: int = Field(0, ge=0, le=32, description="Intra-op num threads")
+  debug_render: bool = Field(False, description="Enable visual debug in production")
+
+
 class UserSettings(Settings):
   license_key: str = Field("")
   trade_url: str = Field("", description="Main trade url link")
@@ -100,6 +113,8 @@ class UserSettings(Settings):
   times_to_brute_force: int = Field(3)
   farm_until: str | None = Field(None)
   overfarm: int | None = Field(None)
+
+  advanced: AdvancedSettings = Field(default_factory=AdvancedSettings)
 
   def path_of(self, settings: "SettingsService"):
     return settings.user_file
