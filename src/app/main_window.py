@@ -14,6 +14,7 @@ from core.services.disconnect_worker import DisconnectWorker
 from core.services.gc.gc_server_http import start_gc_server
 from core.services.status_reset_service import StatusResetService
 from ui.theme import CURRENT_THEME, MAIN_WINDOW_STYLESHEET
+from utils.bes import BesService
 
 from .log_view import LogHandler, QtLogHandler
 from .tabs import DashboardTab, GSITab, SRTTab
@@ -35,6 +36,7 @@ class MainWindow(QMainWindow):
 
     # FIXME: avoid this pls!
     self.status_reset_service = StatusResetService()
+    self.bes_service = BesService()
     self.disconnect_worker = DisconnectWorker(self.manager, self.ctx)
 
     self._tasks: list[asyncio.Task] = []
@@ -61,6 +63,7 @@ class MainWindow(QMainWindow):
     self._tasks.append(asyncio.create_task(self.ctx.bot.start()))
     self._tasks.append(asyncio.create_task(self.disconnect_worker.run()))
     self._tasks.append(asyncio.create_task(self.ctx.lic.start()))
+    self._tasks.append(asyncio.create_task(self.bes_service.start()))
 
     self.gc_task = asyncio.create_task(start_gc_server(self.ctx.gc))
     self._tasks.append(self.gc_task)

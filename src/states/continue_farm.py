@@ -11,6 +11,7 @@ from core.services.windows_service import WindowService
 from states.make_lobbies.generate_party_schema import generate_party_schema
 from states.start_unfarmed import StartUnfarmed
 from states.types import GameSchema
+from utils.mem_reduct import clean_memory
 
 logger = get_logger("state.continue_farm")
 
@@ -21,6 +22,8 @@ class ContinueFarm(state.State):
     self.delay = delay
 
   async def check_if_all_in_lobby(self, accounts: list[RunningAccount]):
+    clean_memory()
+
     all_in_lobby = True
     logger.info("Starting lobby check for accounts...")
 

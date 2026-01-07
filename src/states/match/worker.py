@@ -3,7 +3,6 @@ import queue
 import random
 import threading
 import time
-import traceback
 from dataclasses import dataclass
 
 from core.account import Account
@@ -15,6 +14,7 @@ from core.services.capture import Region
 from core.services.gsi.models import GameState, Map, RoundPhase, Team
 from core.services.settings import MatchMode
 from states.match.impl.walk import scancode
+from utils.mem_reduct import clean_memory
 
 from .impl import Path, config, infer_path
 
@@ -88,6 +88,9 @@ class MatchWorker(threading.Thread):
 
     while self.running:
       curr = time.perf_counter()
+
+      if self.round == 1:
+        clean_memory()
 
       try:
         event: GameState = self._event_queue.get_nowait()
