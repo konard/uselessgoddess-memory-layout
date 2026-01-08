@@ -57,6 +57,9 @@ def score_from(map: Map):
   }
 
 
+MAX_INFERENCE_FPS = 100.0
+
+
 class MatchWorker(threading.Thread):
   def __init__(self, ctx: Context, accounts: list):
     super().__init__(name="MatchWorker", daemon=True)
@@ -85,9 +88,10 @@ class MatchWorker(threading.Thread):
   def run(self):
     logger.info("Worker started")
     last_time = time.perf_counter()
+    target_frame_time = 1.0 / MAX_INFERENCE_FPS
 
     while self.running:
-      curr = time.perf_counter()
+      loop_start = time.perf_counter()
 
       try:
         event: GameState = self._event_queue.get_nowait()
@@ -96,6 +100,7 @@ class MatchWorker(threading.Thread):
         pass
 
       if self.all_ready() and self.player is not None:
+        curr = time.perf_counter()
         if self.state == State.Prepare:
           # anti afk system
           self.coco_jambo(self.player.bomb)
@@ -110,29 +115,36 @@ class MatchWorker(threading.Thread):
           frame = self.ctx.screen.capture(Region(x, y, w, h))
           if frame is not None:
             if self.state != State.Round:
-              continue
+              pass
+            else:
+              stop, team = self.path.step(
+                frame,
+                self.ctx.ai,
+                curr - last_time,
+              )
 
-            stop, team = self.path.step(
-              frame,
-              self.ctx.ai,
-              curr - last_time,
-            )
+              if stop:
+                self.state = State.Stop
+              elif team is not None:
+                next_players = [
+                  player
+                  for player in self.filter_team(team)
+                  if player.account.steam_id != self.player.account.steam_id
+                ]
+                if not next_players:
+                  logger.error("LESS THAN 2 PLAYERS IN TEAM!")
+                else:
+                  self.player = random.choice(next_players)
+                WindowService.focus_window(self.player.win_cs_title)
 
-            if stop:
-              self.state = State.Stop
-            elif team is not None:
-              next_players = [
-                player
-                for player in self.filter_team(team)
-                if player.account.steam_id != self.player.account.steam_id
-              ]
-              if not next_players:
-                logger.error("LESS THAN 2 PLAYERS IN TEAM!")
-              else:
-                self.player = random.choice(next_players)
-              WindowService.focus_window(self.player.win_cs_title)
-      last_time = curr
-      time.sleep(0.001)
+        last_time = curr
+      loop_end = time.perf_counter()
+      elapsed = loop_end - loop_start
+
+      if elapsed < target_frame_time:
+        time.sleep(target_frame_time - elapsed)
+      else:
+        time.sleep(0.001)
 
     logger.debug(f"Worker exit with status: {self.status}")
 

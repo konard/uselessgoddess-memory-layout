@@ -139,7 +139,7 @@ class DashboardTab(QWidget):
         on_toggle=system.state_updater(settings, "farm_on_launch"),
       ),
       Button(
-        "Advanced Settings",
+        "Settings",
         on_click=self.open_settings,
         button_type=ButtonType.DEFAULT,
       ),

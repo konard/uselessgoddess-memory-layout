@@ -152,7 +152,7 @@ class ConfigService:
         except Exception as e:
           logger.warning(f"Не удалось удалить папку {account_dir}: {e}")
     except Exception:
-      logger.warning(f"Не удалось удалить папку {account_dir}")
+      logger.warning("Не удалось удалить папку с настройками")
 
   def _copy_config_files(self, cfg_dir: Path) -> None:
     try:
