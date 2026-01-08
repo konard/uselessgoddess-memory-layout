@@ -33,6 +33,12 @@ class ContinueFarm(state.State):
 
       await asyncio.sleep(0.1)
 
+      await CS2Controller.click_if_exists_async(
+        "img/close_reward.png", account, 0.9, True
+      )
+
+      await asyncio.sleep(0.1)
+
       await CS2Controller.move_mouse_async(
         **game_constants.open_side_bar, account=account
       )
