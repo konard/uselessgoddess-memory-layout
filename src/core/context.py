@@ -50,6 +50,8 @@ class Context:
     self.ai = ai.InferenceService(
       "model.onnx",
       ["ct", "t"],  # TODO: STRICT CONSTANT
+      self.settings.user.advanced.inference_device,
+      self.settings.user.advanced.inference_threads,
     )  # TODO: make prebuilt configurable
     self.screen = ScreenCaptureService()
     self.gsi = GSIService(port=6969)  # TODO: avoid hardcoded ports
