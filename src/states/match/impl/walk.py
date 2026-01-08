@@ -207,7 +207,7 @@ class Path:
 
 
 class BuilderContext:
-  def __init__(self, team: Team, bomb: bool, last: bool):
+  def __init__(self, team: Team, bomb: bool, last: bool, fast: bool):
     self.team = team
     self.bomb = bomb
     self.last = last
@@ -215,6 +215,7 @@ class BuilderContext:
     self.grenade = False
     self.recursive = False
     self.direction = Path.LEFT
+    self.fast = fast
 
 
 class ActionBuilder(ABC):
@@ -353,6 +354,7 @@ def infer_path(
   team: Team,
   bomb: bool,
   last_round: bool = False,
+  fast: bool = False,
 ) -> Path | None:
   try:
     label = team.label()
@@ -363,7 +365,7 @@ def infer_path(
     return None
 
   # apply decorators
-  ctx = BuilderContext(team, bomb, last_round)
+  ctx = BuilderContext(team, bomb, last_round, fast)
   skel = random.choice(skel)
   skel.insert(
     0,
@@ -459,7 +461,7 @@ def recursive(a, b=None):
     b = []
 
   def inner(ctx: BuilderContext):
-    if not ctx.recursive:
+    if not ctx.recursive and not ctx.fast:
       ctx.recursive = True
       return a
     else:

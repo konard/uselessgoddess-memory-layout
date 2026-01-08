@@ -77,12 +77,19 @@ class InferenceDevice(str, Enum):
   GPU = "gpu"
 
 
+class MatchSettings(BaseModel):
+  fast_paths: bool = Field(False, description="Enable fast paths")
+  no_plant: bool = Field(False, description="Disable plant behaviour")
+
+
 class AdvancedSettings(BaseModel):
   inference_device: InferenceDevice = Field(
     InferenceDevice.CPU, description="Execution provider"
   )
   inference_threads: int = Field(0, ge=0, le=32, description="Intra-op num threads")
   debug_render: bool = Field(False, description="Enable visual debug in production")
+
+  match: MatchSettings = Field(default_factory=MatchSettings)
 
 
 class UserSettings(Settings):
