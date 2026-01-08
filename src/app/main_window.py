@@ -35,9 +35,9 @@ class MainWindow(QMainWindow):
     self.manager = StateManager(self.ctx, callback=lambda: None)
 
     # FIXME: avoid this pls!
-    self.status_reset_service = StatusResetService()
     self.bes_service = BesService()
     self.disconnect_worker = DisconnectWorker(self.manager, self.ctx)
+    self.status_reset_service = StatusResetService(self.ctx)
 
     self._tasks: list[asyncio.Task] = []
 
@@ -59,11 +59,11 @@ class MainWindow(QMainWindow):
   async def start_background_services(self):
     logger.info("Starting background services...")
 
-    self._tasks.append(asyncio.create_task(self.status_reset_service.start()))
+    self._tasks.append(asyncio.create_task(self.ctx.lic.start()))
     self._tasks.append(asyncio.create_task(self.ctx.bot.start()))
     self._tasks.append(asyncio.create_task(self.disconnect_worker.run()))
-    self._tasks.append(asyncio.create_task(self.ctx.lic.start()))
     self._tasks.append(asyncio.create_task(self.bes_service.start()))
+    self._tasks.append(asyncio.create_task(self.status_reset_service.start()))
 
     self.gc_task = asyncio.create_task(start_gc_server(self.ctx.gc))
     self._tasks.append(self.gc_task)
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
     self.setCentralWidget(self.tabs)
 
   def _init_tabs(self):
-    self.dashboard_tab = DashboardTab(self.ctx, self.manager)
+    self.dashboard_tab = DashboardTab(self.ctx, self.manager, self.status_reset_service)
     self.tabs.addTab(self.dashboard_tab, "Dashboard")
 
     self.srt_tab = SRTTab(self.ctx)

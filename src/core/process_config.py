@@ -13,10 +13,12 @@ import winreg
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from core.account.model import Account
 from core.logging import get_logger
 
 if TYPE_CHECKING:
   from core.context import Context
+from constants import PROJECT_ROOT
 from utils.map_steam64_to_steam3 import map_steam64_to_steam3
 
 logger = get_logger("yacs.config")
@@ -133,6 +135,7 @@ class ConfigService:
     return {}
 
   def delete_video_config(self, steam_id: str) -> None:
+    account_dir = "unknown"
     try:
       userdata_dir = self._find_userdata_dir()
       steam3_id = map_steam64_to_steam3(steam_id)
@@ -278,6 +281,17 @@ class ConfigService:
     except Exception:
       logger.exception("Не удалось разблокировать store.steampowered.com")
       return False
+
+  def delete_steam_files(self, account: Account) -> None:
+    sandbox_dir = PROJECT_ROOT / "data" / "sandboxes" / account.login
+    try:
+      if sandbox_dir.exists():
+        shutil.rmtree(sandbox_dir)
+        logger.trace(f"Удалена папка аккаунта: {sandbox_dir}")
+      else:
+        logger.trace(f"Папка аккаунта не найдена: {sandbox_dir}")
+    except Exception:
+      logger.trace(f"Не удалось удалить папку аккаунта: {sandbox_dir}")
 
   def _read_hosts_file(self) -> str | None:
     if not HOSTS_PATH.exists():

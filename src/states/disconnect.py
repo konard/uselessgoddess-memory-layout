@@ -29,11 +29,11 @@ class DisconnectState(State):
     for account in self.disconnected_accounts:
       await asyncio.sleep(1)
       await WindowService.focus_window_async(account.win_cs_title)
-      await asyncio.sleep(0.5)
+      await asyncio.sleep(0.3)
       await CS2Controller.wait_for_image_async("img/disconnected.png", account)
-      await asyncio.sleep(0.5)
+      await asyncio.sleep(0.3)
       await CS2Controller.click_if_exists_async("img/ok.png", account, 0.95)
-      await asyncio.sleep(0.5)
+      await asyncio.sleep(0.3)
 
     match self.disconnect_type:
       case DisconnectType.MATCH:

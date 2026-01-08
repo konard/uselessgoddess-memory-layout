@@ -18,6 +18,7 @@ from core.context import Context
 from core.logging import get_logger
 from core.panel import Message, StateManager
 from core.services.settings import MatchMode
+from core.services.status_reset_service import StatusResetService
 from core.services.windows_service import WindowService
 from ui import Align
 from ui.theme import CURRENT_THEME, ButtonType
@@ -27,10 +28,17 @@ logger = get_logger("ui.dashboard")
 
 
 class DashboardTab(QWidget):
-  def __init__(self, ctx: Context, manager: StateManager, parent=None):
+  def __init__(
+    self,
+    ctx: Context,
+    manager: StateManager,
+    status_reset_service: StatusResetService,
+    parent=None,
+  ):
     super().__init__(parent)
     self.ctx = ctx
     self.manager = manager
+    self.status_reset_service = status_reset_service
     self._sandbox_warned = False
 
     self._setup_ui()
@@ -178,7 +186,7 @@ class DashboardTab(QWidget):
     asyncio.create_task(self.manager.into_state(states.Idle()))
 
   def _test_telegram(self):
-    asyncio.create_task(self.ctx.send_message("Test notification."))
+    self.status_reset_service.send_farm_summary()
 
   def _create_accounts_panel(self) -> QWidget:
     self.accounts_container = TitledPanel("Accounts")

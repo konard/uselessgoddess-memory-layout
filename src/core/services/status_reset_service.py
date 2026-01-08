@@ -1,4 +1,6 @@
 import asyncio
+import json
+import os
 from datetime import date, datetime, timedelta
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -21,8 +23,9 @@ LAST_RESET_KEY = "__last_status_reset_date__"
 class StatusResetService:
   """Сервис для автоматического сброса статусов аккаунтов каждую среду в 5:00 МСК."""
 
-  def __init__(self):
+  def __init__(self, ctx=None):
     self.account_lock = AccountsLock()
+    self.ctx = ctx
     self._last_reset_date: date | None = self._load_last_reset_date()
     self._running = False
 
@@ -119,6 +122,184 @@ class StatusResetService:
     logger.info("Resetting all account statuses to NEED_TO_FARM")
     self._reset_all_statuses()
     self._save_last_reset_date(reset_date)
+
+    logger.info("Sending farm summary")
+    self.send_farm_summary()
+
+  def send_farm_summary(self):
+    """Отправить отчет о фарме."""
+    try:
+      logger.info("Sending farm summary")
+      report_path = "report.json"
+      if not os.path.exists(report_path):
+        logger.warning(f"{report_path} not found")
+        return
+
+      with open(report_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+      cases = []
+      drops = []
+
+      for name, info in data.items():
+        item = {
+          "name": name,
+          "price": info.get("price", 0),
+          "amount": info.get("amount", 0),
+        }
+        if "Case" in name or "Terminal" in name:
+          cases.append(item)
+        else:
+          drops.append(item)
+
+      total_cases = sum(c["amount"] for c in cases)
+      total_case_value = sum(c["price"] * c["amount"] for c in cases)
+      avg_case_price = total_case_value / total_cases if total_cases > 0 else 0
+
+      total_drops = sum(d["amount"] for d in drops)
+      total_drop_value = sum(d["price"] * d["amount"] for d in drops)
+      avg_drop_price = total_drop_value / total_drops if total_drops > 0 else 0
+
+      guns = [
+        d
+        for d in drops
+        if "Case" not in d["name"]
+        and "Terminal" not in d["name"]
+        and "Sticker" not in d["name"]
+      ]
+
+      top_5_drops = sorted(guns, key=lambda x: x["price"], reverse=True)[:5]
+      sorted_cases = sorted(cases, key=lambda x: x["amount"], reverse=True)
+
+      total_value = total_case_value + total_drop_value
+
+      all_accounts_data = self.account_lock._table.all()
+      real_accounts = [a for a in all_accounts_data if a.get("login") != LAST_RESET_KEY]
+      total_accounts = len(real_accounts)
+
+      # Формируем диапазон дат
+      today = datetime.now().date()
+      start_date = (
+        self._last_reset_date if self._last_reset_date else (today - timedelta(days=7))
+      )
+      date_range = f"{start_date.strftime('%d.%m.%Y')} - {today.strftime('%d.%m.%Y')}"
+
+      lines = ["<pre>"]
+      lines.append(
+        "=--= \U0001f1e8\U0001f1f3 YACS PANEL | DROP REPORT \U0001f1e8\U0001f1f3 =--="
+      )
+      lines.append("")
+      lines.append(f"Date: {date_range}")
+      lines.append(f"Accounts: {total_accounts}")
+      lines.append("")
+
+      # --- Таблица кейсов ---
+      # Case | Amount | Price | %
+      col_case_w = 24
+      col_amt_w = 6
+      col_price_w = 8
+      col_pct_w = 6
+
+      header_case = f"{'Case':<{col_case_w}}| {'Amt':<{col_amt_w}}| {'Price':<{col_price_w}}| {'%':<{col_pct_w}}"  # noqa: E501
+      sep_case = (
+        "-" * col_case_w
+        + "+"
+        + "-" * (col_amt_w + 1)
+        + "+"
+        + "-" * (col_price_w + 1)
+        + "+"
+        + "-" * (col_pct_w + 1)
+      )
+
+      lines.append(header_case)
+      lines.append(sep_case)
+
+      if sorted_cases:
+        for case in sorted_cases:
+          name = case["name"].replace(" Case", "").replace("Package", "Pkg")
+          if len(name) > col_case_w - 1:
+            name = name[: col_case_w - 2] + "…"
+
+          qty = case["amount"]
+          price = case["price"]
+          percent = (qty / total_cases) * 100 if total_cases > 0 else 0
+
+          price_str = f"${case['price']:.2f}"
+          lines.append(
+            f"{name:<{col_case_w}}| {qty:<{col_amt_w}}| {price_str:<{col_price_w}}| {percent:<{col_pct_w}.0f}"  # noqa: E501
+          )
+      else:
+        lines.append(
+          f"{'No cases':<{col_case_w}}| {'0':<{col_amt_w}}| {'$0.00':<{col_price_w}}| {'0':<{col_pct_w}}"  # noqa: E501
+        )
+
+      lines.append(sep_case)
+      lines.append("")
+
+      col_skin_w = 32
+
+      header_skin = (
+        f"{'Skin':<{col_skin_w}}| {'Price':<{col_price_w}}| {'Amt':<{col_amt_w}}"
+      )
+      sep_skin = (
+        "-" * col_skin_w + "+" + "-" * (col_price_w + 1) + "+" + "-" * (col_amt_w + 1)
+      )
+
+      lines.append(header_skin)
+      lines.append(sep_skin)
+
+      if top_5_drops:
+        for item in top_5_drops:
+          name = item["name"]
+          replacements = {
+            "(Factory New)": "- (FN)",
+            "(Minimal Wear)": "- (MW)",
+            "(Field-Tested)": "- (FT)",
+            "(Well-Worn)": "- (WW)",
+            "(Battle-Scarred)": "- (BS)",
+          }
+          for old, new in replacements.items():
+            name = name.replace(old, new)
+
+          name = name.replace("|", "-")
+
+          if len(name) > col_skin_w - 1:
+            display_name = name[: col_skin_w - 2] + "…"
+          else:
+            display_name = name
+
+          qty = item["amount"]
+          price = item["price"]
+          price_str = f"${price:.2f}"
+
+          lines.append(
+            f"{display_name:<{col_skin_w}}| {price_str:<{col_price_w}}| {qty:<{col_amt_w}}"  # noqa: E501
+          )
+      else:
+        lines.append(
+          f"{'No drops':<{col_skin_w}}| {'0':<{col_amt_w}}| {'$0.00':<{col_price_w}}"
+        )
+
+      lines.append(sep_skin)
+      lines.append("")
+
+      # --- Итоги ---
+      lines.append(f"→ Price of all drop: ~ {total_value:.1f}$.")
+      lines.append(f"→ Total cases: {total_cases} pcs.")
+      lines.append(
+        f"→ AVG price of cases/all drop: {avg_case_price:.2f}$/{avg_drop_price:.2f}$."
+      )
+
+      lines.append("</pre>")
+      msg = "\n".join(lines)
+
+      if self.ctx:
+        asyncio.create_task(self.ctx.send_message(msg))
+      else:
+        logger.warning("Context not available, cannot send telegram message")
+
+    except Exception as e:
+      logger.error(f"Failed to send farm summary: {e}")
 
   def _reset_all_statuses(self):
     """Сбросить статус всех аккаунтов до NEED_TO_FARM."""

@@ -42,7 +42,6 @@ class ContinueFarm(state.State):
       await asyncio.sleep(0.2)
 
       in_lobby = await CS2Controller.check_if_exists_async("img/exit.png", account, 0.9)
-      logger.info(f"Account {account.login} 'exit.png' found: {in_lobby}")
 
       if not in_lobby:
         logger.warning(f"Account {account.login} seems NOT to be in lobby.")

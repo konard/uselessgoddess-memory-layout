@@ -5,7 +5,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from core.logging import get_logger
-from core.process_config import ConfigService
 
 from .lock import AccountsLock
 
@@ -210,6 +209,7 @@ class RunningAccount(Account):
     return f"[{login}] # CS"
 
   def stop_account(self, ctx: Context) -> bool:
+    from core.process_config import ConfigService
     from core.services.process import ProcessService
 
     config_service = ConfigService(ctx)
