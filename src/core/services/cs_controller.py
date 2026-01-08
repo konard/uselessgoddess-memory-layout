@@ -37,7 +37,6 @@ class CS2Controller:
   @staticmethod
   def move_mouse(x, y, account: Account):
     """Перемещает мышь"""
-    logger.trace(f"Перемещает мышь: ({x}, {y})")
     abs_x = int(account.posX + x)
     abs_y = int(account.posY + y)
     try:
@@ -61,7 +60,6 @@ class CS2Controller:
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
     time.sleep(0.05)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-    logger.trace(f"Клик по ({x}, {y})")
 
   @staticmethod
   def send_text(text: str):

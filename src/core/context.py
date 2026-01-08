@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.account import FarmStatus
+from core.account.model import RunningAccount
 from core.logging import get_logger
 from core.services import (
   GCService,
@@ -78,7 +79,7 @@ class Context:
     return list(unfarmed_accounts_list)
 
   @property
-  def launched_accounts(self) -> list[Account]:
+  def launched_accounts(self) -> list[RunningAccount]:
     return WindowService.scan_cs2_windows(self.accounts(), values=True)
 
   @property  # shorthand to `settings`

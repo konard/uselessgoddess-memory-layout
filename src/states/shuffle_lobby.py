@@ -88,7 +88,7 @@ class ShuffleLobby(State):
 
       ctx.blacklisted_accounts.add(victim.login)
 
-      if victim.stop_account(ctx.su):
+      if victim.stop_account(ctx):
         logger.info(f"Stopped {victim.login}")
       else:
         logger.warn(f"Failed to stop {victim.login}, might be already stopped")

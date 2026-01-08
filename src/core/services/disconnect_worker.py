@@ -5,7 +5,6 @@ from core import game_constants
 from core.logging import get_logger
 from core.panel.state import StateManager
 from core.services.cs_controller import CS2Controller
-from core.services.windows_service import WindowService
 from states.continue_farm import ContinueFarm
 from states.disconnect import DisconnectState, DisconnectType
 from states.make_lobbies.make_lobbies import MakeLobbies
@@ -37,12 +36,19 @@ class DisconnectWorker:
 
       # Fix: use isinstance because current_state is an instance,
       #  and the list contains classes
-      should_fill_accounts = isinstance(current_state, (MakeLobbies, ContinueFarm))
+
+      should_fill_accounts = isinstance(
+        current_state, (MakeLobbies, ContinueFarm, MatchState)
+      )
 
       if (
         launched_accounts != game_constants.farm_mode_size[farm_mode]
         and should_fill_accounts
       ):
+        if isinstance(current_state, MatchState):
+          for account in self.ctx.launched_accounts:
+            account.stop_account(self.ctx)
+
         await self.stateManager.into_state(
           SelectAccounts(game_constants.farm_mode_size[farm_mode])
         )
