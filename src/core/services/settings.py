@@ -80,6 +80,7 @@ class InferenceDevice(str, Enum):
 class MatchSettings(BaseModel):
   fast_paths: bool = Field(False, description="Enable fast paths")
   no_plant: bool = Field(False, description="Disable plant behaviour")
+  no_buy: bool = Field(False, description="Disable buy menu behaviour, prefer autobuy")
 
 
 class AdvancedSettings(BaseModel):

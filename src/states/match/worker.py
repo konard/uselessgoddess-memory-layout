@@ -73,6 +73,7 @@ class MatchWorker(threading.Thread):
     self.players: dict[str, PlayerEntry] = {}
     self.score = {Team.CT: 0, Team.T: 0}
     self.round = -1
+    self._last_freeze_round = -1
     self.state = State.Prepare
     self._event_queue = queue.Queue(maxsize=12)
 
@@ -97,8 +98,6 @@ class MatchWorker(threading.Thread):
 
       if self.all_ready() and self.player is not None:
         if self.state == State.Prepare:
-          # anti afk system
-          self.coco_jambo(self.player.bomb)
           self.state = State.Round
           WindowService.focus_window(self.player.win_cs_title)
         else:
@@ -214,6 +213,21 @@ class MatchWorker(threading.Thread):
           # Remove player from active players if team is undefined
           del self.players[player.steam_id]
 
+    # --- NEW LOGIC: FREEZE TIME HANDLING ---
+    # Проверяем, что все игроки находятся в фазе FREEZETIME
+    active_list = self.active_players()
+    all_freeze = (
+      len(self.accounts) > 0
+      and len(active_list) == len(self.accounts)
+      and all(p.phase == RoundPhase.FREEZETIME for p in active_list)
+    )
+
+    if map.round != self.round and all_freeze and self._last_freeze_round != map.round:
+      logger.info(f"Round {map.round} Freeze Time: Performing Anti-AFK (Crouch/Buy)")
+      self.coco_jambo(contains_c4)
+      self._last_freeze_round = map.round
+
+    # Если раунд сменился и мы в LIVE - начинаем логику передвижения
     if map.round != self.round and self.all_ready():
       self.round = map.round
       self.disconnect = False
@@ -226,14 +240,14 @@ class MatchWorker(threading.Thread):
     if map.round != self.round and self.disconnect:
       self.coco_jambo(False)
 
-    active_players = len(self.active_players())
-    if self.ingame and active_players == 0:
+    active_players_count = len(self.active_players())
+    if self.ingame and active_players_count == 0:
       self.running = False
     else:
-      self.status_text = f"Waiting {active_players}/{len(self.accounts)}..."
+      self.status = f"Waiting {active_players_count}/{len(self.accounts)}..."
 
     # disconnect
-    if self.running and self.ingame and active_players != len(self.accounts):
+    if self.running and self.ingame and active_players_count != len(self.accounts):
       self.disconnect = True
       self.coco_jambo(False)
 
@@ -265,6 +279,7 @@ class MatchWorker(threading.Thread):
       self.player.bomb,
       reach_maxround,
       self.ctx.su.advanced.match.fast_paths,
+      self.ctx.su.advanced.match.no_buy,
     )
     if self.path is None:
       logger.error(f"path not found for {debug}")

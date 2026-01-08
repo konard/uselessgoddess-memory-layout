@@ -207,7 +207,7 @@ class Path:
 
 
 class BuilderContext:
-  def __init__(self, team: Team, bomb: bool, last: bool, fast: bool):
+  def __init__(self, team: Team, bomb: bool, last: bool, fast: bool, no_buy: bool):
     self.team = team
     self.bomb = bomb
     self.last = last
@@ -216,6 +216,7 @@ class BuilderContext:
     self.recursive = False
     self.direction = Path.LEFT
     self.fast = fast
+    self.no_buy = no_buy
 
 
 class ActionBuilder(ABC):
@@ -299,6 +300,10 @@ class BuyRandom(ActionBuilder):
 
   def build(self, ctx: BuilderContext) -> list[Edge]:
     actions = []
+
+    if ctx.no_buy:
+      return actions
+
     amount = random.randint(0, 4)
 
     # buy kevlar/helmet
@@ -355,6 +360,7 @@ def infer_path(
   bomb: bool,
   last_round: bool = False,
   fast: bool = False,
+  no_buy: bool = False,
 ) -> Path | None:
   try:
     label = team.label()
@@ -365,7 +371,7 @@ def infer_path(
     return None
 
   # apply decorators
-  ctx = BuilderContext(team, bomb, last_round, fast)
+  ctx = BuilderContext(team, bomb, last_round, fast, no_buy)
   skel = random.choice(skel)
   skel.insert(
     0,
