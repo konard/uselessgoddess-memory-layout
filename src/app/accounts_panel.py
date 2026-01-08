@@ -1,4 +1,6 @@
 import asyncio
+import json
+import os
 import re
 
 from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
@@ -7,9 +9,11 @@ from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (
   QAbstractItemView,
   QApplication,
+  QButtonGroup,
   QComboBox,
   QDialog,
   QDialogButtonBox,
+  QFileDialog,
   QHBoxLayout,
   QHeaderView,
   QInputDialog,
@@ -19,6 +23,8 @@ from PyQt6.QtWidgets import (
   QListWidgetItem,
   QMenu,
   QMessageBox,
+  QRadioButton,
+  QSizePolicy,
   QStackedWidget,
   QTableWidget,
   QTableWidgetItem,
@@ -31,10 +37,13 @@ from PyQt6.QtWidgets import (
 from app.import_dialog import ImportAccountsDialog
 from core.account.model import FarmStatus
 from core.context import Context
+from core.logging import get_logger
 from core.services.presets import Preset
 from core.services.steam_login import generate_2fa_code
 from ui.theme import CURRENT_THEME, ButtonType
 from ui.widgets import Button, Switch, Tooltip
+
+logger = get_logger("ui")
 
 enum_to_color = {
   FarmStatus.NEED_TO_FARM: CURRENT_THEME.ACCENT_RED,
@@ -309,9 +318,6 @@ class AccountsTable(QWidget):
     actions_bar = QHBoxLayout()
     actions_bar.setSpacing(5)
 
-    self.btn_import = Button("Import", button_type=ButtonType.SUCCESS)
-    actions_bar.addWidget(self.btn_import)
-
     self.btn_all = Button("All", button_type=ButtonType.DEFAULT)
     self.btn_select_4 = Button("4 Unfarmed", button_type=ButtonType.PRIMARY)
     self.btn_select_10 = Button("10 Unfarmed", button_type=ButtonType.PRIMARY)
@@ -321,6 +327,7 @@ class AccountsTable(QWidget):
     actions_bar.addWidget(self.btn_select_4)
     actions_bar.addWidget(self.btn_select_10)
     actions_bar.addWidget(self.btn_clear)
+    actions_bar.addStretch()
 
     layout.addLayout(actions_bar)
 
@@ -355,7 +362,7 @@ class AccountsTable(QWidget):
     header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
     header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
     header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-    self.table.setColumnWidth(3, 80)
+    self.table.setColumnWidth(3, 55)
 
     self.table.setStyleSheet(f"""
             QTableWidget {{ 
@@ -389,8 +396,22 @@ class AccountsTable(QWidget):
 
     layout.addWidget(self.table)
 
+    bottom_bar = QHBoxLayout()
+    bottom_bar.setSpacing(5)
+
+    self.btn_import = Button("Import", button_type=ButtonType.SUCCESS)
+    self.btn_import.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    self.btn_export = Button("Export", button_type=ButtonType.PRIMARY)
+    self.btn_export.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    bottom_bar.addWidget(self.btn_import)
+    bottom_bar.addWidget(self.btn_export)
+
+    layout.addLayout(bottom_bar)
+
   def _connect_signals(self):
     self.btn_import.clicked.connect(self._open_import_dialog)
+    self.btn_export.clicked.connect(self._export_selected_accounts)
     self.search_input.textChanged.connect(self._on_search_changed)
 
     self.btn_all.clicked.connect(self._select_all_visible)
@@ -406,6 +427,184 @@ class AccountsTable(QWidget):
     dialog = ImportAccountsDialog(self.ctx, self)
     if dialog.exec():
       self.refresh_table()
+
+  def _export_selected_accounts(self):
+    selected_logins = self.ctx.ui.selected_logins
+
+    if not selected_logins:
+      QMessageBox.warning(self, "Export", "No accounts selected for export!")
+      return
+
+    dialog = QDialog(self)
+    dialog.setWindowTitle("Export Format")
+
+    dialog.setStyleSheet(f"""
+        QDialog {{
+            background-color: {CURRENT_THEME.BACKGROUND};
+        }}
+        QLabel {{
+            color: {CURRENT_THEME.PRIMARY_TEXT};
+            font-size: 14px;
+            font-weight: bold;
+        }}
+        QRadioButton {{
+            color: {CURRENT_THEME.PRIMARY_TEXT};
+            font-size: 13px;
+            spacing: 8px;
+            padding: 2px;
+        }}
+        /* Стилизация кружка (индикатора) */
+        QRadioButton::indicator {{
+            width: 14px;
+            height: 14px;
+            border-radius: 8px;
+            border: 2px solid {CURRENT_THEME.BORDER};
+            background-color: {CURRENT_THEME.INPUT_BACKGROUND};
+        }}
+        QRadioButton::indicator:hover {{
+            border-color: {CURRENT_THEME.ACCENT_BLUE};
+        }}
+        QRadioButton::indicator:checked {{
+            background-color: {CURRENT_THEME.ACCENT_BLUE};
+            border-color: {CURRENT_THEME.ACCENT_BLUE};
+        }}
+    """)
+
+    dialog_layout = QVBoxLayout(dialog)
+
+    lbl = QLabel("Choose filename format:")
+    dialog_layout.addWidget(lbl)
+
+    rb_login = QRadioButton("Login (login.maFile)")
+    rb_login.setChecked(True)
+    rb_login.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    rb_steamid = QRadioButton("SteamID64 (765611....maFile)")
+    rb_steamid.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    dialog_layout.addWidget(rb_login)
+    dialog_layout.addWidget(rb_steamid)
+
+    btns = QDialogButtonBox(
+      QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+    )
+    btns.accepted.connect(dialog.accept)
+    btns.rejected.connect(dialog.reject)
+    dialog_layout.addWidget(btns)
+
+    if dialog.exec() != QDialog.DialogCode.Accepted:
+      return
+
+    use_steamid_name = rb_steamid.isChecked()
+
+    folder = QFileDialog.getExistingDirectory(self, "Select Directory to Save .maFiles")
+    if not folder:
+      return
+    success_count = 0
+    errors = []
+    manifest_entries = []
+
+    for login in selected_logins:
+      account = self.ctx.account.accounts.get(login)
+      if not account:
+        continue
+
+      try:
+        steam_id_int = int(account.steam_id) if account.steam_id.isdigit() else 0
+        if steam_id_int == 0:
+          logger.warn(f"[{account.login}] found account with invalid steamid")
+
+        mafile_data = {
+          "account_name": account.login,
+          "steam_id": steam_id_int,
+          "shared_secret": account.shared_secret,
+          "identity_secret": account.identity_secret,
+        }
+
+        if account.lock.refresh_token:
+          mafile_data["tokens"] = {"refresh_token": account.lock.refresh_token}
+          if account.lock.access_token_info:
+            token = account.lock.access_token_info.get("token")
+            if token:
+              mafile_data["tokens"]["access_token"] = token
+
+        if use_steamid_name:
+          if not account.steam_id:
+            raise ValueError("SteamID missing, cannot use it for filename")
+          filename = f"{account.steam_id}.maFile"
+        else:
+          filename = f"{account.login}.maFile"
+
+        file_path = os.path.join(folder, filename)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+          json.dump(mafile_data, f, indent=4, ensure_ascii=False)
+
+        manifest_entries.append(
+          {
+            "encryption_iv": None,
+            "encryption_salt": None,
+            "filename": filename,
+            "steamid": steam_id_int,
+          }
+        )
+
+        success_count += 1
+
+      except Exception as e:
+        errors.append(f"{login}: {str(e)}")
+
+    if success_count > 0:
+      try:
+        manifest_path = os.path.join(folder, "manifest.json")
+        manifest_data = {
+          "encrypted": False,
+          "first_run": False,
+          "entries": [],
+          "periodic_checking": False,
+          "periodic_checking_interval": 5,
+          "periodic_checking_checkall": False,
+          "auto_confirm_market_transactions": False,
+          "auto_confirm_trades": False,
+        }
+
+        # Если манифест уже есть, читаем его, чтобы не затереть старые записи
+        if os.path.exists(manifest_path):
+          try:
+            with open(manifest_path, encoding="utf-8") as f:
+              existing_data = json.load(f)
+              if isinstance(existing_data, dict):
+                manifest_data.update(existing_data)
+          except Exception:
+            pass  # Если файл битый, перезапишем
+
+        if "entries" not in manifest_data:
+          manifest_data["entries"] = []
+
+        # Добавляем новые записи
+        manifest_data["entries"].extend(manifest_entries)
+
+        with open(manifest_path, "w", encoding="utf-8") as f:
+          json.dump(manifest_data, f, indent=4, ensure_ascii=False)
+
+      except Exception as e:
+        errors.append(f"Manifest Error: {str(e)}")
+
+    if errors:
+      error_msg = "\n".join(errors[:10])
+      if len(errors) > 10:
+        error_msg += "\n..."
+      QMessageBox.warning(
+        self,
+        "Export Finished with Errors",
+        f"Exported: {success_count}\nFailed: {len(errors)}\n\nErrors:\n{error_msg}",
+      )
+    else:
+      QMessageBox.information(
+        self,
+        "Export Successful",
+        f"Exported {success_count} files and updated manifest.json in:\n{folder}",
+      )
 
   def refresh_table(self):
     accounts = self.ctx.accounts()

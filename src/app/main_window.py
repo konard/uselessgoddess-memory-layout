@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
   def __init__(self, context, parent=None):
     super().__init__(parent)
     self.setWindowTitle("YACS Panel")
-    self.resize(1100, 800)
+    self.resize(1200, 800)
     self.setFont(QFont(CURRENT_THEME.FONT_FAMILY, CURRENT_THEME.FONT_SIZE_NORMAL))
 
     self.ctx = context
