@@ -9,10 +9,9 @@ from pathlib import Path
 
 import requests
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.edge.service import Service
 from steam.client import Client
-from webdriver_manager.chrome import ChromeDriverManager
 
 from core.account.model import Account
 from core.logging import get_logger
@@ -182,23 +181,14 @@ class BrowserService:
       return None
 
   @staticmethod
-  def _install_extensions(driver: webdriver.Chrome, extension_ids: list[str]) -> None:
-    """Устанавливает расширения по списку ID."""
+  def _prepare_extensions(extension_ids: list[str]) -> str:
+    """Скачивает расширения и возвращает строку путей для аргумента --load-extension."""
+    paths = []
     for ext_id in extension_ids:
-      ext_path_str = BrowserService._download_and_unpack_extension(ext_id)
-      if ext_path_str:
-        ext_path = Path(ext_path_str)
-        if (ext_path / "manifest.json").exists():
-          try:
-            logger.info(f"Installing extension {ext_id} from: {ext_path}")
-            extension_result = driver.webextension.install(path=ext_path_str)
-            logger.info(f"Extension {ext_id} installed: {extension_result}")
-          except Exception as e:
-            logger.error(f"Failed to install extension {ext_id}: {e}")
-        else:
-          logger.warn(f"Manifest not found for extension {ext_id} at {ext_path}")
-      else:
-        logger.warn(f"Failed to download/unpack extension {ext_id}")
+      path = BrowserService._download_and_unpack_extension(ext_id)
+      if path:
+        paths.append(path)
+    return ",".join(paths)
 
   @staticmethod
   def _launch_chrome_sync(
@@ -206,33 +196,35 @@ class BrowserService:
   ) -> tuple[bool, str]:
     """Синхронный запуск Selenium (должен выполняться в отдельном потоке)"""
     try:
-      logger.info("Launching Chrome...")
-      chrome_options = Options()
-      chrome_options.add_experimental_option("detach", True)
-      chrome_options.add_argument("--log-level=3")
+      logger.info("Launching Edge...")
+      edge_options = EdgeOptions()
+      edge_options.add_experimental_option("detach", True)
+      edge_options.add_argument("--log-level=3")
 
-      chrome_options.enable_bidi = False
+      edge_options.enable_bidi = False
 
-      chrome_options.add_argument("--no-sandbox")
-      chrome_options.add_argument("--disable-dev-shm-usage")
-      chrome_options.add_argument("--remote-allow-origins=*")
-      chrome_options.add_argument("--enable-unsafe-extension-debugging")
+      edge_options.add_argument("--no-sandbox")
+      edge_options.add_argument("--disable-dev-shm-usage")
+      edge_options.add_argument("--remote-allow-origins=*")
+      edge_options.add_argument("--enable-unsafe-extension-debugging")
+
+      if extension_ids:
+        logger.info(f"Preparing extensions: {extension_ids}")
+        ext_paths = BrowserService._prepare_extensions(extension_ids)
+        if ext_paths:
+          logger.info(f"Loading extensions: {ext_paths}")
+          edge_options.add_argument(f"--load-extension={ext_paths}")
 
       service = Service(
-        ChromeDriverManager().install(),
-        log_output="chromedriver.log",
+        log_output="edgedriver.log",
         service_args=["--verbose"],
       )
-      driver = webdriver.Chrome(service=service, options=chrome_options)
+      driver = webdriver.Edge(service=service, options=edge_options)
 
       # Keep reference to prevent Garbage Collection closure
       BrowserService.drivers.append(driver)
 
-      if extension_ids:
-        BrowserService._install_extensions(driver, extension_ids)
-      else:
-        default_ext_id = "cmeakgjggjdlcpncigglobpjbkabhmjl"
-        BrowserService._install_extensions(driver, [default_ext_id])
+      time.sleep(3)
 
       if cookies:
         logger.info(f"Injecting {len(cookies)} cookies via CDP...")
