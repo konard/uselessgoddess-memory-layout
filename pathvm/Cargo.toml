@@ -1,0 +1,43 @@
+[package]
+name = "pathvm"
+version = "0.1.0"
+edition = "2021"
+description = "A portable path execution engine for game automation with YAML/Lua configuration support"
+license = "MIT"
+authors = ["memory-layout contributors"]
+
+[lib]
+name = "pathvm"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Python bindings
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py311"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+
+# Lua scripting (optional)
+mlua = { version = "0.10", features = ["lua54", "vendored", "serialize"], optional = true }
+
+# Random and utilities
+rand = "0.8"
+thiserror = "2.0"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+[features]
+default = []
+lua = ["mlua"]
+
+[dev-dependencies]
+tempfile = "3.16"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3

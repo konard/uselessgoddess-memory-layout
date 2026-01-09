@@ -89,3 +89,7 @@ data/sandboxes/*
 /proto
 /train/dataset
 /train/runs
+
+# Rust build artifacts
+pathvm/target/
+*.rlib

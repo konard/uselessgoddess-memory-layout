@@ -1,0 +1,36 @@
+# Simple Path Example
+# This demonstrates the basic path configuration format
+
+name: "simple_demo"
+description: "A simple demo path for learning the configuration format"
+
+path:
+  # Basic movement: hold W and A for 2 seconds (forward-left)
+  - move:
+      keys: [W, A]
+    duration: 2.0
+
+  # Inspect weapon
+  - inspect:
+      hold: false
+    duration: 0.5
+
+  # Move forward
+  - move:
+      keys: [W]
+    duration: 3.0
+
+  # Shoot (press K key)
+  - shoot:
+      hold: false
+    duration: 0.1
+
+  # Wait a bit
+  - wait: {}
+    duration: 1.0
+
+  # Move mouse to look around
+  - mouse_move:
+      x: 100
+      y: 0
+    duration: 0.5

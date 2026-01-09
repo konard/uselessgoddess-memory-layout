@@ -1,0 +1,122 @@
+# Advanced Path Example
+# This demonstrates chaos features: Select, Maybe, If conditions
+
+name: "advanced_demo"
+map: "de_inferno"
+mode: "scrimcomp2v2"
+team: ct
+description: "CT-side path with random branching and conditions"
+
+path:
+  # Random buy at start
+  - buy_random: {}
+
+  # Wait after buying
+  - wait: {}
+    duration: 0.25
+
+  # Avoid dropping bomb
+  - move:
+      keys: [W]
+    duration: 0.1
+  - move:
+      keys: [S]
+    duration: 0.1
+
+  # Initial wait
+  - wait: {}
+    duration: 1.0
+
+  # Select primary weapon (slot 1)
+  - weapon:
+      slot: 1
+
+  # Throw grenade if exists (slot 4)
+  - weapon:
+      slot: 4
+
+  # Rotate to face mid
+  - rotate:
+      target: 180
+      precision: 5.0
+    duration: 40.0
+
+  # Movement sequence
+  - move:
+      keys: [W]
+    duration: 0.5
+
+  - move:
+      keys: [D]
+    duration: 1.0
+
+  # Conditional: if player has bomb, do different action
+  - if:
+      condition: has_bomb
+      then:
+        - move:
+            keys: [W, A]
+          duration: 2.0
+      else:
+        - move:
+            keys: [W, D]
+          duration: 2.0
+
+  # 50% chance to do extra shooting
+  - maybe:
+      chance: 0.5
+      then:
+        - shoot:
+            hold: false
+          duration: 0.1
+        - shoot:
+            hold: false
+          duration: 0.1
+        - shoot:
+            hold: false
+          duration: 0.1
+
+  # Random selection of follow-up actions
+  - select:
+      options:
+        # Option 1: Wait and watch
+        - - wait: {}
+            duration: 5.0
+
+        # Option 2: Aggressive push
+        - - move:
+              keys: [W]
+            duration: 3.0
+          - shoot:
+              hold: false
+            duration: 0.1
+
+        # Option 3: Rotate back
+        - - rotate:
+              target: 0
+              precision: 5.0
+            duration: 20.0
+
+  # Final defuse attempt (CT-specific)
+  - maybe:
+      chance: 0.3
+      then:
+        # Crouch + use key for defuse
+        - key:
+            key: CTRL
+            hold: true
+          duration: 0.25
+        - key:
+            key: E
+            hold: true
+          duration: 0.25
+        - wait: {}
+          duration: 5.0
+        - key:
+            key: CTRL
+            hold: false
+          duration: 0.25
+        - key:
+            key: E
+            hold: false
+          duration: 0.25

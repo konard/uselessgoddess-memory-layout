@@ -1,0 +1,32 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "pathvm"
+version = "0.1.0"
+description = "Portable path execution engine with YAML/JSON configuration support"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["pathfinding", "game", "automation", "behavior-tree"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Games/Entertainment",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "maturin>=1.4",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "pathvm._pathvm"

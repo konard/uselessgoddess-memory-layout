@@ -1,0 +1,84 @@
+# Path: T-Side Left Route (de_inferno - 2v2)
+# Description: Go mid, rotate left, reach B site
+
+name: "t_left_killall"
+map: "de_inferno"
+mode: "scrimcomp2v2"
+team: t
+description: "T-side left rotation through mid to B site"
+
+path:
+  # Set initial direction for aim controller
+  - set_direction:
+      direction: right
+
+  # Initial rotation to face mid (40 seconds max)
+  - rotate:
+      target: 0
+      precision: 5.0
+    duration: 40.0
+
+  # Movement sequence
+  - move:
+      keys: [W, A]
+    duration: 3.0
+
+  - move:
+      keys: [W, D]
+    duration: 2.0
+
+  - move:
+      keys: [W]
+    duration: 3.0
+
+  - move:
+      keys: [S, A]
+    duration: 0.5
+
+  - move:
+      keys: [A]
+    duration: 3.0
+
+  - move:
+      keys: [S, A]
+    duration: 0.5
+
+  - move:
+      keys: [W]
+    duration: 1.5
+
+  - move:
+      keys: [W, D]
+    duration: 3.0
+
+  - move:
+      keys: [W]
+    duration: 2.4
+
+  - move:
+      keys: [S, D]
+    duration: 0.6
+
+  # Optional recursive rotation (25% chance)
+  - maybe:
+      chance: 0.25
+      then:
+        # Change to T side and do right rotation
+        - change_team:
+            team: t
+
+        # Reference to right_killall path (resolved at load time)
+        - path_ref: "t_right_killall"
+
+        # Random follow-up action
+        - select:
+            options:
+              - []  # Do nothing
+              - []  # Do nothing
+              - if:
+                  condition: not_last
+                  then:
+                    - maybe:
+                        chance: 0.5
+                        then:
+                          - change_team: {}
